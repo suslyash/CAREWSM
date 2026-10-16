@@ -12,8 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (manager PASS; PR #3 merged)**. TASK-001B scaffold is
-implemented on its task branch and pending manager review; no cleanup has run.
+Status: **TASK-001A ACCEPTED (PR #3)** and **TASK-001B ACCEPTED (PR #5)**. Inactive CAREWSM scaffold merged; Stage 1C packaging/plugin isolation is next. No legacy relocation or extraction has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -38,12 +37,11 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-001B — non-destructive CAREWSM package/config/test scaffold and legacy-isolation documentation. See `docs/NEXT_TASK_EN.md`. Extraction, DiariZen, training and dataset writes remain forbidden.
+TASK-001C — isolate active CAREWSM packaging/Chimera entrypoint without moving legacy code or running heavy processes. See `docs/NEXT_TASK_EN.md`.
 
 ## TASK-001B outcome
 
 Created the inactive `src/carewsm/` namespace, future `configs/carewsm/` root,
 legacy-isolation documentation, and bounded scaffold tests. Existing WSM-derived
 code, configurations, registrations, scripts, and tests remain untouched.
-The task branch is pending manager review; extraction, DiariZen, training,
-evaluation, and CARE/WSM writes were not performed.
+TASK-001B accepted and merged in PR #5: https://github.com/suslyash/CAREWSM/pull/5 ; merge SHA `b23b686fe4a143d0cd8804e232110ccb8731924a`. Codex reported standalone import PASS and `git diff --check` PASS; `pytest` was unavailable (`No module named pytest`), so a pytest run is not claimed. Extraction, DiariZen, training, evaluation and CARE/WSM writes were not performed.
