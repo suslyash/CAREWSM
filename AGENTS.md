@@ -95,17 +95,6 @@ The first corpus audit must verify actual CSV columns, label values, label avail
 - Register no old WSM components by default. Reuse must be justified by later bounded tasks and CAREWSM-specific contracts.
 - These latest owner rules supersede any conflicting legacy-namespace recommendations in earlier docs.
 
-## 9. Previous audit/legacy policy
-
-Until the repository/code audit and manager-approved cleanup:
-
-- copied `src/`, `configs/`, `tests/`, and retained scripts are **legacy candidates**;
-- old DataModules must not be assumed compatible with CAREWSM;
-- old callbacks/losses/metrics may be reusable only after inspection;
-- old model families may only be recovered in later reviewed tasks; never create a `src/legacy/` namespace;
-- classify components as KEEP / ADAPT / LEGACY / DELETE before destructive cleanup;
-- previous WSM results are not CAREWSM baselines unless deliberately reproduced under the new data contract.
-
 ## 9. Chimera and extraction boundary
 
 One-time corpus feature extraction is outside Chimera ML.
