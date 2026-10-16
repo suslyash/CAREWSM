@@ -87,14 +87,22 @@ The first corpus audit must verify actual CSV columns, label values, label avail
 - Every model/config change must be traceable to CV/DEV evidence or an owner requirement, never to a Test score.
 - Prefer evaluating TEST once for the DEV-selected checkpoint of each completed run/configuration, then persist the result and evaluator identity.
 
-## 8. Legacy-code policy
+## 8. Source layout and legacy-code policy — current owner rule
+
+- `src/` contains **only active ChimeraML Python code** under `src/audio/`, `src/fusion/`, `src/common/`, with `src/chimera_plugin.py` as the minimal entrypoint.
+- **No** `src/carewsm/` or `src/legacy/` namespaces, README/docs, extraction/preprocessing utilities, audit tools, or one-time scripts inside `src/`. Put scripts in repository-root `scripts/` and docs in `docs/`.
+- Revised TASK-001C explicitly removes copied obsolete WSM modules and the TASK-001B `src/carewsm/` and `src/legacy/README.md` mistakes. Provenance remains in Git history.
+- Register no old WSM components by default. Reuse must be justified by later bounded tasks and CAREWSM-specific contracts.
+- These latest owner rules supersede any conflicting legacy-namespace recommendations in earlier docs.
+
+## 9. Previous audit/legacy policy
 
 Until the repository/code audit and manager-approved cleanup:
 
 - copied `src/`, `configs/`, `tests/`, and retained scripts are **legacy candidates**;
 - old DataModules must not be assumed compatible with CAREWSM;
 - old callbacks/losses/metrics may be reusable only after inspection;
-- old model families may later be moved under a clear `legacy/` namespace;
+- old model families may only be recovered in later reviewed tasks; never create a `src/legacy/` namespace;
 - classify components as KEEP / ADAPT / LEGACY / DELETE before destructive cleanup;
 - previous WSM results are not CAREWSM baselines unless deliberately reproduced under the new data contract.
 
