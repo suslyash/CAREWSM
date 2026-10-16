@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)** and **TASK-001B ACCEPTED (PR #5)**. Owner refined TASK-001C: clean obsolete WSM source and top-level scripts, archive only actual old models under passive `src/legacy/`, delete obsolete tests without replacing them. No repository cleanup or extraction has run yet.
+Status: **TASK-001A ACCEPTED (PR #3)** and **TASK-001B ACCEPTED (PR #5)**. Owner refined TASK-001C: clean obsolete WSM source, scripts and nested README files; archive only actual old models in passive `src/legacy/`; delete obsolete tests without replacements; preserve required `wsm_summary_callback` and candidate `wsm_segment_metrics_callback`. No repository cleanup or extraction has run yet.
 
 No CAREWSM scientific experiment has been run.
 
