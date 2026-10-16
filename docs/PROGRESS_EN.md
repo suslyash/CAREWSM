@@ -10,15 +10,15 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 ## Current stage
 
-Stage 0 — repository bootstrap and legacy reset.
+Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **COMPLETE pending manager review**.
+Status: **AUDIT COMPLETE pending manager review**.
 
 No CAREWSM scientific experiment has been run.
 
 No CAREWSM baseline has been accepted.
 
-Copied code/configs/tests are temporarily preserved as legacy candidates pending the Stage-1 audit.
+Copied code/configs/tests are classified as audit candidates; no cleanup or deletion has been authorized.
 
 ## Data roots
 
@@ -31,6 +31,10 @@ Owner expectations pending audit: fixed train/dev/test, five CV folds inside TRA
 
 CV folds are used for development/hyperparameter selection. DEV is used for final model/configuration selection. TEST is visible and stored as descriptive/reporting evidence for completed DEV-selected checkpoints, but it must not influence model, checkpoint, threshold, hyperparameter, architecture, sweep, or retry decisions.
 
+## Completed task
+
+TASK-001A — repository, corpus, and CARE feature-contract audit. Evidence: `docs/TASK-001A_CORPUS_FEATURE_REPO_AUDIT_EN.md`.
+
 ## Next task
 
-TASK-001A — repository, corpus, and CARE feature-contract audit.
+Manager review of TASK-001A is required before cleanup, extraction, DiariZen, or modelling.
