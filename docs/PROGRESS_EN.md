@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)** and **TASK-001B ACCEPTED (PR #5)**. The owner rejected the TASK-001B `src/carewsm/`/README-in-src layout; its correction plus actual removal of obsolete WSM source is now the goal of revised TASK-001C. No legacy source cleanup or extraction has run.
+Status: **TASK-001A ACCEPTED (PR #3)** and **TASK-001B ACCEPTED (PR #5)**. Owner refined TASK-001C: clean obsolete WSM source and top-level scripts, archive only actual old models under passive `src/legacy/`, delete obsolete tests without replacing them. No repository cleanup or extraction has run yet.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-001C (revised) — **clean obsolete WSM source from `src/`**, restore `audio/fusion/common` plus minimal Chimera plugin and remove unwanted `src/carewsm/` and `src/legacy/README.md`. See `docs/NEXT_TASK_EN.md`. No dataset writes, extraction or training.
+TASK-001C (owner-finalized) — **clean old WSM source and scripts**, preserve old model code only under `src/legacy/`, remove incorrect `src/carewsm/` scaffold and obsolete copied tests, and do not add/run tests. See `docs/NEXT_TASK_EN.md`. No data writes, extraction or training.
 
 ## TASK-001B outcome
 
