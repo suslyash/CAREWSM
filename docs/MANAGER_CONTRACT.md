@@ -4,12 +4,12 @@
 
 1. Manager reads owner messages and active CAREWSM docs.
 2. Manager chooses exactly one atomic next task.
-3. Manager writes a complete Codex prompt as a Markdown file.
+3. Manager maintains a single complete next-task contract in `docs/NEXT_TASK_EN.md` and sends the owner a **short in-chat Codex instruction** to fetch/pull and read the latest repository instructions. No separate downloadable prompt is required unless the owner requests one.
 4. Codex works on `codex/<task>`, commits, pushes normally, and stops.
 5. User returns the Codex handoff to the manager.
 6. Manager independently verifies branch, commit, diff, evidence, data/Test use, and scope.
 7. PASS: manager opens the PR and merges it.
-8. FAIL: manager writes a corrective prompt; no merge.
+8. FAIL: manager sends a short corrective instruction directing Codex to update the same branch and read current repository contracts; no merge.
 9. Only after the accepted merge does the manager issue the next task.
 
 ## Responsibilities
@@ -51,7 +51,7 @@ When observed corpus/code facts contradict owner assumptions:
 
 ## Communication
 
-Codex prompts are normally written in English.
+Codex handoff instructions are short in-chat messages (normally English); Codex must fetch/pull and independently read the latest `AGENTS.md`, active docs and relevant audit evidence. The current owner preference supersedes the older file-prompt convention.
 
 Manager-user communication may be Russian.
 
