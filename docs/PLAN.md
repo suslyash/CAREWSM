@@ -46,6 +46,8 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 - Remove unwanted `src/carewsm/` and `src/legacy/README.md` scaffold.
 - **Clean top-level `scripts/` of obsolete WSM research/orchestration utilities**, retaining only demonstrably relevant CAREWSM scripts. One-off scripts remain outside `src/`.
 - Remove copied obsolete WSM/scaffold `tests/`; do not create or run tests (explicit owner preference). Verify only with Git evidence/static review.
+- Remove README files in all nested directories except under `docs/`; keep root README. Preserve `wsm_summary_callback` under `src/common/callbacks/` for future training and retain `wsm_segment_metrics_callback` as a candidate only (audit WSM/TEST behavior before enabling).
+- Later training configs must include callbacks `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `wsm_summary_callback` and loggers `mlflow_logger`, `console_file_logger` (verify origin/registration before writing configs).
 - Change distribution/plugin identity to CAREWSM with a no-op active registry. Historical configs cleanup is separate.
 - No dataset writes, extraction, diarization, model loading, evaluation or training.
 
