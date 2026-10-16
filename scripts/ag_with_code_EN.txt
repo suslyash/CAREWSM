@@ -1,0 +1,36 @@
+Analyze experiment results in the WSM project.
+
+This is multitask audio segment classification: one shared audio encoder learns two binary tasks, depression and Parkinson, with task-specific IDs/metrics. The primary selector is dev/mean_score.
+
+Data root: /media/maxim/Databases/WSM_NEW. Experiments use speech segments, train/dev/test splits, and TEST_NONE/SOFT/HARD protocols.
+
+Base config: configs/audio_experiments/wsm_audio_mamba_multitask.yaml.
+
+Pipeline:
+- cache audio features under /media/maxim/Databases/WSM_NEW/features/audio;
+- train audio_mamba_segment_model over frozen features;
+- temporal features → Mamba/Transformer → task-specific heads;
+- wsm_audio_loss with label_smoothing 0.02, focal_gamma 1.0, auxiliary loss;
+- AdamW, baseline lr 1e-4 and weight decay 0.01;
+- 30 epochs, batch size 8, mixed precision, gradient clipping 0.5.
+
+Experiment families:
+
+- 01_ssl_extractor_grid.yaml: WavLM, HuBERT, wav2vec2, data2vec, Kintsugi DAM, SpeechBrain emotion, VoxProfile speech-flow/voice-quality.
+- 02_audio_model_grid.yaml: Mamba versus Transformer, hidden size, layers, sequence steps, dropout, auxiliary weight.
+- 03_audio_optuna_coarse.yaml: broad feature/model/training/loss search.
+- 04_audio_optuna_refine.yaml: refinement around the best ranges.
+
+Metrics:
+
+- primary monitor: dev/mean_score, max;
+- also inspect DEV mean macro F1/recall/precision/loss and both task scores;
+- TEST_NONE/SOFT/HARD are informational only and must not select models.
+
+Artifacts:
+
+- configs/logs under logs;
+- MLflow at sqlite:///logs/mlflow.db;
+- checkpoints selected by dev/mean_score, top two plus last.
+
+Always analyze the depression/Parkinson balance; an aggregate score may hide collapse on one task.

@@ -1,0 +1,20 @@
+# Runtime and experiment artefacts
+/.venv/
+/external/
+/logs/
+/mlruns/
+/wav2vec2_checkpoints/
+
+# Python/build artefacts
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+/.pytest_cache/
+/build/
+/dist/
+
+# Local tooling output
+/.ipynb_checkpoints/
+*.db
+
+# Source, configuration, scripts, documentation and agent rules are tracked.

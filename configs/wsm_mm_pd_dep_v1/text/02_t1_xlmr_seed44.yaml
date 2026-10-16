@@ -1,0 +1,77 @@
+seed: 44
+experiment_info:
+  params:
+    experiment_name: wsm_mm_pd_dep_v1
+    run_name: stage3_t1_xlmr_video_text_seed44
+data:
+  name: wsm_text_t1_datamodule
+  params:
+    data_root: /media/maxim/Databases/WSM_NEW
+    text_cache_root: /media/maxim/Programs/Features/WSM/text_t1_xlmr_v1
+    batch_size: 32
+    num_workers: 0
+    pin_memory: true
+    persistent_workers: false
+    shuffle_train: true
+    drop_last_train: false
+model:
+  name: wsm_text_t1_chunk_transformer
+  params:
+    input_dim: 768
+    hidden_dim: 192
+    num_heads: 4
+    ff_dim: 384
+    dropout: 0.20
+    num_tasks: 2
+loss:
+  name: wsm_masked_sparse_loss
+  params: {}
+optimizer:
+  name: adamw_optimizer
+  params:
+    lr: 0.0001
+    weight_decay: 0.01
+train:
+  params:
+    epochs: 30
+    device: cuda
+    mixed_precision: true
+    grad_clip_norm: 0.5
+    log_every_steps: 25
+callbacks:
+  - name: wsm_segment_metrics_callback
+    params:
+      splits: [auto]
+  - name: checkpoint_callback
+    params:
+      log_path: logs
+      filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
+      monitor: dev/mean_score
+      mode: max
+      save_top_k: 2
+      save_last: true
+  - name: snapshot_callback
+    params:
+      log_path: logs
+      include: [src, configs]
+      save_code_zip: true
+      save_config: true
+  - name: early_stopping_callback
+    params:
+      monitor: dev/mean_score
+      mode: max
+      patience: 6
+      min_delta: 0.0005
+  - name: wsm_summary_callback
+    params:
+      filename: summary.txt
+logging:
+  - name: console_file_logger
+    params:
+      log_path: logs
+      log_file: train.log
+      console_level: INFO
+      file_level: INFO
+  - name: mlflow_logger
+    params:
+      tracking_uri: sqlite:///logs/mlflow.db

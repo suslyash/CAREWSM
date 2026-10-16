@@ -1,0 +1,52 @@
+method: optuna
+n_trials: 48
+study_name: wsm_audio_coarse_stable_v2
+storage: sqlite:///logs/03_coarse_stable.db
+load_if_exists: true
+objective:
+  monitor: dev/mean_score
+  mode: max
+parameters:
+  model.params.encoder_type:
+    type: categorical
+    choices: [transformer, mamba]
+  model.params.hidden_dim:
+    type: categorical
+    choices: [192, 224, 256]
+  model.params.num_layers:
+    type: categorical
+    choices: [2, 3]
+  model.params.sequence_steps:
+    type: categorical
+    choices: [96, 128, 160]
+  model.params.dropout:
+    type: float
+    low: 0.20
+    high: 0.30
+    step: 0.05
+  optimizer.params.lr:
+    type: float
+    low: 0.00005
+    high: 0.00015
+    log: true
+  optimizer.params.weight_decay:
+    type: float
+    low: 0.001
+    high: 0.02
+    log: true
+  train.params.grad_clip_norm:
+    type: categorical
+    choices: [0.25, 0.5]
+  loss.params.label_smoothing:
+    type: float
+    low: 0.01
+    high: 0.06
+    step: 0.01
+  loss.params.focal_gamma:
+    type: categorical
+    choices: [0.5, 1.0, 1.5]
+  loss.params.aux_weight:
+    type: float
+    low: 0.10
+    high: 0.15
+    step: 0.05

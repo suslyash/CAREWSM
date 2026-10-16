@@ -1,0 +1,34 @@
+Нужно проанализировать результаты экспериментов в проекте WSM.
+Это мультитаск audio segment classification. Один общий audio encoder обучается на двух бинарных задачах одновременно: depression и parkinson. У каждой задачи свой task id и свои метрики, а основной критерий выбора модели агрегированный: dev/mean_score.
+Данные лежат в /media/maxim/Databases/WSM_NEW. Эксперименты используют сегменты речи, train/dev/test split’ы и test-оценку в трех вариантах фильтрации: test_none, test_soft, test_hard.
+Базовый конфиг: configs/wsm_audio_mamba_multitask.yaml.
+Метод:
+сначала кешируются audio features в /media/maxim/Databases/WSM_NEW/features/audio/...;
+затем поверх frozen audio features обучается audio_mamba_segment_model;
+модель: temporal audio features -> Mamba/Transformer encoder -> multitask classification heads;
+loss: wsm_audio_loss, сейчас label_smoothing=0.02, focal_gamma=1.0, aux_weight=0.15;
+optimizer: AdamW, базово lr=1e-4, weight_decay=0.01;
+training: epochs=30, batch_size=8, mixed_precision=true, grad_clip_norm=0.5.
+Этапы экспериментов:
+configs/audio_experiments/01_ssl_extractor_grid.yaml
+Перебор audio feature extractor’ов и слоев: WavLM, HuBERT, wav2vec2, data2vec, Kintsugi DAM, SpeechBrain emotion, VoxProfile speech-flow/voice-quality.
+
+configs/audio_experiments/02_audio_model_grid.yaml
+Перебор архитектуры поверх признаков: Mamba vs Transformer, hidden_dim, num_layers, sequence_steps, dropout, aux_weight.
+
+configs/audio_experiments/03_audio_optuna_coarse.yaml
+Грубый Optuna search по feature/model/training/loss hyperparams.
+
+configs/audio_experiments/04_audio_optuna_refine.yaml
+Уточняющий Optuna search вокруг лучших диапазонов.
+
+Метрики:
+главный monitor: dev/mean_score, mode=max;
+также смотреть dev/mean_macro_f1, dev/mean_macro_recall, dev/mean_macro_precision, dev/mean_loss;
+отдельно смотреть метрики по задачам: depression и parkinson;
+отдельно смотреть generalization на test_none, test_soft, test_hard.
+Логи и артефакты:
+sweep/run configs и train logs в logs/...;
+MLflow tracking: sqlite:///logs/mlflow.db;
+чекпоинты сохраняются по dev/mean_score, save_top_k=2, save_last=true.
+Важно: это именно multitask setup, не single-task. Анализировать нужно не только общий mean_score, но и баланс между depression/parkinson, потому что средний скор может маскировать провал на одной из задач.

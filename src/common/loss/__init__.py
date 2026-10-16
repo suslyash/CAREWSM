@@ -1,0 +1,1 @@
+"""Common loss contracts."""

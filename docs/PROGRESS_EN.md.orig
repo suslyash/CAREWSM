@@ -1,0 +1,89 @@
+# WSM Project Progress
+
+## 1. Current State
+
+Plan initialized: 2026-09-23.
+
+Current stage: **Stage 0 partially complete**.
+
+Final Test authorized: **no**.
+
+## 2. Stage Status
+
+| Stage | Status | Gate | Evidence |
+|---|---|---|---|
+| Paper/project analysis | complete | Baselines, structure, requirements, plan | BASELINES.md, PROJECT_INIT_STRUCTURE.md, PROJECT_REQUIREMENTS.md, PLAN.md |
+| 0. Reproducible base | partial | Registry works; canonical config still missing | Verification record TASK-000-A below |
+| 1. Manifest/partial-label contract | not started | Audit and masks | None |
+| 2. Video | not started | At most two families; DEV winner | None |
+| 3. Text/description | not started | At most two families; prompt audit | None |
+| 4. Fusion baselines | not started | Comparable F0/F1/F2 | None |
+| 5. RAMPS | not started | Direct reliable missing-head gradient | None |
+| 6. Ablations | not started | Claims backed by multi-seed evidence | None |
+| 7. Final evaluation | locked | Config freeze and manager authorization | None |
+
+## 3. Frozen Historical Audio Reference
+
+- run: wsm_audio_models-e0ce-006;
+- selected epoch: 4;
+- DEV/Mean_Score: 0.787827;
+- DEV depression Score: 0.747918;
+- DEV Parkinson Score: 0.827735;
+- historical TEST_NONE/SOFT/HARD Mean_Score: 0.809486 / 0.815156 / 0.828135;
+- WavLM-base-plus layer 9, pool 4;
+- temporal Transformer: hidden 192, 3 layers, 4 heads, 128 steps.
+
+Historical Test values came from an existing summary; they were not used for a new selection.
+
+## 4. Open Blockers
+
+1. No canonical configs/wsm_mm_pd_dep_v1/audio/00_frozen_baseline.yaml.
+2. The existing audio YAML uses experiment_name wsm_audio_segment_coarse_dual_l9_pool4 instead of wsm_mm_pd_dep_v1.
+3. The existing AV YAML is structurally valid but not runnable: wsm_segment_datamodule and wsm_avsync_loss are absent from the registry.
+4. The AV YAML also lacks snapshot_callback and early_stopping_callback and monitors dev/mean_macro_f1 instead of dev/mean_score.
+5. The current audio datamodule still includes Test loaders in each validation epoch.
+6. No global multilabel manifest/observed-task mask exists.
+
+## 5. Execution Log
+
+### DOC-001 — Analysis and research plan
+
+Status: complete.
+
+- Audited the four supplied papers, SOTA review, source, configs, saved summaries, and snapshot.
+- Added project requirements, staged RAMPS plan, manager contract, progress ledger, and atomic task file.
+- Corrected root .gitignore so project docs/configs/scripts can be tracked.
+- No Python source, training, or new Test evaluation was performed in that step.
+
+### TASK-000-A — Verify user-restored audio provider
+
+Status: partial.
+
+Observed changes:
+
+- src/fusion/models/av_sync_mamba_segment.py restored from the historical snapshot with additional autocast handling;
+- src/fusion package initializers restored;
+- src/chimera_plugin.py explicitly imports fusion.models.av_sync_mamba_segment;
+- src/audio has no diff.
+
+Verification:
+
+- plugin registration emitted no warnings;
+- MODELS contains audio_mamba_segment_model and av_sync_mamba_segment_model;
+- DATAMODULES contains wsm_audio_segment_datamodule;
+- LOSSES contains wsm_audio_loss;
+- required audio callbacks are registered;
+- AudioMambaSegmentModel instantiated with the Transformer path;
+- synthetic CPU forward/loss/backward passed: preds shape (4, 2), loss 0.7533376813, all gradients finite;
+- both supplied YAML files pass chimera-ml validate-config structural validation;
+- git diff --check passed before documentation translation;
+- git diff -- src/audio was empty;
+- no training and no new Test evaluation ran.
+
+Assessment:
+
+- the broken audio import/registry blocker is fixed;
+- the Stage 0 gate is not complete because the canonical audio config is absent;
+- the legacy AV config must not be treated as runnable or as the new fusion baseline.
+
+Recommended next task: TASK-000B in NEXT_TASK.md.

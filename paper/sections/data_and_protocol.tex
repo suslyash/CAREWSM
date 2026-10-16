@@ -1,0 +1,45 @@
+\section{Data and Evaluation Protocol}
+\label{sec:protocol}
+
+For canonical segment $i$, the target vector is $\mathbf{y}_i=(y_i^D,y_i^P)$ and the observed mask is $\mathbf{m}_i=(m_i^D,m_i^P)$. A depression-corpus row has $m_i^D=1,m_i^P=0$; a Parkinson-corpus row has $m_i^D=0,m_i^P=1$. Unknown is a missing annotation, not a negative target. Every supervised loss and metric applies the mask, and observed ground truth always overrides any pseudo field.
+
+\begin{table}[t]
+\centering\small
+\caption{Canonical membership and observed-task coverage. TEST\_SOFT/HARD are fixed filtered reporting views; task-specific counts for them are not introduced here.}
+\label{tab:splits}
+\begin{tabular}{lrrr}
+\toprule
+Split/view & Rows & D observed & P observed\\
+\midrule
+TRAIN & 6,325 & 3,660 & 2,665\\
+DEV & 933 & 621 & 312\\
+TEST\_NONE & 1,364 & 827 & 537\\
+TEST\_SOFT & 1,208 & -- & --\\
+TEST\_HARD & 1,014 & -- & --\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Split membership is fixed at the video level and is shared across streams. The canonical TRAIN set contains 6,325 segment rows: 3,660 with an observed depression label and 2,665 with an observed Parkinson label. DEV contains 933 rows (621 depression-observed and 312 Parkinson-observed), while TEST\_NONE contains 1,364 rows (827 and 537, respectively). TEST\_SOFT and TEST\_HARD contain 1,208 and 1,014 rows. These latter views are filtered reporting protocols, not development sets or a model-selection hierarchy.
+
+For each task, the fixed metric is
+\begin{equation}
+\begin{aligned}
+ \mathrm{Score}_{t}&=\frac{\mathrm{UAR}_{t}+\mathrm{MF1}_{t}}{2},\\
+ \mathrm{Mean\_Score}&=\frac{\mathrm{Score}_{D}+\mathrm{Score}_{P}}{2}.
+\end{aligned}
+ \label{eq:score}
+\end{equation}
+DEV Mean\_Score was the sole signal for checkpoint selection. The final reports use segment-level metrics as primary outputs. The predeclared five-seed summaries use arithmetic means, sample standard deviations, and descriptive two-sided Student-$t$ intervals (multiplier 2.7764451051977987); they are not multiplicity-corrected tests or a license to infer superiority.
+
+\subsection{Immutable pseudo-target contract}
+\label{sec:pseudo}
+
+The final training cache is the immutable, TRAIN-only \texttt{train\_missing\_targets.pt} file:
+\begin{center}\scriptsize
+\url{/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt}\\
+{\tiny\url{SHA256:17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945}}
+\end{center}
+Of the 6,325 TRAIN rows, 2,665 depression and 3,660 Parkinson targets are missing by the canonical mask. The cache accepts 376 depression entries (376 positive, 0 negative) and 1,801 Parkinson entries (212 positive, 1,589 negative). Each accepted target equals the calibrated probability from the frozen audio teacher at that entry. Reliability lies in $[0,1]$ and is detached; rejected and observed pseudo fields are neutral. Accepted entries cannot overlap observed truth, and Test receives no pseudo supervision.
+
+Semantic and video evidence participated in the frozen acceptance/reliability construction where applicable, but the exact Stage-6 conclusion is \emph{SEMANTIC-EVIDENCE CONTRIBUTION VIA DEPRESSION PSEUDO ACCEPTANCE NOT SUPPORTED}. This evidence neither makes semantic information an established necessity nor permits a missing-label-correctness claim.

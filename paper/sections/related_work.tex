@@ -1,0 +1,17 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Video behavioral recognition.}
+DEPART is a relevant visual reference because it studies interpretable depression and Parkinson detection from in-the-wild video using body-centric visual representations, temporal modelling, and a prototype-aware variant \citep{ryumina2026depart}. WSM retains two bounded DEPART-like video families as internal contextual baselines. The comparison boundary is important: DEPART's published target/evaluation formulation differs from WSM's two independently masked disease heads, and its reported UAR is not WSM Mean\_Score. We therefore use published DEPART only as context, not as a leaderboard comparator.
+
+\paragraph{Cross-modal learning under fragmented supervision.}
+TACME studies task-aware cross-modal experts for behavioral tasks drawn from disjoint corpora \citep{ryuminatacme}. The supplied manuscript motivates examining task-specific and shared multimodal interactions when labels are fragmented across datasets. In WSM, however, corpus membership is structurally coupled to which task is observed. We treat task-conditioned fusion and corpus diagnostics as falsifiable design hypotheses rather than as evidence that corpus identity causes a disease prediction.
+
+\paragraph{Pseudo labels, calibration, and partial labels.}
+Pseudo-label methods can transfer information from a teacher to unlabelled examples, but their targets are not ground truth \citep{lee2013pseudo}. Partial-label or missing-label supervision requires retaining the distinction between unobserved and negative labels \citep{durand2019learning}. Our cache is therefore immutable and restricted to TRAIN; observed truth overrides it, and pseudo targets/reliability are detached in the loss. The design supports controlled cross-corpus supervision but not verified recovery of unknown labels.
+
+\paragraph{Multimodal representations and task balancing.}
+The feature extractors are frozen WavLM-style audio and CLIP-family video representations \citep{chen2022wavlm,radford2021clip}. Smooth Tchebycheff scalarization provides a differentiable way to aggregate competing objectives \citep{lin2024stch}; gradient-conflict methods such as PCGrad provide related multi-objective context \citep{yu2020pcgrad}. The final configurations retain RA-STCH, but the corresponding fixed-composition ablation did not support either a contribution over equal weighting or an advantage over simpler balancing. The paper therefore distinguishes the implemented recipe from the supported mechanism claims.
+
+\paragraph{Transcript context.}
+A frozen XLM-R transcript model \citep{conneau2020xlmr} supplies a standalone three-seed text baseline. Its transcript audit did not establish deterministic segment-level text alignment, so its unit is a video-level transcript rather than an invented segment transcript. This evidence is contextual only and does not establish that text adds to audio--video fusion.

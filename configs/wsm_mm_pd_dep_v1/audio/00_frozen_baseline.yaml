@@ -1,0 +1,101 @@
+seed: 42
+
+experiment_info:
+  params:
+    experiment_name: wsm_mm_pd_dep_v1
+    run_name: frozen_audio_wavlm_l9_pool4
+
+data:
+  name: wsm_audio_segment_datamodule
+  params:
+    data_root: /media/maxim/Databases/WSM_NEW
+    task: multitask
+    feature_cache_root: /media/maxim/Databases/WSM_NEW/features
+    test_filters: [none, soft, hard]
+    feature_model_name: microsoft/wavlm-base-plus
+    feature_layer: 9
+    temporal_pool: 4
+    batch_size: 8
+    num_workers: 4
+    pin_memory: true
+    persistent_workers: true
+
+model:
+  name: audio_mamba_segment_model
+  params:
+    hidden_dim: 192
+    num_layers: 3
+    num_heads: 4
+    ff_mult: 4
+    dropout: 0.25
+    encoder_type: transformer
+    sequence_steps: 128
+    mamba_d_state: 16
+    mamba_d_conv: 4
+    mamba_expand: 2
+    mamba_required: true
+
+loss:
+  name: wsm_audio_loss
+  params:
+    label_smoothing: 0.02
+    focal_gamma: 1.0
+    aux_weight: 0.10
+
+optimizer:
+  name: adamw_optimizer
+  params:
+    lr: 0.0001
+    weight_decay: 0.01
+
+train:
+  params:
+    epochs: 30
+    device: cuda
+    mixed_precision: true
+    grad_clip_norm: 0.5
+    log_every_steps: 25
+    collect_cache: true
+
+metrics:
+  - name: prf_macro_metric
+
+callbacks:
+  - name: wsm_segment_metrics_callback
+    params:
+      splits: [auto]
+  - name: checkpoint_callback
+    params:
+      log_path: logs
+      filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
+      monitor: dev/mean_score
+      mode: max
+      save_top_k: 2
+      save_last: true
+  - name: snapshot_callback
+    params:
+      log_path: logs
+      include:
+      - src
+      save_code_zip: true
+      save_config: true
+  - name: wsm_summary_callback
+    params:
+      filename: summary.txt
+  - name: early_stopping_callback
+    params:
+      monitor: dev/mean_score
+      mode: max
+      patience: 6
+      min_delta: 0.0005
+
+logging:
+  - name: console_file_logger
+    params:
+      log_path: logs
+      log_file: train.log
+      console_level: INFO
+      file_level: INFO
+  - name: mlflow_logger
+    params:
+      tracking_uri: sqlite:///logs/mlflow.db

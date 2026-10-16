@@ -1,0 +1,175 @@
+\clearpage
+\appendix
+\section{Reproducibility and Evidence Traceability}
+\label{app:reproducibility}
+
+This appendix records the frozen identities and accepted evidence used by the manuscript. It is a traceability supplement, not a new experiment or analysis. The final roles remain unchanged: equal-parameter shared fusion is the primary parsimonious candidate by the pre-Test DEV-only decision, full R4 trial012 is the secondary multimodal reference, and temporal audio is the baseline. The one-shot Final Test did not revise these roles.
+
+\subsection{Final model and optimization identities}
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Final architecture identities. Both multimodal variants have 295,239 trainable parameters.}
+\label{tab:app-architecture}
+\begin{tabular}{@{}p{.30\columnwidth}p{.63\columnwidth}@{}}
+\toprule
+Item & Frozen identity\\
+\midrule
+Primary shared fusion & \texttt{wsm\_av\_r3\_disease\_query\_model}; \texttt{task\_aware\_fusion=false}; audio/video dimensions 768/512; hidden/gate dimensions 160/96; dropout .10034630487649018.\\
+Secondary full R4 & Same model family and dimensions; task-aware fusion enabled; separate task-conditioned query/candidate/gating/fusion path.\\
+Output contract & Two independent depression/Parkinson sigmoid logits; unknown targets masked rather than converted to negative.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Frozen optimization recipe for the final multimodal configurations. RA-STCH is reported as implemented, not as a supported superiority mechanism.}
+\label{tab:app-optimization}
+\begin{tabular}{@{}p{.38\columnwidth}p{.55\columnwidth}@{}}
+\toprule
+Component & Frozen value\\
+\midrule
+Optimizer & AdamW; learning rate .000021217831107180076; weight decay .0001855295766514827.\\
+Training & 30 epochs; gradient clip 0.5; mixed precision enabled.\\
+Scalarization & \texttt{ra\_stch}; $\tau=.0487101634503887$.\\
+Loss weights & Auxiliary .41215983081110485; agreement .48126684525457264.\\
+Pseudo schedule & 3 observed-only epochs; 5 ramp epochs; final pseudo scale 1.0.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Immutable TRAIN-only pseudo-cache contract.}
+\label{tab:app-pseudo}
+\begin{tabular}{p{.42\columnwidth}r}
+\toprule
+Quantity & Frozen value\\
+\midrule
+TRAIN rows & 6,325\\
+Missing depression/Parkinson & 2,665 / 3,660\\
+Accepted depression/Parkinson & 376 / 1,801\\
+Accepted positive D/P & 376 / 212\\
+Accepted negative D/P & 0 / 1,589\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\scriptsize Cache SHA256: {\tiny\texttt{17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945}}.
+
+Accepted pseudo targets equal calibrated frozen audio-teacher probabilities at accepted missing entries. Reliability is detached; observed truth overrides pseudo supervision; rejected and observed pseudo fields are neutral; and no Test pseudo supervision exists.
+
+\subsection{Final checkpoint and evaluator protocol}
+
+The final seed set is 42, 43, 44, 45, and 46 for temporal audio, full R4 trial012, and shared fusion. All 15 checkpoint identities were frozen before Final Test; their paths, SHA256 values, selected epochs, and run identities are listed in the accepted Stage-7 DEV evidence dossier. The standardized Final Test ran exactly once after the evaluator firewall.
+
+\begin{table*}[t]
+\centering\scriptsize
+\caption{Final evaluator and reporting identity. The report is a frozen one-shot Final-Test artifact, not a model-selection input.}
+\label{tab:app-evaluator}
+\begin{tabular}{p{.24\textwidth}p{.66\textwidth}}
+\toprule
+Item & Frozen identity\\
+\midrule
+Evaluator firewall commit & \texttt{bfaae7f812904dd9ae9a7460b394117867db5439}\\
+Evaluator SHA256 & \texttt{b691c9563bb6ffd63316b664949dcf1bef02d8d3f4e770110c2e70adbc4cee1e}\\
+Final report & \texttt{/media/maxim/Programs/Features/WSM/stage7\_final\_test/final\_test\_v1.json}\\
+Report SHA256 & \texttt{59f763f04843c8e54d5d3f9893d3abe0530b47a32ea11f5b9585390edeb515bc}\\
+Protocol rows & TEST\_NONE 1,364; TEST\_SOFT 1,208; TEST\_HARD 1,014.\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Final five-seed values}
+
+Table~\ref{tab:app-dev-seeds} copies accepted selected-checkpoint DEV Scores (not UAR or macro-F1). Table~\ref{tab:app-test-seeds} copies accepted Final-Test Mean\_Scores. These rows are transcribed from the Stage-7 DEV/Test dossiers; no metric is recomputed here.
+
+\begin{table*}[t]
+\centering\scriptsize
+\caption{Accepted per-seed DEV D/P/Mean Scores for the final frozen methods.}
+\label{tab:app-dev-seeds}
+\begin{tabular}{llrrr}
+\toprule
+Method & Seed & Depression & Parkinson & Mean\\
+\midrule
+Temporal audio & 42 & .747918 & .827735 & .787827\\
+Temporal audio & 43 & .708699 & .811771 & .760235\\
+Temporal audio & 44 & .734396 & .809382 & .771889\\
+Temporal audio & 45 & .697398 & .799034 & .748216\\
+Temporal audio & 46 & .720187 & .794924 & .757556\\
+\addlinespace
+Full R4 trial012 & 42 & .759025 & .879259 & .819142\\
+Full R4 trial012 & 43 & .718527 & .804363 & .761445\\
+Full R4 trial012 & 44 & .728217 & .832060 & .780139\\
+Full R4 trial012 & 45 & .725077 & .858468 & .791772\\
+Full R4 trial012 & 46 & .725405 & .870164 & .797785\\
+\addlinespace
+Shared fusion & 42 & .765324 & .883606 & .824465\\
+Shared fusion & 43 & .724496 & .818152 & .771324\\
+Shared fusion & 44 & .731448 & .838372 & .784910\\
+Shared fusion & 45 & .739733 & .834672 & .787202\\
+Shared fusion & 46 & .727451 & .845891 & .786671\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\scriptsize
+\caption{Accepted per-seed Final-Test Mean\_Scores. The three protocol views are reporting outputs only and did not select or revise any role.}
+\label{tab:app-test-seeds}
+\begin{tabular}{llrrr}
+\toprule
+Method & Seed & TEST\_NONE & TEST\_SOFT & TEST\_HARD\\
+\midrule
+Temporal audio & 42 & .809486 & .815156 & .828135\\
+Temporal audio & 43 & .791690 & .802602 & .818189\\
+Temporal audio & 44 & .811919 & .820354 & .831768\\
+Temporal audio & 45 & .776989 & .793148 & .805612\\
+Temporal audio & 46 & .812876 & .834083 & .837633\\
+\addlinespace
+Full R4 trial012 & 42 & .801561 & .811496 & .809755\\
+Full R4 trial012 & 43 & .822225 & .828142 & .841820\\
+Full R4 trial012 & 44 & .822847 & .833456 & .851243\\
+Full R4 trial012 & 45 & .780446 & .781625 & .789749\\
+Full R4 trial012 & 46 & .790433 & .801993 & .816267\\
+\addlinespace
+Shared fusion & 42 & .801124 & .811002 & .815546\\
+Shared fusion & 43 & .819130 & .826236 & .839551\\
+Shared fusion & 44 & .808215 & .818077 & .831848\\
+Shared fusion & 45 & .793969 & .797907 & .809696\\
+Shared fusion & 46 & .807580 & .823524 & .835773\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Stage-6 claim matrix}
+
+Table~\ref{tab:app-claims} maps each frozen component interpretation to the accepted evidence task. Supported and not-supported outcomes remain narrow to their stated controls; they are neither significance claims nor general statements of universal usefulness.
+
+\begin{table*}[t]
+\centering\footnotesize
+\caption{Claim traceability matrix. Conclusions reproduce the frozen Stage-6 wording.}
+\label{tab:app-claims}
+\begin{tabular}{@{}p{.18\textwidth}p{.48\textwidth}p{.12\textwidth}p{.15\textwidth}@{}}
+\toprule
+Hypothesis/component & Exact frozen conclusion & Status & Evidence task\\
+\midrule
+Sparse MTL & SPARSE MTL JOINT-TRAINING CONTRIBUTION NOT SUPPORTED & Not supported & TASK-006J\\
+Task-aware fusion & TASK-AWARE FUSION CONTRIBUTION NOT SUPPORTED & Not supported & TASK-006I\\
+Direct pseudo supervision & DIRECT PSEUDO-SUPERVISION CONTRIBUTION SUPPORTED & Supported & TASK-006D\\
+Uncertainty/reliability & UNCERTAINTY/RELIABILITY CONTRIBUTION SUPPORTED & Supported & TASK-006E\\
+Semantic depression pseudo acceptance & SEMANTIC-EVIDENCE CONTRIBUTION VIA DEPRESSION PSEUDO ACCEPTANCE NOT SUPPORTED & Not supported & TASK-006F\\
+RA-STCH & RA-STCH BALANCING CONTRIBUTION OVER EQUAL NOT SUPPORTED; RA-STCH ADVANTAGE OVER SIMPLER BALANCING NOT SUPPORTED & Not supported & TASK-006C\\
+Video modality & VIDEO MODALITY CONTRIBUTION NOT SUPPORTED & Not supported & TASK-006G\\
+Online audio input modality & ONLINE AUDIO INPUT MODALITY CONTRIBUTION SUPPORTED & Supported & TASK-006H\\
+Pseudo alignment negative control & SAMPLE-SPECIFIC PSEUDO ALIGNMENT CLAIM SUPPORTED BY THIS NEGATIVE CONTROL & Supported & TASK-006A-FIX2\\
+Corpus probe: strong flag & STRONG CORPUS-ID DECODABILITY FLAG NOT TRIGGERED & Diagnostic & TASK-006B\\
+Corpus fusion amplification & FUSION AMPLIFICATION OF CORPUS DECODABILITY NOT SUPPORTED & Not supported & TASK-006B\\
+Equal-parameter control & Covered by TASK-006I & Complete & TASK-006I\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The corpus findings do not support a causal corpus-shortcut claim. No claim-matrix row establishes pseudo-label correctness, missing-label recovery, comorbidity recovery, clinical validity, final-method promotion, or Final-Test superiority.
+\FloatBarrier

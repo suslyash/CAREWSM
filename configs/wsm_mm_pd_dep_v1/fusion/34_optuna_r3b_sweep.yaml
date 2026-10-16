@@ -1,0 +1,36 @@
+method: optuna
+n_trials: 20
+study_name: wsm-r3b-optuna-v1
+target:
+  monitor: dev/mean_score
+  mode: max
+parameters:
+  model.params.hidden_dim:
+    type: categorical
+    choices: [128, 160, 192, 224, 256]
+  model.params.gate_hidden_dim:
+    type: categorical
+    choices: [96, 128, 160, 192, 256]
+  model.params.dropout:
+    type: float
+    low: 0.05
+    high: 0.35
+  loss.params.aux_weight:
+    type: float
+    low: 0.05
+    high: 0.50
+  loss.params.agreement_weight:
+    type: float
+    low: 0.01
+    high: 0.50
+    log: true
+  optimizer.params.lr:
+    type: float
+    low: 0.00002
+    high: 0.0004
+    log: true
+  optimizer.params.weight_decay:
+    type: float
+    low: 0.00001
+    high: 0.05
+    log: true

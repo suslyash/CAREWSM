@@ -1,0 +1,21 @@
+\section{Introduction}
+\label{sec:intro}
+
+Depression and Parkinson recognition from speech and video may benefit from complementary behavioral cues, but practical data collection often produces fragmented supervision. In WSM, depression and Parkinson annotations arise from different corpora. A depression-corpus segment has an observed depression target but no Parkinson ground truth; the converse holds in the Parkinson corpus. Treating the unobserved task as a negative label would create supervision that was never collected. Treating all data as a healthy/depression/Parkinson softmax would additionally rule out simultaneous positive predictions. We instead preserve two independent sigmoid outputs and an observed-label mask.
+
+This setting creates a useful but constrained transfer problem. It asks whether a model can share audio--video structure across corpora without treating corpus membership as disease truth. It does \emph{not} permit a claim that an accepted pseudo target is the missing clinical diagnosis, that comorbidity has been recovered, or that the model is ready for clinical deployment. Our paper is consequently organized as a technical account of a completed, frozen evidence programme rather than as an open-ended optimization study.
+
+The final model family uses an immutable TRAIN-only pseudo-target cache for accepted missing entries, reliability-weighted direct pseudo binary cross entropy (BCE), modality-specific auxiliary heads, and an agreement term. A task scalarizer combines depression and Parkinson objectives. These components describe the recipe actually used in the frozen final configurations; a component being present in the recipe is distinct from an ablation-supported claim that it is necessary. This distinction is material here: direct pseudo supervision and graded reliability are supported under their frozen ablation gates, while the tested RA-STCH contribution and advantage over simpler balancing are not supported.
+
+The final comparison was deliberately locked before Test reporting. It contains a frozen temporal-audio baseline, full R4 trial012 as a secondary task-conditioned multimodal reference, and an equal-parameter shared-fusion model as the primary parsimonious paper candidate. The shared role was selected from DEV-only parsimony evidence, not from a final-Test ranking. Five seeds, selected checkpoints, an evaluator, paired summary procedures, and the final protocol views were frozen before the one-shot final Test invocation. Thus, Test results describe generalization of the frozen set; they do not select an epoch, threshold, architecture, role, or follow-up.
+
+This work makes four bounded contributions:
+
+\begin{enumerate}[leftmargin=*,nosep]
+\item It specifies an availability-aware, two-head audio--video model and the masked partial-label objective used in the frozen shared and full-R4 recipes.
+\item It documents an immutable pseudo-supervision contract, including acceptance counts, detached reliability, and the precedence of observed labels.
+\item It reports five-seed DEV and one-shot final-Test evidence for three frozen roles, including task-wise trade-offs and paired descriptive intervals.
+\item It preserves positive and negative Stage-6 mechanism evidence instead of presenting all retained training components as validated innovations.
+\end{enumerate}
+
+The result is intentionally conservative. Shared fusion has the highest final-Test Mean point estimate across the three reporting views, but all predeclared paired Test Mean intervals include zero. We therefore report no Final-Test statistical-superiority claim.

@@ -1,0 +1,95 @@
+seed: 42
+
+experiment_info:
+  params:
+    experiment_name: wsm_segment_avsync
+    run_name: multitask_avsyncmamba_audio_video
+
+data:
+  name: wsm_segment_datamodule
+  params:
+    data_root: /media/maxim/Databases/WSM_NEW
+    task: multitask
+    feature_cache_root: /media/maxim/Databases/WSM_NEW/features
+    test_filters: [none, soft, hard]
+    feature_audio_model_name: microsoft/wavlm-base-plus
+    feature_video_model_name: google/vit-base-patch16-224-in21k
+    feature_audio_temporal_pool: 8
+    feature_video_fps: 2.0
+    feature_max_video_frames: 128
+    feature_video_batch_size: 16
+    batch_size: 8
+    num_workers: 4
+    pin_memory: true
+    persistent_workers: true
+
+model:
+  name: av_sync_mamba_segment_model
+  params:
+    hidden_dim: 192
+    num_layers: 3
+    num_heads: 4
+    ff_mult: 4
+    dropout: 0.2
+    encoder_type: mamba
+    sync_steps: 96
+    lag_radius: 6
+    mamba_d_state: 16
+    mamba_d_conv: 4
+    mamba_expand: 2
+    mamba_required: true
+
+loss:
+  name: wsm_avsync_loss
+  params:
+    label_smoothing: 0.02
+    focal_gamma: 1.0
+    audio_aux_weight: 0.15
+    video_aux_weight: 0.15
+    contrastive_weight: 0.10
+    contrastive_temperature: 0.07
+    lag_entropy_weight: 0.0
+
+optimizer:
+  name: adamw_optimizer
+  params:
+    lr: 0.0002
+    weight_decay: 0.01
+
+train:
+  params:
+    epochs: 30
+    device: cuda
+    mixed_precision: true
+    grad_clip_norm: 1.0
+    log_every_steps: 25
+    collect_cache: true
+
+metrics:
+  - name: prf_macro_metric
+
+callbacks:
+  - name: wsm_segment_metrics_callback
+    params:
+      splits: [auto]
+  - name: checkpoint_callback
+    params:
+      log_path: logs/wsm_multitask_avsyncmamba
+      monitor: dev/mean_macro_f1
+      mode: max
+      save_top_k: 2
+      save_last: true
+  - name: wsm_summary_callback
+    params:
+      filename: summary.txt
+
+logging:
+  - name: console_file_logger
+    params:
+      log_path: logs/wsm_multitask_avsyncmamba
+      name: wsm_multitask
+      console_level: INFO
+      file_level: INFO
+  - name: mlflow_logger
+    params:
+      tracking_uri: file:./mlruns

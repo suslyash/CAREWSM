@@ -1,0 +1,34 @@
+\section{Frozen Experimental Design}
+\label{sec:experiments}
+
+The final compared set was locked before Test reporting: temporal audio, full R4 trial012, and equal-parameter shared fusion, each with seeds 42--46. For every run, the selected checkpoint is the epoch with maximum DEV Mean\_Score; the selected checkpoint identity was then frozen before the final evaluator read any same-seed Test outputs. The one-shot evaluator consumed the 15 predeclared checkpoint/config identities under the frozen reporting contract. No threshold fitting, recalibration, retry, architecture modification, or role revision followed final Test reporting.
+
+\paragraph{Frozen roles.}
+Shared fusion is the primary parsimonious paper candidate. Full R4 trial012 is the secondary multimodal reference, and frozen temporal audio is the baseline. This assignment was a DEV-only parsimony decision: shared and full R4 have equal parameter count and their paired DEV Mean interval did not separate them. It is not a Final-Test ranking or superiority statement.
+
+\paragraph{Comparisons and summaries.}
+Primary metrics are segment-level disease Scores and Mean\_Score. The predeclared same-seed paired summaries are full R4$-$audio, shared$-$audio, and shared$-$R4. We show their frozen means and descriptive 95\% intervals, but do not reinterpret them as multiplicity-corrected statistical tests. Test views are TEST\_NONE, TEST\_SOFT, and TEST\_HARD; they are all reports of the same frozen model set.
+
+\paragraph{Calibration diagnostic.}
+Calibration is DEV-only and diagnostic. It uses observed rows only (621 depression and 312 Parkinson rows per seed), sigmoid probabilities, 15 equal-width bins, Brier score, and ECE-15. No recalibration, threshold search, or class balancing is applied. Table~\ref{tab:calibration} copies the accepted five-seed summaries rather than re-estimating any value.
+
+\paragraph{Text and description context.}
+T1 is a completed standalone transcript baseline using frozen XLM-R features. Its three-seed DEV D/P/Mean is 0.6268063333/0.8447246667/0.7357653333, with visibly weaker and more seed-sensitive depression performance. It is not evidence that text improves A+V fusion. The planned T2 transcript-plus-observable-description family stopped before cache construction, model implementation, or training: its frozen preflight found demographic/identity inference in 4/24 outputs and judged only 18/24 outputs concise enough. T2 therefore has no performance claim.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Accepted five-seed DEV calibration means. Counts are observed DEV rows; values are diagnostics only.}
+\label{tab:calibration}
+\begin{tabular}{llrr}
+\toprule
+Method & Task & Brier & ECE-15\\
+\midrule
+Audio & D & .217045 & .163912\\
+Audio & P & .145966 & .132109\\
+Full R4 & D & .183842 & .085347\\
+Full R4 & P & .087923 & .078154\\
+Shared & D & .179846 & .084853\\
+Shared & P & .088764 & .084624\\
+\bottomrule
+\end{tabular}
+\end{table}

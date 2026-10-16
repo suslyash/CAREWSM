@@ -1,0 +1,367 @@
+{
+  "all_forbidden_differences_empty": true,
+  "allowed_semantic_differences": [
+    "experiment_info.params.run_name",
+    "data.name (DEV-only wrapper)",
+    "loss name/parameters",
+    "callbacks[1].name (MTL diagnostics registration)"
+  ],
+  "entries": [
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/01_pcgrad_seed42.yaml",
+      "config_sha256": "8d93dd73a8fbf378601830808b70a854e2191de7e478603f437d397427f5d1c3",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/13_r4_equal_seed42.yaml",
+      "equal_reference_sha256": "837ae67b16e99f56acbd2bf23dc1f67cbc84b44d6f3aa488f93a0e917c1522ff",
+      "forbidden_difference_paths": [],
+      "method": "pcgrad",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.pcgrad_seed"
+      ],
+      "run_name": "stage10a_fix1_pcgrad_r4_seed42",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.pcgrad_seed"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/02_pcgrad_seed43.yaml",
+      "config_sha256": "c1006adcfd9a4f1983b14b948aca9f2d7ae141bd6c5ed2499dc8b11959c39975",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/19_r4_equal_seed43.yaml",
+      "equal_reference_sha256": "3c36a1a3ba9db7e4e311a91029b9c3f6d79a244c45fe3f82df4bd59fc34aa63f",
+      "forbidden_difference_paths": [],
+      "method": "pcgrad",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.pcgrad_seed"
+      ],
+      "run_name": "stage10a_fix1_pcgrad_r4_seed43",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.pcgrad_seed"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/03_pcgrad_seed44.yaml",
+      "config_sha256": "6312e148c2e8c8ebc865c18c5ae40eb71e751759982bab9628966623e2ea23ce",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/20_r4_equal_seed44.yaml",
+      "equal_reference_sha256": "5ec0368eea85f5b33244b8b2dc1eb5bee27fa94937cb6b1ffe611af1981f9d03",
+      "forbidden_difference_paths": [],
+      "method": "pcgrad",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.pcgrad_seed"
+      ],
+      "run_name": "stage10a_fix1_pcgrad_r4_seed44",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.pcgrad_seed"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/04_cagrad_seed42.yaml",
+      "config_sha256": "7ad9f6c3e0955dd5b77bedad6427bac637b9006e581c81cbeba0b0c898872aeb",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/13_r4_equal_seed42.yaml",
+      "equal_reference_sha256": "837ae67b16e99f56acbd2bf23dc1f67cbc84b44d6f3aa488f93a0e917c1522ff",
+      "forbidden_difference_paths": [],
+      "method": "cagrad",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.calpha",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.rescale"
+      ],
+      "run_name": "stage10a_fix1_cagrad_r4_seed42",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.calpha",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.rescale"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/05_cagrad_seed43.yaml",
+      "config_sha256": "70beea3d64a3213c377661192a4714bc08a49109cb075d2a07a6372786246ec1",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/19_r4_equal_seed43.yaml",
+      "equal_reference_sha256": "3c36a1a3ba9db7e4e311a91029b9c3f6d79a244c45fe3f82df4bd59fc34aa63f",
+      "forbidden_difference_paths": [],
+      "method": "cagrad",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.calpha",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.rescale"
+      ],
+      "run_name": "stage10a_fix1_cagrad_r4_seed43",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.calpha",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.rescale"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/06_cagrad_seed44.yaml",
+      "config_sha256": "5c09ed79778f3c3f8102f937aaef6ec9a91939176ccd837e05c2fe57f94b05e0",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/20_r4_equal_seed44.yaml",
+      "equal_reference_sha256": "5ec0368eea85f5b33244b8b2dc1eb5bee27fa94937cb6b1ffe611af1981f9d03",
+      "forbidden_difference_paths": [],
+      "method": "cagrad",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.calpha",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.rescale"
+      ],
+      "run_name": "stage10a_fix1_cagrad_r4_seed44",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.calpha",
+        "loss.params.method",
+        "loss.params.mode",
+        "loss.params.rescale"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/07_gradnorm_seed42.yaml",
+      "config_sha256": "5e4abff687ce8a88c160335051c1a8f63231aead2b875f2ef5a8957e91560b00",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/13_r4_equal_seed42.yaml",
+      "equal_reference_sha256": "837ae67b16e99f56acbd2bf23dc1f67cbc84b44d6f3aa488f93a0e917c1522ff",
+      "forbidden_difference_paths": [],
+      "method": "gradnorm",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.gradnorm_alpha",
+        "loss.params.gradnorm_weight_lr",
+        "loss.params.method",
+        "loss.params.mode"
+      ],
+      "run_name": "stage10a_fix1_gradnorm_r4_seed42",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.gradnorm_alpha",
+        "loss.params.gradnorm_weight_lr",
+        "loss.params.method",
+        "loss.params.mode"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/08_gradnorm_seed43.yaml",
+      "config_sha256": "4046b2437f3f18f85ad3b973df2f1cfae1319d58ee90c1cfd65eff393fd4d81d",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/19_r4_equal_seed43.yaml",
+      "equal_reference_sha256": "3c36a1a3ba9db7e4e311a91029b9c3f6d79a244c45fe3f82df4bd59fc34aa63f",
+      "forbidden_difference_paths": [],
+      "method": "gradnorm",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.gradnorm_alpha",
+        "loss.params.gradnorm_weight_lr",
+        "loss.params.method",
+        "loss.params.mode"
+      ],
+      "run_name": "stage10a_fix1_gradnorm_r4_seed43",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.gradnorm_alpha",
+        "loss.params.gradnorm_weight_lr",
+        "loss.params.method",
+        "loss.params.mode"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/09_gradnorm_seed44.yaml",
+      "config_sha256": "a5018f7628b9225b9155a881791ea59f264d2e408e2e9fe910c06e5c080cdc36",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/20_r4_equal_seed44.yaml",
+      "equal_reference_sha256": "5ec0368eea85f5b33244b8b2dc1eb5bee27fa94937cb6b1ffe611af1981f9d03",
+      "forbidden_difference_paths": [],
+      "method": "gradnorm",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.gradnorm_alpha",
+        "loss.params.gradnorm_weight_lr",
+        "loss.params.method",
+        "loss.params.mode"
+      ],
+      "run_name": "stage10a_fix1_gradnorm_r4_seed44",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.gradnorm_alpha",
+        "loss.params.gradnorm_weight_lr",
+        "loss.params.method",
+        "loss.params.mode"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/10_dbmtl_seed42.yaml",
+      "config_sha256": "da229b05514180805911b684c23957bb1f7439b2ffb4b01c93f870bbf83d397a",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/13_r4_equal_seed42.yaml",
+      "equal_reference_sha256": "837ae67b16e99f56acbd2bf23dc1f67cbc84b44d6f3aa488f93a0e917c1522ff",
+      "forbidden_difference_paths": [],
+      "method": "dbmtl",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.db_beta",
+        "loss.params.db_beta_sigma",
+        "loss.params.method",
+        "loss.params.mode"
+      ],
+      "run_name": "stage10a_fix1_dbmtl_r4_seed42",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.db_beta",
+        "loss.params.db_beta_sigma",
+        "loss.params.method",
+        "loss.params.mode"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/11_dbmtl_seed43.yaml",
+      "config_sha256": "ab73d1d9cb707e33557bc06e767be0bde7a8bed3d758e3ad8812f6ada307314c",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/19_r4_equal_seed43.yaml",
+      "equal_reference_sha256": "3c36a1a3ba9db7e4e311a91029b9c3f6d79a244c45fe3f82df4bd59fc34aa63f",
+      "forbidden_difference_paths": [],
+      "method": "dbmtl",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.db_beta",
+        "loss.params.db_beta_sigma",
+        "loss.params.method",
+        "loss.params.mode"
+      ],
+      "run_name": "stage10a_fix1_dbmtl_r4_seed43",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.db_beta",
+        "loss.params.db_beta_sigma",
+        "loss.params.method",
+        "loss.params.mode"
+      ]
+    },
+    {
+      "config": "configs/wsm_mm_pd_dep_v1/mtl_extension/12_dbmtl_seed44.yaml",
+      "config_sha256": "41d7620c813a5bbb22cc50efe3586cbf88475df220c05821d8b70e64569cb0fd",
+      "dev_only_validation": true,
+      "equal_reference": "configs/wsm_mm_pd_dep_v1/fusion/20_r4_equal_seed44.yaml",
+      "equal_reference_sha256": "5ec0368eea85f5b33244b8b2dc1eb5bee27fa94937cb6b1ffe611af1981f9d03",
+      "forbidden_difference_paths": [],
+      "method": "dbmtl",
+      "permitted_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.db_beta",
+        "loss.params.db_beta_sigma",
+        "loss.params.method",
+        "loss.params.mode"
+      ],
+      "run_name": "stage10a_fix1_dbmtl_r4_seed44",
+      "semantic_difference_paths": [
+        "callbacks[1].name",
+        "data.name",
+        "experiment_info.params.run_name",
+        "loss.name",
+        "loss.params.db_beta",
+        "loss.params.db_beta_sigma",
+        "loss.params.method",
+        "loss.params.mode"
+      ]
+    }
+  ],
+  "purpose": "machine-readable equivalence audit against frozen R4 Equal configs",
+  "task": "TASK-010A"
+}

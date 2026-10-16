@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wsm"
+version = "0.1.0"
+description = "wsm"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "chimera-ml>=0.2.4",
+  "torch==2.10.0",
+  "torchaudio==2.10.0",
+  "torchvision==0.25.0",
+  "torchcodec==0.10.0",
+  "transformers",
+  "ultralytics",
+  "soundfile",
+  "pandas",
+  "mlflow",
+  "requests",
+  "Pillow",
+  "opencv-python",
+  "mamba-ssm",
+  "speechbrain",
+  "peft",
+  "loralib",
+]
+
+[project.entry-points."chimera_ml.plugins"]
+wsm = "chimera_plugin:register"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["chimera_plugin"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

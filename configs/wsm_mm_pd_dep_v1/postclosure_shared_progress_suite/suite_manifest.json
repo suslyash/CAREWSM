@@ -1,0 +1,1775 @@
+{
+  "production_count": 52,
+  "rows": [
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/01_A_shared_progress_parent_seed43.yaml",
+      "config_sha256": "dda16afd9478f935107a00ddf901956b3318eb37d8385ce169e2b2e2dbb25a52",
+      "group": "A",
+      "index": 1,
+      "intervention": "new seed confirmation of frozen trial-28 parent",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_shared_progress_parent_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "shared_progress_parent"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/02_A_shared_progress_parent_seed44.yaml",
+      "config_sha256": "44c7cad4879a3635c7eff6d9a1f9a1a5cbbdbaf123ba4d19f3f9a3f2effe775b",
+      "group": "A",
+      "index": 2,
+      "intervention": "new seed confirmation of frozen trial-28 parent",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_shared_progress_parent_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "shared_progress_parent"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/03_A_shared_progress_parent_seed45.yaml",
+      "config_sha256": "f411e86536681dc69903d01d23961714e9045df9d92e431281d688c8f0145a88",
+      "group": "A",
+      "index": 3,
+      "intervention": "new seed confirmation of frozen trial-28 parent",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_shared_progress_parent_seed45",
+      "seed": 45,
+      "selector": "dev/mean_score",
+      "variant": "shared_progress_parent"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/04_A_shared_progress_parent_seed46.yaml",
+      "config_sha256": "bb3db27f3ce216403cb5390ba235a8f8a0fa8f410bb6424891b5187cdcf56c60",
+      "group": "A",
+      "index": 4,
+      "intervention": "new seed confirmation of frozen trial-28 parent",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_shared_progress_parent_seed46",
+      "seed": 46,
+      "selector": "dev/mean_score",
+      "variant": "shared_progress_parent"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/05_B_no_direct_pseudo_seed42.yaml",
+      "config_sha256": "0022bb2b7695274bc8c5040c7ac5d9df351067dcc8c2690e5dfa485013539871",
+      "group": "B",
+      "index": 5,
+      "intervention": "warmup final_scale=0.0",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_direct_pseudo_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "no_direct_pseudo"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/06_B_no_direct_pseudo_seed43.yaml",
+      "config_sha256": "ddb04caeff86bb4c53f0e494fba274a8ce42bcd484845f80731fb66f323a308b",
+      "group": "B",
+      "index": 6,
+      "intervention": "warmup final_scale=0.0",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_direct_pseudo_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "no_direct_pseudo"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/07_B_no_direct_pseudo_seed44.yaml",
+      "config_sha256": "ab2b7badc5b64efedbfae3d85767abc06cf2b8669d78c52c39c40171632d5713",
+      "group": "B",
+      "index": 7,
+      "intervention": "warmup final_scale=0.0",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_direct_pseudo_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "no_direct_pseudo"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_reliability_ablation/uniform_accepted_reliability_v1.pt",
+      "cache_sha256": "713b5a3d963c8759e4b2c12f148be12818e72c135b6d1420207cf5aa150bcc40",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/08_B_uniform_reliability_seed42.yaml",
+      "config_sha256": "a1949d64c515964ce954c56f4d110dfb07fad70350ab8ad4df602cb23f5ca3e5",
+      "group": "B",
+      "index": 8,
+      "intervention": "uniform accepted reliability cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_uniform_reliability_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "uniform_reliability"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_reliability_ablation/uniform_accepted_reliability_v1.pt",
+      "cache_sha256": "713b5a3d963c8759e4b2c12f148be12818e72c135b6d1420207cf5aa150bcc40",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/09_B_uniform_reliability_seed43.yaml",
+      "config_sha256": "8507a413c6bff1325cbba5c6e5285aab642bb7f0fb38ab43a858db421bd00852",
+      "group": "B",
+      "index": 9,
+      "intervention": "uniform accepted reliability cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_uniform_reliability_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "uniform_reliability"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_reliability_ablation/uniform_accepted_reliability_v1.pt",
+      "cache_sha256": "713b5a3d963c8759e4b2c12f148be12818e72c135b6d1420207cf5aa150bcc40",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/10_B_uniform_reliability_seed44.yaml",
+      "config_sha256": "fe4adaa358836e50abc03de347afd74d5f7a3ac527033c0c7cfdd1e705ae87e0",
+      "group": "B",
+      "index": 10,
+      "intervention": "uniform accepted reliability cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_uniform_reliability_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "uniform_reliability"
+    },
+    {
+      "accepted_counts": [
+        0,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_semantic_ablation/no_semantic_depression_v1.pt",
+      "cache_sha256": "aae9d250c5030eab1e68e07ee8af43fe8ebb7286eca621f9fa5c6dd7af283fe6",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/11_B_no_semantic_depression_seed42.yaml",
+      "config_sha256": "410fe8eaf40ac4bda82ee54538c76723fd04486c378bbeeccede30ebbac182a7",
+      "group": "B",
+      "index": 11,
+      "intervention": "no-semantic-depression cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_semantic_depression_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "no_semantic_depression"
+    },
+    {
+      "accepted_counts": [
+        0,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_semantic_ablation/no_semantic_depression_v1.pt",
+      "cache_sha256": "aae9d250c5030eab1e68e07ee8af43fe8ebb7286eca621f9fa5c6dd7af283fe6",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/12_B_no_semantic_depression_seed43.yaml",
+      "config_sha256": "5122f505c73d5d5e3238d05b3bc4470de9c44c94befd1bd3bfa89fc32ec3d7e4",
+      "group": "B",
+      "index": 12,
+      "intervention": "no-semantic-depression cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_semantic_depression_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "no_semantic_depression"
+    },
+    {
+      "accepted_counts": [
+        0,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_semantic_ablation/no_semantic_depression_v1.pt",
+      "cache_sha256": "aae9d250c5030eab1e68e07ee8af43fe8ebb7286eca621f9fa5c6dd7af283fe6",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/13_B_no_semantic_depression_seed44.yaml",
+      "config_sha256": "1036d502dcae141def12818ed65694828faad937001b37ebfc1abf40040663c0",
+      "group": "B",
+      "index": 13,
+      "intervention": "no-semantic-depression cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_semantic_depression_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "no_semantic_depression"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/14_B_no_video_online_seed42.yaml",
+      "config_sha256": "26509bcff5243aa5cff95a73e3e0923a1faf5fc32a3241289e5ec513fbce3984",
+      "group": "B",
+      "index": 14,
+      "intervention": "modality_available_override=[true,false]",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_video_online_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "no_video_online"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/15_B_no_video_online_seed43.yaml",
+      "config_sha256": "669ef2b85ff95a4805b06f93e2848a9662889a9067414ba3a26bda0ea3c4f3d6",
+      "group": "B",
+      "index": 15,
+      "intervention": "modality_available_override=[true,false]",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_video_online_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "no_video_online"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/16_B_no_video_online_seed44.yaml",
+      "config_sha256": "af6a7a80fc2ce70787c0e2427f12e721c7d486639713650f1cd4beea14899bb4",
+      "group": "B",
+      "index": 16,
+      "intervention": "modality_available_override=[true,false]",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_video_online_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "no_video_online"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/17_B_no_audio_online_seed42.yaml",
+      "config_sha256": "736d706f4d453943aec6a5926d730d49547bdd922643e1c4bacf44f9bf57a6a6",
+      "group": "B",
+      "index": 17,
+      "intervention": "modality_available_override=[false,true]",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_audio_online_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "no_audio_online"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/18_B_no_audio_online_seed43.yaml",
+      "config_sha256": "bcf0e86e0a95c41068708348ab8b36d1ba44b8ab40a4666ef3f37e6cf0317aa0",
+      "group": "B",
+      "index": 18,
+      "intervention": "modality_available_override=[false,true]",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_audio_online_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "no_audio_online"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/19_B_no_audio_online_seed44.yaml",
+      "config_sha256": "7203f8b0e46f4b64e5641a752ef7df9847b4a3791c4a1403167c690de0ef048b",
+      "group": "B",
+      "index": 19,
+      "intervention": "modality_available_override=[false,true]",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_no_audio_online_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "no_audio_online"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/20_C_task_aware_r4_progress_seed42.yaml",
+      "config_sha256": "90f273ce609c6119701d039d113e0e212e715108309e2ec113138e7bfd42f928",
+      "group": "C",
+      "index": 20,
+      "intervention": "task_aware_fusion=false -> true",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "task_aware",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_task_aware_r4_progress_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "task_aware_r4_progress"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/21_C_task_aware_r4_progress_seed43.yaml",
+      "config_sha256": "a625e32c2e9de0719dfdbae923f7d6c254668433c181b45becc1e68579d9894b",
+      "group": "C",
+      "index": 21,
+      "intervention": "task_aware_fusion=false -> true",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "task_aware",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_task_aware_r4_progress_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "task_aware_r4_progress"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/22_C_task_aware_r4_progress_seed44.yaml",
+      "config_sha256": "2f291d67cd60f19729629ac04c45d13453a397b4c80c83b9084d2154e120b3f4",
+      "group": "C",
+      "index": 22,
+      "intervention": "task_aware_fusion=false -> true",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "task_aware",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_task_aware_r4_progress_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "task_aware_r4_progress"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_negative_control/shuffled_missing_targets_seed6001_exact_fix1.pt",
+      "cache_sha256": "e4baf2a2eea9dc7703e73b7956971b0d571eedda55fc8e6984750270712cf0f9",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/23_D_shuffled_pseudo_seed42.yaml",
+      "config_sha256": "4da378ca49ded297f8ef087ea6fbbcf0f3516acac155c17db7700dfaddc3d519",
+      "group": "D",
+      "index": 23,
+      "intervention": "accepted deterministic shuffled pseudo cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_shuffled_pseudo_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "shuffled_pseudo"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_negative_control/shuffled_missing_targets_seed6001_exact_fix1.pt",
+      "cache_sha256": "e4baf2a2eea9dc7703e73b7956971b0d571eedda55fc8e6984750270712cf0f9",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/24_D_shuffled_pseudo_seed43.yaml",
+      "config_sha256": "1be9fa87ee84f32aee0edb4bd63d52b84fbc438bc2c28a4370bd1c659e58827a",
+      "group": "D",
+      "index": 24,
+      "intervention": "accepted deterministic shuffled pseudo cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_shuffled_pseudo_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "shuffled_pseudo"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1_negative_control/shuffled_missing_targets_seed6001_exact_fix1.pt",
+      "cache_sha256": "e4baf2a2eea9dc7703e73b7956971b0d571eedda55fc8e6984750270712cf0f9",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/25_D_shuffled_pseudo_seed44.yaml",
+      "config_sha256": "b98f1a9b50c9f69baefe6a4a693ac1598ec58219e8e790ded5de86840684312f",
+      "group": "D",
+      "index": 25,
+      "intervention": "accepted deterministic shuffled pseudo cache",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_shuffled_pseudo_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "shuffled_pseudo"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/26_E_depression_only_seed42.yaml",
+      "config_sha256": "5a930597750a5716859e4ab9b56f73acc739710997426144e21193232fa33513",
+      "group": "E",
+      "index": 26,
+      "intervention": "training_task=depression; selector=dev/depression/score",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_depression_only_seed42",
+      "seed": 42,
+      "selector": "dev/depression/score",
+      "variant": "depression_only"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/27_E_depression_only_seed43.yaml",
+      "config_sha256": "106b92b6265537130ad4c9bdd174740359bfc80f06d6a55d2dad9d9de0b29806",
+      "group": "E",
+      "index": 27,
+      "intervention": "training_task=depression; selector=dev/depression/score",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_depression_only_seed43",
+      "seed": 43,
+      "selector": "dev/depression/score",
+      "variant": "depression_only"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/28_E_depression_only_seed44.yaml",
+      "config_sha256": "580974156a52a54de46bf6c53522929eafc3f1bcdee271888bfe085db9f7ef38",
+      "group": "E",
+      "index": 28,
+      "intervention": "training_task=depression; selector=dev/depression/score",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_depression_only_seed44",
+      "seed": 44,
+      "selector": "dev/depression/score",
+      "variant": "depression_only"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/29_E_parkinson_only_seed42.yaml",
+      "config_sha256": "8d2ed1a1e7932f97b36780b5e2e40c803923f40abb589a05209638750422d465",
+      "group": "E",
+      "index": 29,
+      "intervention": "training_task=parkinson; selector=dev/parkinson/score",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_parkinson_only_seed42",
+      "seed": 42,
+      "selector": "dev/parkinson/score",
+      "variant": "parkinson_only"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/30_E_parkinson_only_seed43.yaml",
+      "config_sha256": "0d435043e423fca2355e3d6d3f3eb7a8e61cb07c7889bc4a0b38dd43b724c1d6",
+      "group": "E",
+      "index": 30,
+      "intervention": "training_task=parkinson; selector=dev/parkinson/score",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_parkinson_only_seed43",
+      "seed": 43,
+      "selector": "dev/parkinson/score",
+      "variant": "parkinson_only"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/31_E_parkinson_only_seed44.yaml",
+      "config_sha256": "67353c6fd425b9b8d46cacec2c18927f5c5753c1171f3eb8e5545d87f31f06f5",
+      "group": "E",
+      "index": 31,
+      "intervention": "training_task=parkinson; selector=dev/parkinson/score",
+      "loss_method": null,
+      "loss_mode": "progress",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_parkinson_only_seed44",
+      "seed": 44,
+      "selector": "dev/parkinson/score",
+      "variant": "parkinson_only"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/32_F_equal_seed42.yaml",
+      "config_sha256": "572075deb08999ea79054d61a05f5b67969bbf14ea8a1d691a0245574fa1d6a0",
+      "group": "F",
+      "index": 32,
+      "intervention": "loss mode=equal",
+      "loss_method": null,
+      "loss_mode": "equal",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_equal_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "equal"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/33_F_equal_seed43.yaml",
+      "config_sha256": "4cb7ce9c5e81d9d350b9a4ea813bd31fc32bc6a1492adf33497ae564051aaaf3",
+      "group": "F",
+      "index": 33,
+      "intervention": "loss mode=equal",
+      "loss_method": null,
+      "loss_mode": "equal",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_equal_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "equal"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/34_F_equal_seed44.yaml",
+      "config_sha256": "660cac8293e60e28648c4225edf78486dbb06087a9459d730bb49ada157d5be8",
+      "group": "F",
+      "index": 34,
+      "intervention": "loss mode=equal",
+      "loss_method": null,
+      "loss_mode": "equal",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_equal_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "equal"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/35_F_static_stch_seed42.yaml",
+      "config_sha256": "37404f56e46dccd20a23bbb70e652c2f64dd8ba471888a49568bf077401a7217",
+      "group": "F",
+      "index": 35,
+      "intervention": "loss mode=stch; tau=0.1",
+      "loss_method": null,
+      "loss_mode": "stch",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_static_stch_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "static_stch"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/36_F_static_stch_seed43.yaml",
+      "config_sha256": "8a478920239b4ebee4d9885efc21054067c51de0a3f023506d4052fafdf3f33c",
+      "group": "F",
+      "index": 36,
+      "intervention": "loss mode=stch; tau=0.1",
+      "loss_method": null,
+      "loss_mode": "stch",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_static_stch_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "static_stch"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/37_F_static_stch_seed44.yaml",
+      "config_sha256": "0607145f78b35863c9d82a6bd5aaafc64a0a32fd55dfa4929e550dbf5ed0a10c",
+      "group": "F",
+      "index": 37,
+      "intervention": "loss mode=stch; tau=0.1",
+      "loss_method": null,
+      "loss_mode": "stch",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_static_stch_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "static_stch"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/38_F_ra_stch_seed42.yaml",
+      "config_sha256": "a572749a171a421bdc645571a74d5df2b3a4578a75b38d7d547e5daf8947f902",
+      "group": "F",
+      "index": 38,
+      "intervention": "loss mode=ra_stch; frozen controller constants",
+      "loss_method": null,
+      "loss_mode": "ra_stch",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_ra_stch_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "ra_stch"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/39_F_ra_stch_seed43.yaml",
+      "config_sha256": "7bfcfe8d281c535a87aec9954009d02837374d3a56e745b4298490d86638e557",
+      "group": "F",
+      "index": 39,
+      "intervention": "loss mode=ra_stch; frozen controller constants",
+      "loss_method": null,
+      "loss_mode": "ra_stch",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_ra_stch_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "ra_stch"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/40_F_ra_stch_seed44.yaml",
+      "config_sha256": "b39ccffb4f372e2c9028e848961b3f4f63d75a3187b735b05a2d6c637623c6bb",
+      "group": "F",
+      "index": 40,
+      "intervention": "loss mode=ra_stch; frozen controller constants",
+      "loss_method": null,
+      "loss_mode": "ra_stch",
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_ra_stch_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "ra_stch"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/41_G_gradnorm_seed42.yaml",
+      "config_sha256": "ddc7fecfdc2caf3892a93c441d22efecdef0e8ae8da74c9e3a591df86f7e1c00",
+      "group": "G",
+      "index": 41,
+      "intervention": "gradient method=gradnorm; alpha=1.5; weight_lr=0.025",
+      "loss_method": "gradnorm",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_gradnorm_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "gradnorm"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/42_G_gradnorm_seed43.yaml",
+      "config_sha256": "d82317b4f1cf13601e5671a83cd96c8ef9cff5a20559cef0a6b502cbce3d3228",
+      "group": "G",
+      "index": 42,
+      "intervention": "gradient method=gradnorm; alpha=1.5; weight_lr=0.025",
+      "loss_method": "gradnorm",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_gradnorm_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "gradnorm"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/43_G_gradnorm_seed44.yaml",
+      "config_sha256": "5ef9234f9e9e80e9d73d6efa14ea78ec3431c03145fb33d4779361c550fdbc6a",
+      "group": "G",
+      "index": 43,
+      "intervention": "gradient method=gradnorm; alpha=1.5; weight_lr=0.025",
+      "loss_method": "gradnorm",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_gradnorm_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "gradnorm"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/44_G_pcgrad_seed42.yaml",
+      "config_sha256": "0b2549524e8708e013d727b47db466edf1dfd4b4f3340863ccda7f87032b4229",
+      "group": "G",
+      "index": 44,
+      "intervention": "gradient method=pcgrad; seed-bound",
+      "loss_method": "pcgrad",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_pcgrad_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "pcgrad"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/45_G_pcgrad_seed43.yaml",
+      "config_sha256": "203c7f7ca2d82ad74bad2f3eb47672c0392156c034de6ea3c28146f2465a0282",
+      "group": "G",
+      "index": 45,
+      "intervention": "gradient method=pcgrad; seed-bound",
+      "loss_method": "pcgrad",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_pcgrad_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "pcgrad"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/46_G_pcgrad_seed44.yaml",
+      "config_sha256": "80323a89bc20c9bd8cc0c779d4cd2282fcd39583a85a59faedb0e70285a23a46",
+      "group": "G",
+      "index": 46,
+      "intervention": "gradient method=pcgrad; seed-bound",
+      "loss_method": "pcgrad",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_pcgrad_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "pcgrad"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/47_G_cagrad_seed42.yaml",
+      "config_sha256": "cb3566e9ea26fa17464b3887c581f849cc5bcb7ad89818929006eb6b8e6d45d5",
+      "group": "G",
+      "index": 47,
+      "intervention": "gradient method=cagrad; calpha=0.5; rescale=1",
+      "loss_method": "cagrad",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_cagrad_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "cagrad"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/48_G_cagrad_seed43.yaml",
+      "config_sha256": "dcd165c3b5fcafda6801e23bdccac88226a1080c48df1433d4b94aa1922d8edd",
+      "group": "G",
+      "index": 48,
+      "intervention": "gradient method=cagrad; calpha=0.5; rescale=1",
+      "loss_method": "cagrad",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_cagrad_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "cagrad"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/49_G_cagrad_seed44.yaml",
+      "config_sha256": "1d1b3f038964cde89d339e4008360ae6d3bd713ba5af3c94044742e797710987",
+      "group": "G",
+      "index": 49,
+      "intervention": "gradient method=cagrad; calpha=0.5; rescale=1",
+      "loss_method": "cagrad",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_cagrad_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "cagrad"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/50_G_dbmtl_seed42.yaml",
+      "config_sha256": "9accd1d6614df09a165a2c8d9a7e2eb3cd428b927de78a887065bcabac861c9d",
+      "group": "G",
+      "index": 50,
+      "intervention": "gradient method=dbmtl; beta=0.9; beta_sigma=0.0",
+      "loss_method": "dbmtl",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_dbmtl_seed42",
+      "seed": 42,
+      "selector": "dev/mean_score",
+      "variant": "dbmtl"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/51_G_dbmtl_seed43.yaml",
+      "config_sha256": "ecb4b24abcdef3829a60d93eb41956753633d266cef40936b8d60f3bd9368e17",
+      "group": "G",
+      "index": 51,
+      "intervention": "gradient method=dbmtl; beta=0.9; beta_sigma=0.0",
+      "loss_method": "dbmtl",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_dbmtl_seed43",
+      "seed": 43,
+      "selector": "dev/mean_score",
+      "variant": "dbmtl"
+    },
+    {
+      "accepted_counts": [
+        376,
+        1801
+      ],
+      "cache_path": "/media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt",
+      "cache_sha256": "17cf5e67e8c244d81b7c21f0842988966a23d83d69e296f7c5a5181376d6b945",
+      "config_path": "configs/wsm_mm_pd_dep_v1/postclosure_shared_progress_suite/52_G_dbmtl_seed44.yaml",
+      "config_sha256": "48868d2aea33610a5082e223fd1f00f730a06fa670c2dfdc3fb71f8c3715b8aa",
+      "group": "G",
+      "index": 52,
+      "intervention": "gradient method=dbmtl; beta=0.9; beta_sigma=0.0",
+      "loss_method": "dbmtl",
+      "loss_mode": null,
+      "missing_counts": [
+        2665,
+        3660
+      ],
+      "model_mode": "shared",
+      "negative_counts": [
+        0,
+        1589
+      ],
+      "parent_config": "logs/wsm_mm_pd_dep_v1/postclosure_shared_progress_optuna_seed42_2026-10-08_15-14_wsm_av_r3_disease_query_model_task011a-shared-progress-8a53-029_f5dbef29/task011a-shared-progress-8a53-029.yaml",
+      "parent_run": "TASK-011A Shared+Progress trial-28",
+      "positive_counts": [
+        376,
+        212
+      ],
+      "run_name": "task011b_dbmtl_seed44",
+      "seed": 44,
+      "selector": "dev/mean_score",
+      "variant": "dbmtl"
+    }
+  ],
+  "schema": "task011b-bundle-v1",
+  "test_access": false
+}

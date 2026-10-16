@@ -1,0 +1,99 @@
+seed: 42
+
+experiment_info:
+  params:
+    experiment_name: wsm_mm_pd_dep_v1
+    run_name: ramps_r2_warmup_contract_smoke
+
+data:
+  name: wsm_ramps_semantic_datamodule
+  params:
+    data_root: /media/maxim/Databases/WSM_NEW
+    audio_feature_cache_root: /media/maxim/Databases/WSM_NEW/features
+    video_cache_root: /media/maxim/Programs/Features/WSM/video_depart_v1_fullframe_fallback/cache
+    pseudo_cache_path: /media/maxim/Programs/Features/WSM/ramps_r2_semantic_v1/train_missing_targets.pt
+    batch_size: 32
+    num_workers: 4
+    pin_memory: true
+    persistent_workers: true
+    shuffle_train: true
+    drop_last_train: false
+
+model:
+  name: wsm_av_f2_task_aware_directed_model
+  params:
+    audio_feature_dim: 768
+    video_feature_dim: 512
+    hidden_dim: 192
+    fusion_hidden_dim: 192
+    relation_hidden_dim: 192
+    dropout: 0.2
+    num_tasks: 2
+
+loss:
+  name: wsm_ramps_observed_pseudo_loss
+  params:
+    pseudo_scale: 0.0
+
+optimizer:
+  name: adamw_optimizer
+  params:
+    lr: 0.0001
+    weight_decay: 0.01
+
+train:
+  params:
+    epochs: 30
+    device: cuda
+    mixed_precision: true
+    grad_clip_norm: 0.5
+    log_every_steps: 25
+    collect_cache: true
+
+metrics: []
+
+callbacks:
+  - name: wsm_segment_metrics_callback
+    params:
+      splits: [auto]
+  - name: checkpoint_callback
+    params:
+      log_path: logs
+      filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
+      monitor: dev/mean_score
+      mode: max
+      save_top_k: 2
+      save_last: true
+  - name: snapshot_callback
+    params:
+      log_path: logs
+      include:
+        - src
+        - configs
+      save_code_zip: true
+      save_config: true
+  - name: early_stopping_callback
+    params:
+      monitor: dev/mean_score
+      mode: max
+      patience: 6
+      min_delta: 0.0005
+  - name: wsm_pseudo_scale_warmup_callback
+    params:
+      observed_only_epochs: 3
+      ramp_epochs: 5
+      final_scale: 1.0
+  - name: wsm_summary_callback
+    params:
+      filename: summary.txt
+
+logging:
+  - name: console_file_logger
+    params:
+      log_path: logs
+      log_file: train.log
+      console_level: INFO
+      file_level: INFO
+  - name: mlflow_logger
+    params:
+      tracking_uri: sqlite:///logs/mlflow.db

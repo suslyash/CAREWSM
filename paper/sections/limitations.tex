@@ -1,0 +1,11 @@
+\section{Limitations and Scope}
+
+Partial labels are the central limitation, not a cosmetic training detail. The observed mask prevents unknown disease labels from becoming negatives, but it does not supply a dual-annotated cohort. We therefore do not claim verified correctness of missing labels, recovery of true comorbidity, or clinical correctness of pseudo probabilities. Direct pseudo-supervision evidence concerns observed-task generalization under the frozen data contract.
+
+The primary shared-fusion role is a frozen DEV-only parsimony decision. It is not a claim that shared fusion is statistically superior to full R4 or audio on final Test. Every predeclared paired final-Test Mean interval includes zero, and no post-Test threshold, model, checkpoint, or role revision is permitted. Five seeds improve descriptive stability relative to a single run but do not justify broad scientific or clinical generalization beyond the stated protocol.
+
+The no-audio ablation removes the online student audio feature branch, not all historical audio-derived information: the immutable pseudo cache stores calibrated frozen audio teacher probabilities. Conversely, the no-video ablation preserves architecture and masks online video availability. These are precisely scoped branch-removal experiments, not universal statements about modality value. Likewise, unsupported component findings do not show that those components are universally useless.
+
+Text and description evidence is intentionally limited. T1 is a standalone video-level-transcript baseline; it does not demonstrate an additive gain when combined with A+V. T2 is blocked before cache, model, training, or evaluation, so it cannot support a performance claim. DEPART figures are external context with a different target/evaluation formulation, and its manually cleaned Test is not WSM TEST\_HARD.
+
+Finally, corpus identity remains structurally coupled to observed-task identity. The corpus probe did not trigger its strong-decodability flag, but this does not prove the absence of corpus effects or establish causality. No further experiment, Test invocation, or post hoc mechanism search is authorized by the completed programme.
