@@ -41,24 +41,28 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 **Status: COMPLETE — TASK-001C manager PASS, PR #9 merged**
 
-- Removed obsolete WSM pipeline modules, all tracked old scripts and historical tests; preserved 15 historical models in passive `src/legacy/`.
+- Removed obsolete WSM pipeline modules, all tracked old scripts and historical tests; preserved **14** historical model implementations in passive `src/legacy/` (corrected after task-base inventory).
 - Preserved `wsm_summary_callback` and candidate `wsm_segment_metrics_callback` source without active plugin registration.
 - Set project identity CAREWSM and no-op ChimeraML plugin; no new models, extraction, training, tests or datasets changed.
 - Source archival hierarchy and legacy configs need one further owner-requested organization cleanup.
 
 ## Stage 1D — Legacy archive flattening and stale-config removal
 
-**Status: NEXT — TASK-001D**
+**Status: COMPLETE — TASK-001D manager PASS, PR #12 merged**
 
-- Remove old WSM-era `configs/`, without inventing or activating new training configs.
-- Flatten `src/legacy/<domain>/models/` into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`.
-- Move historical summary and segment-metrics callbacks into `src/legacy/callbacks/` as passive source; preserve registered names in source but no runtime imports or activation.
+- Removed all 157 tracked old WSM-era `configs/`, without inventing or activating new training configs.
+- Flattened the **14** historical model implementations from `src/legacy/<domain>/models/` into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`.
+- Moved both historical summary and segment-metrics callbacks into `src/legacy/callbacks/` as passive source, unchanged and without plugin activation.
 - For later model training, recover/adapt `wsm_summary_callback` as an active ChimeraML callback and use `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `mlflow_logger` and `console_file_logger`. Treat `wsm_segment_metrics_callback` as optional pending contract review.
-- Remove unused direct WSM package dependencies from `pyproject.toml`, especially `mamba-ssm`, which currently breaks `pip install -e .` in isolated wheel-build requirements (`torch` absent from isolated build environment). Keep only the direct framework dependency necessary for the inactive CAREWSM plugin; verify bounded editable-install resolution without loading models or installing heavy dependencies.
+- Removed obsolete direct WSM package dependencies from `pyproject.toml` including `mamba-ssm`; the remaining project direct dependency is `chimera-ml>=0.2.4`. Codex reports bounded dry-run and exact editable install PASS; independent manager verification covers Git content, not the implementer's local pip environment.
 - No tests, extraction, diarization, model loading, TEST evaluation, training or dataset writes.
 
 ## Stage 2 — WSM feature extraction parity
 
+**Status: NEXT — TASK-002A read-only TRAIN audio/CARE feature-contract preflight**
+
+- Verify raw WSM audio/video input paths, bounded TRAIN media probe and CARE reference extraction scripts before authorizing writes or model downloads.
+- Prepare a read-only stdout-only preflight script under `scripts/` and evidence report under `docs/` (no new tests).
 - adapt CARE extraction logic for WSM outside Chimera ML;
 - run a small extraction smoke before full processing;
 - run the small DiariZen runtime/sanity gate;
