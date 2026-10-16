@@ -24,7 +24,7 @@ Train/dev/test sample and profile overlap is zero. Fold train/validation rows (p
 
 ## 3. WSM splits / folds / labels
 
-WSM has `videos.csv` and 36-column split files. In addition to common identifiers, fields include `dataset,task,diagnosis,label,y_depression,y_parkinson,participant_id,source_video_id,source_group_id,segment_id,segment_file,stratum,source_group,topic_group,storage_type,video_path,feature_dir,archive_relative_path,tar_video_prefix,n_feature_files,available_modalities,missing_modalities,source_csv_path,source_row,csv_video_id,csv_diagnosis,csv_segment_file`. The row unit is one listed segment.
+WSM has `videos.csv` and 34-column split files (verified from the CSV header). In addition to common identifiers, fields include `dataset,task,diagnosis,label,y_depression,y_parkinson,participant_id,source_video_id,source_group_id,segment_id,segment_file,stratum,source_group,topic_group,storage_type,video_path,feature_dir,archive_relative_path,tar_video_prefix,n_feature_files,available_modalities,missing_modalities,source_csv_path,source_row,csv_video_id,csv_diagnosis,csv_segment_file`. The row unit is one listed segment.
 
 | file | rows | samples/profiles | label counts |
 |---|---:|---:|---|
@@ -62,7 +62,7 @@ CARE is complete mutually exclusive three-way source labeling. WSM contains expl
 | emonet_embeds | emonet_embeds.npz | turn_embedding/pool | 512; mean_std |
 | ear_blinking | ear_blinking.csv | frame/sequence | 4; none |
 | mediapipe_bodypose | mediapipe_bodypose.csv | frame/sequence | 165; none |
-| linguistic_turnlevel | linguistic_turnlevel.csv | turn/pool | 41; mean_std |
+| linguistic_turnlevel | linguistic_turnlevel.csv | turn/pool | registry original_feature_dim=41; 39 registry feature names observed; mean_std |
 | linguistic_videolevel | linguistic_videolevel.csv | video/identity | 39; none |
 | mpnet_sentence_embeds | mpnet_sentence_embeds.npz | turn_embedding/pool | 768; mean_std |
 
@@ -161,7 +161,7 @@ Bounded sampling policy: inspect exactly `CARE/extracted/CONTROL/ASTHMA/PROFILE_
 | `emonet_embeds` | NPZ `mean,std,valid_ratio,turn_ids`; mean/std `<f4 (1,256)`, valid ratio `<f8 (1,)`, ids `<i8 (1,)`; pooled turn embedding |
 | `ear_blinking` | CSV 2,910x7; frame/timestamp/success + `blinking,ear_left,ear_right,ear_avg`; sequence; success is string-like in sample |
 | `mediapipe_bodypose` | CSV 2,910x168; frame/timestamp/success + 165 numeric-like columns; frame sequence |
-| `linguistic_turnlevel` | CSV 1x42; turn metadata `turn_id,start_sec,end_sec` plus 39 numeric-like observed columns; turn summary. Registry width is 41, so this sampled file has an unresolved width discrepancy |
+| `linguistic_turnlevel` | CSV 1x42; 3 metadata columns plus 39 numeric columns. The 39 names exactly match the registry family list, but `original_feature_dim` is 41; this is an explicit registry inconsistency, not a 42-vs-41 file-width claim. Keep it unresolved pending owner decision. |
 | `linguistic_videolevel` | CSV 1x39; no metadata; 39 numeric-like columns; video identity-level |
 | `mpnet_sentence_embeds` | NPZ `embed,turn_ids`; embed `<f4 (1,768)`, ids `<i4 (1,)`; turn-indexed embedding |
 
@@ -175,7 +175,31 @@ No absolute `/media/.../CARE` path was found in producer source. Coupling is thr
 
 WSM parity matching used the exact predicate `(Path('/media/maxim/Databases/WSM_NEW') / row['feature_dir'] / registry_file).exists()` for all 8,433 rows (6,133/936/1,364). It found 0 for every registry filename in every split; every row had `n_feature_files=0` and a missing-modality list containing all 19. A separate global filename inventory under `WSM_NEW/extracted` found exactly 1,776 files, all named `transcript.txt`. Representative path: `extracted/CONTROL/PARKINSON/PROFILE_-4QFjLjZio4/VIDEO_-4QFjLjZio4_001/transcript.txt`; it is plain text without a feature schema. This verifies global filename absence, not merely sampled absence.
 
-The 19-row matrix is therefore: each registry name (`egemaps_func`, `egemaps_lld`, all five DisVoice entries, XLS-R, TRILLsson, both emotion entries, OpenFace, both EmoNet entries, EAR, body pose, both linguistic entries, and MPNet) has CARE reference `yes/2,031`, WSM `0`, schema match `N/A`, and action “approved CARE-compatible extraction plus schema validation for that exact file/level/aggregation contract.” The action is intentionally per-family even though the result is uniform.
+The 19-row matrix is:
+
+| feature | CARE reference present | WSM present/count | schema match / N/A | specific action needed |
+|---|---|---:|---|---|
+| egemaps_func | yes / 2,031 | no / 0 | N/A | extract turn functional CSV and validate 88-width contract |
+| egemaps_lld | yes / 2,031 | no / 0 | N/A | extract frame-in-turn CSV and validate 25-width contract |
+| disvoice_prosody_static | yes / 2,031 | no / 0 | N/A | extract static turn CSV |
+| disvoice_prosody_dynamic | yes / 2,031 | no / 0 | N/A | extract dynamic sequence CSV |
+| disvoice_phonation_static | yes / 2,031 | no / 0 | N/A | extract static turn CSV |
+| disvoice_phonation_dynamic | yes / 2,031 | no / 0 | N/A | extract dynamic sequence CSV |
+| disvoice_articulation_static | yes / 2,031 | no / 0 | N/A | extract static turn CSV |
+| wav2vec_xlsr300m | yes / 2,031 | no / 0 | N/A | extract NPZ with CARE turn pooling |
+| trillsson4_1 | yes / 2,031 | no / 0 | N/A | extract NPZ with CARE turn pooling |
+| emotionmsp_trajectories | yes / 2,031 | no / 0 | N/A | extract arousal/dominance/valence turn CSV |
+| emotionmsp_embeds | yes / 2,031 | no / 0 | N/A | extract turn embedding NPZ |
+| openface | yes / 2,031 | no / 0 | N/A | later video parity extraction |
+| emonet_trajectories | yes / 2,031 | no / 0 | N/A | resolve trajectory output before extraction |
+| emonet_embeds | yes / 2,031 | no / 0 | N/A | later video embedding parity |
+| ear_blinking | yes / 2,031 | no / 0 | N/A | later video feature extraction |
+| mediapipe_bodypose | yes / 2,031 | no / 0 | N/A | later video feature extraction |
+| linguistic_turnlevel | yes / 2,031 | no / 0 | N/A | align transcript/turns and validate registry width discrepancy |
+| linguistic_videolevel | yes / 2,031 | no / 0 | N/A | align transcripts and extract video summaries |
+| mpnet_sentence_embeds | yes / 2,031 | no / 0 | N/A | align turns and extract embeddings |
+
+The zero counts are global filename absence plus zero matches across all 8,433 manifest rows, not a sampled-only result.
 
 ### Sections 9–10: actionable repository inventory
 
@@ -183,7 +207,7 @@ The 19-row matrix is therefore: each registry name (`egemaps_func`, `egemaps_lld
 
 All 157 config files are WSM-era; `configs/audio_experiments/` and `configs/wsm_mm_pd_dep_v1/` are **LEGACY/DELETE candidates after manager approval**, not active configs. Retained `scripts/common` include historical WSM manifest, pseudo-label, evaluation, and ablation orchestration; only bounded audit utilities are potential **ADAPT**. The three tests are `test_task010a_gradient_mtl.py` (mathematical gradient method), `test_task012a_postclosure_evaluation_guards.py`, and `test_task012b_shared_progress_test_correctness_audit.py` (historical evaluation guards); none is a CAREWSM data-contract test.
 
-`src/chimera_plugin.py` imports 32 modules: five WSM callbacks, common WSM loss/optimizer, audio DataModule/model/loss, eight fusion models, three fusion DataModules, four fusion losses, two video models plus DataModule, and text feature/DataModule/model. Exhaustive decorator registration names are reproducible with `rg -n "@(?:MODELS|DATAMODULES|LOSSES|CALLBACKS|OPTIMIZERS)\\.register" src --glob '*.py'`; they include 13 model names, 7 DataModules, 6 losses, 6 callbacks, and 1 optimizer, all listed in the first-pass report’s plugin subsection. `pyproject.toml` and `src/wsm.egg-info/*` retain package name/description/entry point `wsm`; those are later packaging cleanup targets.
+`src/chimera_plugin.py` imports 32 modules: five WSM callbacks, common WSM loss/optimizer, audio DataModule/model/loss, eight fusion models, three fusion DataModules, four fusion losses, two video models plus DataModule, and text feature/DataModule/model. Exhaustive decorator registration names are reproducible with `rg -n "@(?:MODELS|DATAMODULES|LOSSES|CALLBACKS|OPTIMIZERS)\\.register" src --glob '*.py'`; they include 13 model names, 7 DataModules, 6 losses, 6 callbacks, and 1 optimizer, the exact names are enumerated here: models `audio_mamba_segment_model`, `av_sync_mamba_segment_model`, `wsm_av_f0_gated_late_model`, `wsm_av_f1_shared_mtl_model`, `wsm_av_f2_task_aware_directed_model`, `wsm_av_f1_temporal_audio_residual_model`, `wsm_av_audio_first_zero_residual_model`, `wsm_av_audio_query_temporal_video_model`, `wsm_av_audio_confidence_gated_model`, `wsm_av_r3_disease_query_model`, `wsm_video_depart_v1_model`, `wsm_video_depart_v2_model`, `wsm_text_t1_chunk_transformer`; DataModules `wsm_audio_segment_datamodule`, `wsm_manifest_datamodule`, `wsm_av_fusion_datamodule`, `wsm_ramps_semantic_datamodule`, `wsm_ramps_semantic_dev_only_datamodule`, `wsm_video_depart_v1_datamodule`, `wsm_text_t1_datamodule`; losses `wsm_masked_sparse_loss`, `wsm_audio_loss`, `wsm_ramps_observed_pseudo_loss`, `wsm_r3_aux_agreement_loss`, `wsm_r4_ramps_balance_loss`, `wsm_gradient_mtl_loss`; callbacks `wsm_summary_callback`, `wsm_segment_metrics_callback`, `wsm_audio_metrics_callback`, `wsm_pseudo_scale_warmup_callback`, `wsm_r4_balance_callback`, `wsm_gradient_mtl_callback`; optimizer `wsm_trainable_adamw_optimizer`. `pyproject.toml` and `src/wsm.egg-info/*` retain package name/description/entry point `wsm`; those are later packaging cleanup targets.
 
 ### Section 11 design limitation
 
