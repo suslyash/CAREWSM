@@ -37,16 +37,17 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 - preserve existing Chimera registration/packaging until a later explicit task;
 - no corpus writes, extraction, training, evaluation, or running DiariZen.
 
-## Stage 1C — Remove obsolete WSM code from src
+## Stage 1C — WSM source and scripts cleanup, model archiving
 
-**Status: NEXT — REVISED TASK-001C (owner correction)**
+**Status: NEXT — FINAL REVISED TASK-001C (owner clarification)**
 
-- `src/` must contain only active ChimeraML code, divided into `audio/`, `fusion/`, `common/`, plus the plugin shim.
-- **Actually remove** obsolete copied WSM implementation from active `src/` and preserve provenance via Git history; do not merely classify it as LEGACY.
-- Remove the mistaken `src/carewsm/` scaffold and `src/legacy/README.md` created by TASK-001B.
-- Change the distribution/plugin identity to CAREWSM but register no copied WSM components; add standard-library source-boundary tests.
-- Keep one-time scripts and documentation outside `src/`. Handle obsolete historical configs/tests/scripts in later separately reviewed cleanup tasks.
-- No dataset writes, feature extraction, diarization, model loading, evaluation or training.
+- Keep active ChimeraML structure `src/audio/`, `src/fusion/`, `src/common/` plus `src/chimera_plugin.py`.
+- **Archive only historical model implementations** under passive `src/legacy/`, not copied losses/DataModules/callbacks/other WSM pipeline code; exclude archived models from plugin registration and packaging. Delete other obsolete WSM source from active namespaces.
+- Remove unwanted `src/carewsm/` and `src/legacy/README.md` scaffold.
+- **Clean top-level `scripts/` of obsolete WSM research/orchestration utilities**, retaining only demonstrably relevant CAREWSM scripts. One-off scripts remain outside `src/`.
+- Remove copied obsolete WSM/scaffold `tests/`; do not create or run tests (explicit owner preference). Verify only with Git evidence/static review.
+- Change distribution/plugin identity to CAREWSM with a no-op active registry. Historical configs cleanup is separate.
+- No dataset writes, extraction, diarization, model loading, evaluation or training.
 
 ## Stage 2 — WSM feature extraction parity
 
