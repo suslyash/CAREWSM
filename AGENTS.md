@@ -89,11 +89,15 @@ The first corpus audit must verify actual CSV columns, label values, label avail
 
 ## 8. Source layout and legacy-code policy — current owner rule
 
-- `src/` contains **only active ChimeraML Python code** under `src/audio/`, `src/fusion/`, `src/common/`, with `src/chimera_plugin.py` as the minimal entrypoint.
-- **No** `src/carewsm/` or `src/legacy/` namespaces, README/docs, extraction/preprocessing utilities, audit tools, or one-time scripts inside `src/`. Put scripts in repository-root `scripts/` and docs in `docs/`.
-- Revised TASK-001C explicitly removes copied obsolete WSM modules and the TASK-001B `src/carewsm/` and `src/legacy/README.md` mistakes. Provenance remains in Git history.
-- Register no old WSM components by default. Reuse must be justified by later bounded tasks and CAREWSM-specific contracts.
-- These latest owner rules supersede any conflicting legacy-namespace recommendations in earlier docs.
+- `src/` is for ChimeraML only: active code under `src/audio/`, `src/fusion/`, `src/common/` plus `src/chimera_plugin.py`.
+- **Only archived model implementation code** is allowed under `src/legacy/`; it must not be auto-imported, registered, used as an active model, or installed as an active package. No other legacy implementation belongs there.
+- Do not create `src/carewsm/`; do not put README/docs, extraction/preprocessing, audit or one-off research scripts in `src/`. Root `scripts/` is for current CAREWSM one-off work and must be cleaned of obsolete WSM scripts. Documentation stays in `docs/`.
+- TASK-001C is an authorized repository-only cleanup: remove obsolete WSM source except archived model code, clean stale scripts and obsolete historical tests; remove TASK-001B scaffold `src/carewsm/` and `src/legacy/README.md`.
+- **Owner does not require a test suite.** Do not create or run tests for TASK-001C. Use Git inventory, diff/scope review and explicit evidence instead.
+- Keep README files **only in the repository root or under `docs/`**. TASK-001C removes tracked README files elsewhere (including configs/scripts/src subfolders).
+- Preserve `src/common/callbacks/wsm_summary_callback.py` as a required future training callback and `src/common/callbacks/wsm_segment_callback.py` as an **optional candidate for later scientific validation**. Do not confuse these callbacks with old WSM models or delete them in source cleanup.
+- Future ChimeraML training configs must include `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `wsm_summary_callback`, `mlflow_logger`, `console_file_logger`. Identify built-in vs project-defined registration before config authoring; `wsm_segment_metrics_callback` remains optional, pending masked-label/TEST-policy review. Do not activate any training during cleanup.
+- Old code is recoverable from Git history; no copied WSM model, loss, callback, DataModule or optimizer may be registered or promoted without separate approval. These owner rules supersede earlier conflicting plans.
 
 ## 9. Chimera and extraction boundary
 
