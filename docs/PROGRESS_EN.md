@@ -12,13 +12,13 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)** and **TASK-001B ACCEPTED (PR #5)**. TASK-001C cleanup is implemented on its task branch and pending manager review; no extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, and **TASK-001C ACCEPTED (PR #9 merged)**. Stage 1D (obsolete configs removal and flat source archive) is next; no extraction or training has run.
 
 No CAREWSM scientific experiment has been run.
 
 No CAREWSM baseline has been accepted.
 
-Only archived historical model source remains under passive `src/legacy/`; obsolete WSM source, scripts and tests were removed. TASK-001A recommended KEEP / ADAPT / LEGACY / DELETE categories; no copied methodology is active by default.
+TASK-001C removed obsolete WSM source, tracked old scripts and copied tests. The passive `src/legacy/` still has nested model categories; two callback sources remain under `src/common/callbacks/`. Old WSM-era configurations remain pending TASK-001D. No copied methodology is active by default.
 
 ## Data roots
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-001C (owner-finalized) — cleanup is complete on the task branch and pending manager review. See `docs/NEXT_TASK_EN.md`. No data writes, extraction or training.
+TASK-001D — remove obsolete WSM-era `configs/`, flatten passive model archive into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`, and move two historical callbacks into `src/legacy/callbacks/`; see `docs/NEXT_TASK_EN.md`. No new training configs, tests, model loading, extraction or training.
 
 ## TASK-001B outcome
 
@@ -51,4 +51,4 @@ TASK-001B accepted and merged in PR #5: https://github.com/suslyash/CAREWSM/pull
 
 Removed obsolete WSM source, top-level scripts, copied tests, nested README files, and the TASK-001B scaffold. Archived only historical model implementations under passive `src/legacy/`; preserved `src/common/callbacks/wsm_summary_callback.py` and `src/common/callbacks/wsm_segment_callback.py` as non-activating future candidates. The ChimeraML plugin entry point is retained as a no-op, and the package identity is CAREWSM with archived legacy packages excluded from installation.
 
-Future manager-approved training configurations must document `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `wsm_summary_callback`, `mlflow_logger`, and `console_file_logger`; `wsm_segment_metrics_callback` remains optional pending review. No tests were created or run. TASK-001C is pending manager review.
+Future manager-approved training configurations must document `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `wsm_summary_callback`, `mlflow_logger`, and `console_file_logger`; `wsm_segment_metrics_callback` remains optional pending review. No tests were created or run. **Manager PASS**, merged PR: https://github.com/suslyash/CAREWSM/pull/9 ; merge SHA `d732b7a2e83f50fa1b06018e589cc36012797793`. Remaining nested legacy archive and old configs are the explicitly scoped TASK-001D follow-up.

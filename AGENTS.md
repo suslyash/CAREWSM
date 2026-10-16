@@ -89,15 +89,12 @@ The first corpus audit must verify actual CSV columns, label values, label avail
 
 ## 8. Source layout and legacy-code policy — current owner rule
 
-- `src/` is for ChimeraML only: active code under `src/audio/`, `src/fusion/`, `src/common/` plus `src/chimera_plugin.py`.
-- **Only archived model implementation code** is allowed under `src/legacy/`; it must not be auto-imported, registered, used as an active model, or installed as an active package. No other legacy implementation belongs there.
-- Do not create `src/carewsm/`; do not put README/docs, extraction/preprocessing, audit or one-off research scripts in `src/`. Root `scripts/` is for current CAREWSM one-off work and must be cleaned of obsolete WSM scripts. Documentation stays in `docs/`.
-- TASK-001C is an authorized repository-only cleanup: remove obsolete WSM source except archived model code, clean stale scripts and obsolete historical tests; remove TASK-001B scaffold `src/carewsm/` and `src/legacy/README.md`.
-- **Owner does not require a test suite.** Do not create or run tests for TASK-001C. Use Git inventory, diff/scope review and explicit evidence instead.
-- Keep README files **only in the repository root or under `docs/`**. TASK-001C removes tracked README files elsewhere (including configs/scripts/src subfolders).
-- Preserve `src/common/callbacks/wsm_summary_callback.py` as a required future training callback and `src/common/callbacks/wsm_segment_callback.py` as an **optional candidate for later scientific validation**. Do not confuse these callbacks with old WSM models or delete them in source cleanup.
-- Future ChimeraML training configs must include `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `wsm_summary_callback`, `mlflow_logger`, `console_file_logger`. Identify built-in vs project-defined registration before config authoring; `wsm_segment_metrics_callback` remains optional, pending masked-label/TEST-policy review. Do not activate any training during cleanup.
-- Old code is recoverable from Git history; no copied WSM model, loss, callback, DataModule or optimizer may be registered or promoted without separate approval. These owner rules supersede earlier conflicting plans.
+- Active ChimeraML code lives in `src/audio/`, `src/fusion/`, `src/common/` and `src/chimera_plugin.py`. Keep one-time scripts outside `src/`, in `scripts/`; documentation stays at repository root or under `docs/`. No README outside root/`docs/`.
+- `src/legacy/` is a passive source archive, **not an active plugin/module source**. The owner-approved shallow archive layout is `src/legacy/audio_models/`, `fusion_models/`, `video_models/`, `text_models/` and `callbacks/`. Do not create `src/legacy/audio/models/` etc again. Keep old implementation source verbatim; do not import/register/build legacy code.
+- TASK-001C (PR #9) removed old WSM source/scripts/tests and initially archived 15 models with nested domain/`models` paths. TASK-001D **flattens** this archive, moves the two preserved historic callbacks from `src/common/callbacks/` to `src/legacy/callbacks/`, and **removes the old WSM-era `configs/`**. No new configs or tests during this task.
+- Training configs, when separately authorized, must include ChimeraML callbacks `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `wsm_summary_callback` and loggers `mlflow_logger`, `console_file_logger`. `wsm_summary_callback` is preserved as archival source and will require later deliberate adaptation/active registration in `src/common/`; it must **not** be silently loaded from legacy. `wsm_segment_metrics_callback` is an optional candidate only, subject to CAREWSM label-mask/metric/TEST-policy audit.
+- The owner does not require a test suite; do not add or run tests for repository-cleanup tasks. Verification uses Git scope/diff and static evidence.
+- All archived WSM source is non-authoritative; old WSM performance results do not become CAREWSM evidence. These explicit owner rules supersede earlier conflicting layout proposals.
 
 ## 9. Chimera and extraction boundary
 

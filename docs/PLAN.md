@@ -39,17 +39,22 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 ## Stage 1C — WSM source and scripts cleanup, model archiving
 
-**Status: NEXT — FINAL REVISED TASK-001C (owner clarification)**
+**Status: COMPLETE — TASK-001C manager PASS, PR #9 merged**
 
-- Keep active ChimeraML structure `src/audio/`, `src/fusion/`, `src/common/` plus `src/chimera_plugin.py`.
-- **Archive only historical model implementations** under passive `src/legacy/`, not copied losses/DataModules/callbacks/other WSM pipeline code; exclude archived models from plugin registration and packaging. Delete other obsolete WSM source from active namespaces.
-- Remove unwanted `src/carewsm/` and `src/legacy/README.md` scaffold.
-- **Clean top-level `scripts/` of obsolete WSM research/orchestration utilities**, retaining only demonstrably relevant CAREWSM scripts. One-off scripts remain outside `src/`.
-- Remove copied obsolete WSM/scaffold `tests/`; do not create or run tests (explicit owner preference). Verify only with Git evidence/static review.
-- Remove README files in all nested directories except under `docs/`; keep root README. Preserve `wsm_summary_callback` under `src/common/callbacks/` for future training and retain `wsm_segment_metrics_callback` as a candidate only (audit WSM/TEST behavior before enabling).
-- Later training configs must include callbacks `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `wsm_summary_callback` and loggers `mlflow_logger`, `console_file_logger` (verify origin/registration before writing configs).
-- Change distribution/plugin identity to CAREWSM with a no-op active registry. Historical configs cleanup is separate.
-- No dataset writes, extraction, diarization, model loading, evaluation or training.
+- Removed obsolete WSM pipeline modules, all tracked old scripts and historical tests; preserved 15 historical models in passive `src/legacy/`.
+- Preserved `wsm_summary_callback` and candidate `wsm_segment_metrics_callback` source without active plugin registration.
+- Set project identity CAREWSM and no-op ChimeraML plugin; no new models, extraction, training, tests or datasets changed.
+- Source archival hierarchy and legacy configs need one further owner-requested organization cleanup.
+
+## Stage 1D — Legacy archive flattening and stale-config removal
+
+**Status: NEXT — TASK-001D**
+
+- Remove old WSM-era `configs/`, without inventing or activating new training configs.
+- Flatten `src/legacy/<domain>/models/` into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`.
+- Move historical summary and segment-metrics callbacks into `src/legacy/callbacks/` as passive source; preserve registered names in source but no runtime imports or activation.
+- For later model training, recover/adapt `wsm_summary_callback` as an active ChimeraML callback and use `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `mlflow_logger` and `console_file_logger`. Treat `wsm_segment_metrics_callback` as optional pending contract review.
+- No tests, extraction, diarization, model loading, TEST evaluation, training or dataset writes.
 
 ## Stage 2 — WSM feature extraction parity
 
