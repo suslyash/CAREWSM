@@ -62,7 +62,7 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 **Status: NEXT — TASK-002A read-only TRAIN audio/CARE feature-contract preflight**
 
 - Verify raw WSM audio/video input paths, bounded TRAIN media probe and CARE reference extraction scripts before authorizing writes or model downloads.
-- Prepare a read-only stdout-only preflight script under `scripts/` and evidence report under `docs/` (no new tests).
+- Prepare a read-only stdout-only preflight script at **`scripts/audio/wsm_audio_preflight.py`** and evidence report under `docs/` (no new tests). All future one-time audio preprocessing/DiariZen/feature extraction scripts live in `scripts/audio/`, fully independent of ChimeraML training, registries and DataModules.
 - adapt CARE extraction logic for WSM outside Chimera ML;
 - run a small extraction smoke before full processing;
 - run the small DiariZen runtime/sanity gate;
