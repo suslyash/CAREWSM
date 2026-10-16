@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wsm"
+name = "carewsm"
 version = "0.1.0"
-description = "wsm"
+description = "CAREWSM research and engineering project"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.entry-points."chimera_ml.plugins"]
-wsm = "chimera_plugin:register"
+carewsm = "chimera_plugin:register"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -37,3 +37,4 @@ py-modules = ["chimera_plugin"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["legacy", "legacy.*"]

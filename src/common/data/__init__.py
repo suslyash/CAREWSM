@@ -1,1 +1,0 @@
-"""Reusable common data contracts."""
