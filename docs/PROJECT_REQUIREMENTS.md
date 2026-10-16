@@ -103,11 +103,11 @@ Every significant experiment must trace to:
 
 No split, label, feature file, or result may be silently rewritten.
 
-## 8. Repository source layout — owner decision
+## 8. Repository source layout — latest owner decision
 
-`src/` is exclusively for active ChimeraML code. Preserve the original `src/audio/`, `src/fusion/`, `src/common/` organization plus required `src/chimera_plugin.py`. No `src/carewsm/`, `src/legacy/`, README/docs or one-time preprocessing/extraction/research scripts inside `src/`; put scripts in root `scripts/` and documentation in root `docs/`. The distribution/plugin may be named CAREWSM without a matching Python package namespace.
+`src/` is exclusively for ChimeraML: active work under `src/audio/`, `src/fusion/`, `src/common/` and a required `src/chimera_plugin.py`. **Exception: old model implementation files only** may be archived under `src/legacy/`, strictly passive and excluded from active plugin registration/packaging. Do not archive old WSM DataModules, losses, callbacks, utilities, features or scripts inside `src/legacy/`. No `src/carewsm/`, README/docs or one-time extraction/research scripts inside `src/`. One-off scripts belong under top-level `scripts/` and project docs under `docs/`.
 
-TASK-001B added `src/carewsm/` and `src/legacy/README.md` contrary to this subsequently clarified owner policy. Revised TASK-001C must remove those and **remove obsolete WSM code from active `src/`**, with audit/Git history retaining provenance. Old WSM models, callbacks, losses and DataModules must not be imported or registered by default. A separate later task may recover individually justified components under the original `audio/fusion/common` namespaces. Other historical configs/tests/scripts are cleaned separately. No dataset writes or extraction authorized by this policy.
+Revised TASK-001C shall clean the obsolete WSM code out of active `src/` and old WSM scripts out of `scripts/`, preserving actual historical **model source** in `src/legacy/` only. It shall also remove mistaken TASK-001B scaffold `src/carewsm/` and `src/legacy/README.md`. Old WSM content is not an approved CAREWSM baseline and cannot be registered by default. The owner does **not** want a test suite: do not create or run tests for this cleanup; remove obsolete copied WSM/scaffold tests only. Other historical config cleanup is separate. No dataset writes, extraction or training are authorized.
 
 ## 9. Legacy reset
 
