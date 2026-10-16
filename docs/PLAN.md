@@ -30,12 +30,22 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 ## Stage 1B — Controlled repository scaffolding and legacy isolation
 
-**Status: NEXT — TASK-001B, non-destructive scaffold only**
+**Status: COMPLETE — TASK-001B manager PASS, PR #5 merged**
 
 - introduce a minimal active CAREWSM namespace without activating copied WSM methods;
 - document legacy isolation and new config/test roots without moving or deleting old implementation;
 - preserve existing Chimera registration/packaging until a later explicit task;
 - no corpus writes, extraction, training, evaluation, or running DiariZen.
+
+## Stage 1C — Active packaging and plugin isolation
+
+**Status: NEXT — TASK-001C**
+
+- identify the installed project and active Chimera plugin as CAREWSM, not WSM;
+- expose a minimal empty CAREWSM registration entrypoint while no CAREWSM models/DataModules are authorized;
+- preserve old WSM implementation, scripts, configurations, and historical registration module untouched as legacy reference;
+- include standard-library-only packaging and import verification, without installing/training/building heavyweight dependencies;
+- do not relocate, delete or execute legacy code, or modify corpora.
 
 ## Stage 2 — WSM feature extraction parity
 
