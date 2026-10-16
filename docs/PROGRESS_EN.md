@@ -12,13 +12,13 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, and **TASK-001C ACCEPTED (PR #9 merged)**. Stage 1D (obsolete configs removal, flat source archive, and editable-install dependency cleanup) is next; no extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2 begins with TASK-002A read-only WSM audio/CARE feature-contract preflight; no extraction or training has run.
 
 No CAREWSM scientific experiment has been run.
 
 No CAREWSM baseline has been accepted.
 
-TASK-001C removed obsolete WSM source, tracked old scripts and copied tests. The passive `src/legacy/` still has nested model categories; two callback sources remain under `src/common/callbacks/`. Old WSM-era configurations remain pending TASK-001D. No copied methodology is active by default.
+TASK-001C removed obsolete WSM source, tracked old scripts and copied tests. TASK-001D removed 157 old config files, flattened 14 historical model files into passive `src/legacy/{audio_models,fusion_models,video_models,text_models}/`, and archived two callback sources under `src/legacy/callbacks/`. Direct package dependencies are now only `chimera-ml>=0.2.4`; old WSM methods remain inactive.
 
 ## Data roots
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-001D — remove obsolete WSM-era `configs/`, flatten passive model archive into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`, move two historical callbacks into `src/legacy/callbacks/`, and **fix `pip install -e .`** by removing stale WSM-only dependencies (`mamba-ssm` and unused direct old-model libraries) from `pyproject.toml`. See `docs/NEXT_TASK_EN.md`. No new training configs, tests, model loading, extraction or training.
+TASK-002A — read-only WSM TRAIN audio input probe and CARE feature extraction contract preflight; see `docs/NEXT_TASK_EN.md`. No data writes, audio extraction, DiariZen, tests or training.
 
 ## TASK-001B outcome
 
@@ -58,4 +58,4 @@ Future manager-approved training configurations must document `checkpoint_callba
 
 Removed all 157 tracked WSM-era configuration files. Flattened the passive archive into `src/legacy/audio_models/`, `fusion_models/`, `video_models/`, `text_models/`, and `callbacks/`, preserving all 14 model implementation files present in `origin/main` and both historical callback sources without behavior changes or activation; the task wording count of 15 does not match the audited inventory.
 
-Reduced direct project dependencies to `chimera-ml>=0.2.4`; removed legacy Torch/audio/video/ML dependencies including `mamba-ssm`. Existing CAREWSM project identity, no-op plugin entrypoint, and `legacy*` package exclusion remain unchanged. TASK-001D is pending manager review; no tests, extraction, DiariZen, evaluation or training were run.
+Reduced direct project dependencies to `chimera-ml>=0.2.4`; removed legacy Torch/audio/video/ML dependencies including `mamba-ssm`. Existing CAREWSM project identity, no-op plugin entrypoint, and `legacy*` package exclusion remain unchanged. TASK-001D manager **PASS**. Merged PR: https://github.com/suslyash/CAREWSM/pull/12 ; merge SHA `db92aa6eab4f10f4c141c6b730feeee7b0c679bc`. Codex reported `pip install -e . --dry-run` and exact `pip install -e .` PASS; manager independently checked Git changes and representative source blob preservation but did not execute pip on Codex's machine. No tests, extraction, DiariZen, evaluation or training were run.
