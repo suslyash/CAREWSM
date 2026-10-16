@@ -68,7 +68,7 @@ The manager/owner then chooses retain / optimize narrowly / drop. Do not let dia
 
 - One-time feature extraction/preprocessing is outside Chimera ML.
 - CARE extraction scripts under `/media/maxim/Databases/CARE/scripts` are reference implementations and must first be audited.
-- WSM adaptations should live in project-controlled scripts rather than silently mutating CARE reference code.
+- WSM audio adaptations, preprocessing/DiariZen gates and all one-off audio feature extraction/aggregation scripts must live in **`scripts/audio/`**, not in `src/` and not directly in `scripts/`. They must be independent of ChimeraML (no framework imports, plugin/registry/trainer/DataModule coupling or training configs); do not mutate CARE reference code. Training/evaluation pipelines subsequently consume extracted features through ChimeraML `src/audio/` components.
 - Training/evaluation pipelines after feature extraction use Chimera ML.
 
 ## 6. Selection and evaluation

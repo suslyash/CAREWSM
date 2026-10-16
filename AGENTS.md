@@ -99,7 +99,7 @@ The first corpus audit must verify actual CSV columns, label values, label avail
 
 ## 9. Chimera and extraction boundary
 
-One-time corpus feature extraction is outside Chimera ML.
+One-time corpus feature extraction is outside Chimera ML. **All audio preprocessing/inspection, speech-turn/diarization preparation, audio feature extraction and aggregation scripts belong under root `scripts/audio/`**. They are standalone offline tools and must not import `chimera_ml`, use its plugin/registry/DataModule/trainer, or depend on training configs; training reads produced features afterward through approved ChimeraML modules under `src/audio/`. Do not put audio preparation scripts at `scripts/` root or in `src/`.
 
 After feature parity/data contracts are established, model training/evaluation pipelines use Chimera ML and project registry/plugin conventions.
 
