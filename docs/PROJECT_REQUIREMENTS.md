@@ -103,7 +103,13 @@ Every significant experiment must trace to:
 
 No split, label, feature file, or result may be silently rewritten.
 
-## 8. Legacy reset
+## 8. Repository source layout — owner decision
+
+`src/` is exclusively for active ChimeraML code. Preserve the original `src/audio/`, `src/fusion/`, `src/common/` organization plus required `src/chimera_plugin.py`. No `src/carewsm/`, `src/legacy/`, README/docs or one-time preprocessing/extraction/research scripts inside `src/`; put scripts in root `scripts/` and documentation in root `docs/`. The distribution/plugin may be named CAREWSM without a matching Python package namespace.
+
+TASK-001B added `src/carewsm/` and `src/legacy/README.md` contrary to this subsequently clarified owner policy. Revised TASK-001C must remove those and **remove obsolete WSM code from active `src/`**, with audit/Git history retaining provenance. Old WSM models, callbacks, losses and DataModules must not be imported or registered by default. A separate later task may recover individually justified components under the original `audio/fusion/common` namespaces. Other historical configs/tests/scripts are cleaned separately. No dataset writes or extraction authorized by this policy.
+
+## 9. Legacy reset
 
 The repository began as a code copy of WSM. TASK-001A classified copied components as KEEP/ADAPT/LEGACY/DELETE candidates; classification is not automatic activation of old WSM methods. Subsequent changes require a separately reviewed atomic task.
 
