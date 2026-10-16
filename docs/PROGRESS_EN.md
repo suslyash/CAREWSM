@@ -12,7 +12,8 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (manager PASS; PR #3 merged)**. Stage 1B is next; no cleanup has run yet.
+Status: **TASK-001A ACCEPTED (manager PASS; PR #3 merged)**. TASK-001B scaffold is
+implemented on its task branch and pending manager review; no cleanup has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -38,3 +39,11 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 ## Next task
 
 TASK-001B — non-destructive CAREWSM package/config/test scaffold and legacy-isolation documentation. See `docs/NEXT_TASK_EN.md`. Extraction, DiariZen, training and dataset writes remain forbidden.
+
+## TASK-001B outcome
+
+Created the inactive `src/carewsm/` namespace, future `configs/carewsm/` root,
+legacy-isolation documentation, and bounded scaffold tests. Existing WSM-derived
+code, configurations, registrations, scripts, and tests remain untouched.
+The task branch is pending manager review; extraction, DiariZen, training,
+evaluation, and CARE/WSM writes were not performed.
