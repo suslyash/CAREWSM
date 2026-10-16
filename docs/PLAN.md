@@ -1,10 +1,10 @@
 # CAREWSM Research and Engineering Plan
 
-Exact model families and missing-label methods are deliberately **not frozen** before the corpus/feature/code audit.
+Exact model families and missing-label methods remain **unfrozen** after TASK-001A. Audit findings must be translated into validated data/feature contracts before model implementation.
 
 ## Stage 0 — Repository bootstrap and legacy reset
 
-**Status: COMPLETE pending manager review**
+**Status: COMPLETE (bootstrap PR #1)**
 
 - remove old WSM task/progress/evidence/plan/paper artifacts;
 - install CAREWSM manager/Codex contracts;
@@ -12,7 +12,7 @@ Exact model families and missing-label methods are deliberately **not frozen** b
 
 ## Stage 1 — Corpus, feature, and legacy-code audit
 
-**Status: NEXT**
+**Status: COMPLETE — TASK-001A manager PASS, PR #3 merged**
 
 - inspect CARE/WSM split and fold CSVs;
 - verify participant/profile disjointness;
@@ -26,7 +26,16 @@ Exact model families and missing-label methods are deliberately **not frozen** b
 - identify model families worth preserving under a separated legacy namespace;
 - no training and no dataset writes.
 
-After manager review, perform a separate cleanup task based on this inventory.
+Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`, and `linguistic_turnlevel` registry width mismatch). WSM has 0/19 CARE feature families; missing disease labels are masked. Proceed to an independent, narrow repository-cleanup/scaffolding task; do not start extraction/training.
+
+## Stage 1B — Controlled repository scaffolding and legacy isolation
+
+**Status: NEXT — TASK-001B, non-destructive scaffold only**
+
+- introduce a minimal active CAREWSM namespace without activating copied WSM methods;
+- document legacy isolation and new config/test roots without moving or deleting old implementation;
+- preserve existing Chimera registration/packaging until a later explicit task;
+- no corpus writes, extraction, training, evaluation, or running DiariZen.
 
 ## Stage 2 — WSM feature extraction parity
 

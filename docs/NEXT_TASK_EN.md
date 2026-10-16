@@ -1,57 +1,26 @@
 # NEXT TASK
 
-## TASK-001A — repository, corpus, and CARE feature-contract audit
+## TASK-001B — minimal CAREWSM namespace and legacy-isolation scaffold
 
-**Status: NOT STARTED — manager must issue the implementation prompt**
+**Status: READY — issue only after TASK-001A manager PASS (PR #3 merged).**
 
-The next manager should issue one read-only Codex audit covering:
+Base: current `origin/main` after the accepted audit and management-contract update. Create a **new** branch `codex/task-001b-repository-scaffold` only after `git fetch origin`, switching to local `main`, and `git pull --ff-only origin main`. Never reuse the TASK-001A branch. Follow `AGENTS.md`, read active docs in order, then the accepted `docs/TASK-001A_CORPUS_FEATURE_REPO_AUDIT_EN.md`. Check `git status --short` before changes.
 
-### CARE
+### Goal
+Create a minimal, **non-destructive** CAREWSM active namespace and documented legacy boundaries. This is preparation for later approved cleanup; do not implement a new DataModule, move old files, or activate old methods.
 
-- `/media/maxim/Databases/CARE/splits/videos.csv`
-- `train.csv`, `dev.csv`, `test.csv`
-- all five `fold_{0..4}_{train,val}.csv` pairs
-- `splits/features.json`
-- `splits/care_features.py`
-- `/media/maxim/Databases/CARE/scripts`
-- representative files under `extracted/`
+### Allowed tracked changes
+- Create `src/carewsm/__init__.py` plus empty package initializers under `src/carewsm/{data,features,models,evaluation}/`.
+- Create `src/legacy/README.md` identifying old WSM modules/configs as **untouched legacy candidates** and linking the accepted TASK-001A KEEP/ADAPT/LEGACY/DELETE inventory.
+- Create `configs/carewsm/README.md` describing the future config root, explicitly without active model/train configs.
+- Create `tests/carewsm/test_package_scaffold.py` with lightweight import/discovery checks only; run only bounded tests that cannot train/load models.
+- Update `docs/PROGRESS_EN.md` to record TASK-001B outcome pending manager review.
 
-### WSM
+### Prohibited
+Do not edit `pyproject.toml`, `src/chimera_plugin.py`, existing `src/common/`, `src/audio/`, `src/fusion/`, `src/video/`, `src/text/`, old configs/scripts/tests, active requirements/PLAN/NEXT_TASK/MANAGER_CONTRACT/AGENTS, or the TASK-001A audit. Do not relocate/delete legacy code, register new Chimera components, install heavy dependencies, implement features/DataModules, run DiariZen, evaluate TEST, extract features, train, or write to CARE/WSM. Preserve the missing CARE loader and `linguistic_turnlevel` discrepancy as unverified—do not repair them.
 
-- equivalent split/fold CSVs
-- current `extracted/` coverage
-- raw `depression/` and `parkinson/` source organization
+### Acceptance evidence
+Report added/changed paths, test commands and outputs, import behavior, `git diff --check`, clean worktree, exact `origin/main` base, new branch/commit SHA, and normal non-force push. Diff must stay within allowed paths. No PR: manager reviews and merges on PASS, or sends a brief corrective message on FAIL.
 
-### Repository
-
-- `src/`
-- `configs/`
-- `tests/`
-- retained `scripts/`
-- `pyproject.toml`
-
-## Required audit outputs
-
-1. split/fold counts;
-2. participant/profile overlap audit;
-3. exact label columns, values, availability, and missingness by corpus/split;
-4. exact CARE feature registry and representative feature-file schemas/dtypes/shapes;
-5. CARE extractor script and dependency inventory;
-6. exact WSM feature-coverage gap relative to CARE;
-7. repository component inventory with KEEP / ADAPT / LEGACY / DELETE recommendations;
-8. recommended new active package/config layout;
-9. a **small** future DiariZen benchmark design only;
-10. proposed documentation corrections where observed facts conflict with owner expectations.
-
-## Prohibitions
-
-TASK-001A must not:
-
-- train a model;
-- extract/recompute features;
-- run the DiariZen benchmark;
-- modify CARE or WSM datasets;
-- delete/move repository code/configs;
-- start cleanup before manager review.
-
-The manager reviews TASK-001A before authorizing the cleanup/extraction stages.
+### Final handoff
+Use `Outcome`, `Changed files`, `Verification`, `Data/Test access`, `Git handoff`, `Blockers and risks`, `Next atomic step`. For the last section write: `Manager review of TASK-001B; do not begin cleanup relocation, extraction, DiariZen, or training.`
