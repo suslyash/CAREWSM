@@ -1,1 +1,0 @@
-"""Active CAREWSM namespace scaffold."""
