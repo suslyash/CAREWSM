@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, and **TASK-001C ACCEPTED (PR #9 merged)**. Stage 1D (obsolete configs removal and flat source archive) is next; no extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, and **TASK-001C ACCEPTED (PR #9 merged)**. Stage 1D (obsolete configs removal, flat source archive, and editable-install dependency cleanup) is next; no extraction or training has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-001D — remove obsolete WSM-era `configs/`, flatten passive model archive into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`, and move two historical callbacks into `src/legacy/callbacks/`; see `docs/NEXT_TASK_EN.md`. No new training configs, tests, model loading, extraction or training.
+TASK-001D — remove obsolete WSM-era `configs/`, flatten passive model archive into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`, move two historical callbacks into `src/legacy/callbacks/`, and **fix `pip install -e .`** by removing stale WSM-only dependencies (`mamba-ssm` and unused direct old-model libraries) from `pyproject.toml`. See `docs/NEXT_TASK_EN.md`. No new training configs, tests, model loading, extraction or training.
 
 ## TASK-001B outcome
 

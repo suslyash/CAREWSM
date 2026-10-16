@@ -54,6 +54,7 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 - Flatten `src/legacy/<domain>/models/` into `src/legacy/{audio_models,fusion_models,video_models,text_models}/`.
 - Move historical summary and segment-metrics callbacks into `src/legacy/callbacks/` as passive source; preserve registered names in source but no runtime imports or activation.
 - For later model training, recover/adapt `wsm_summary_callback` as an active ChimeraML callback and use `checkpoint_callback`, `snapshot_callback`, `early_stopping_callback`, `mlflow_logger` and `console_file_logger`. Treat `wsm_segment_metrics_callback` as optional pending contract review.
+- Remove unused direct WSM package dependencies from `pyproject.toml`, especially `mamba-ssm`, which currently breaks `pip install -e .` in isolated wheel-build requirements (`torch` absent from isolated build environment). Keep only the direct framework dependency necessary for the inactive CAREWSM plugin; verify bounded editable-install resolution without loading models or installing heavy dependencies.
 - No tests, extraction, diarization, model loading, TEST evaluation, training or dataset writes.
 
 ## Stage 2 — WSM feature extraction parity
