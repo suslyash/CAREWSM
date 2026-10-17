@@ -13,8 +13,8 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import time
 import wave
-
 
 MAX_FILES = 3
 MAX_SECONDS = 120.0
@@ -75,8 +75,8 @@ def probe(path: Path) -> dict:
     }
 
 
-def stereo_check(source: Path, temporary_dir: Path, seconds: float) -> dict:
-    stereo_wav = temporary_dir / "source_stereo.wav"
+def stereo_check(source: Path, temporary_dir: Path, seconds: float, stem: str) -> dict:
+    stereo_wav = temporary_dir / f"{stem}.stereo.wav"
     subprocess.run([
         "ffmpeg", "-v", "error", "-y", "-i", str(source), "-t", str(min(seconds, MAX_SECONDS)),
         "-ar", "16000", "-ac", "2", "-c:a", "pcm_s16le", str(stereo_wav)
@@ -108,13 +108,45 @@ def stereo_check(source: Path, temporary_dir: Path, seconds: float) -> dict:
     }
 
 
+def make_mono(source: Path, temporary_dir: Path, seconds: float, stem: str) -> Path:
+    mono_wav = temporary_dir / f"{stem}.mono16k.wav"
+    subprocess.run([
+        "ffmpeg", "-v", "error", "-y", "-i", str(source), "-t", str(min(seconds, MAX_SECONDS)),
+        "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", str(mono_wav)
+    ], check=True)
+    return mono_wav
+
+
+def summarize_diarization(diarization, audio_duration: float) -> dict:
+    segments = []
+    speaker_durations: dict[str, float] = {}
+    for segment, _, speaker in diarization.itertracks(yield_label=True):
+        duration = max(0.0, float(segment.end) - float(segment.start))
+        speaker_durations[speaker] = speaker_durations.get(speaker, 0.0) + duration
+        segments.append({"speaker": str(speaker), "start_s": float(segment.start), "end_s": float(segment.end), "duration_s": duration})
+    ordered = sorted(speaker_durations, key=speaker_durations.get, reverse=True)
+    participant = ordered[0] if ordered else None
+    return {
+        "speaker_count": len(speaker_durations),
+        "segment_count": len(segments),
+        "speaker_durations_s": {str(k): round(v, 6) for k, v in speaker_durations.items()},
+        "participant_speaker_by_longest_speech": participant,
+        "participant_turn_coverage": round(speaker_durations.get(participant, 0.0) / audio_duration, 6) if participant and audio_duration else None,
+        "segments": segments,
+        "respondent_interviewer_sanity": "unverified",
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--wsm-root", required=True, type=Path)
+    parser.add_argument("--weights", required=True, type=Path, help="existing local DiariZen model directory; never downloaded")
     args = parser.parse_args()
     root = args.wsm_root.resolve()
+    weights = args.weights.expanduser().resolve()
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    os.environ["HF_DATASETS_OFFLINE"] = "1"
     result: dict = {
         "status": "blocked",
         "task": "TASK-002B",
@@ -122,7 +154,8 @@ def main() -> int:
         "split": "train",
         "selection_cap": MAX_FILES,
         "duration_cap_s": MAX_SECONDS,
-        "offline_model_policy": {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1", "downloads": False},
+        "weights": str(weights),
+        "offline_model_policy": {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1", "HF_DATASETS_OFFLINE": "1", "downloads": False},
     }
     try:
         if shutil.which("ffprobe") is None or shutil.which("ffmpeg") is None:
@@ -133,29 +166,41 @@ def main() -> int:
             temp_dir = Path(temp)
             for row in selected:
                 metadata = probe(Path(row["resolved_path"]))
-                metadata["sample_id"] = row["sample_id"]
-                metadata["stratum"] = row.get("stratum")
-                metadata["task"] = row.get("task")
-                metadata["source_path"] = row["video_path"]
-                metadata["stereo_channel_check"] = stereo_check(
-                    Path(row["resolved_path"]), temp_dir, metadata["duration_s"]
-                )
+                stem = row["sample_id"].replace("/", "_")
+                metadata.update({"sample_id": row["sample_id"], "stratum": row.get("stratum"), "task": row.get("task"), "source_path": row["video_path"]})
+                metadata["stereo_channel_check"] = stereo_check(Path(row["resolved_path"]), temp_dir, metadata["duration_s"], stem)
                 result["selected"].append(metadata)
-        result["temporary_artifacts_cleaned"] = not temp_dir.exists()
-        missing = [name for name in ("diarizen", "torchaudio") if importlib.util.find_spec(name) is None]
-        if missing:
-            result["blocker"] = {
-                "type": "missing_local_dependency",
-                "packages": missing,
-                "message": "DiariZen was not invoked; no installation or model download was attempted.",
-            }
-        else:
-            result["blocker"] = {
-                "type": "not_run_by_safe_gate",
-                "message": "Local package presence requires a separate exact model-weight check before invocation.",
-            }
-    except Exception as exc:  # bounded CLI reports failures as machine-readable blockers
-        result["blocker"] = {"type": "preflight_failure", "message": str(exc)}
+
+            missing = [name for name in ("diarizen", "torchaudio", "tqdm") if importlib.util.find_spec(name) is None]
+            if missing:
+                result["blocker"] = {"type": "missing_local_dependency", "packages": missing, "message": "DiariZen was not invoked; no installation or model download was attempted."}
+            elif not weights.is_dir():
+                result["blocker"] = {"type": "missing_local_weights", "path": str(weights), "message": "--weights must name an existing local model directory; no download was attempted."}
+            else:
+                import torch
+                if not torch.cuda.is_available():
+                    result["blocker"] = {"type": "unavailable_gpu", "message": "DiariZen was not invoked because CUDA is unavailable locally."}
+                else:
+                    from diarizen.pipelines.inference import DiariZenPipeline
+                    pipeline = DiariZenPipeline.from_pretrained(str(weights))
+                    result["runs"] = []
+                    for row, metadata in zip(selected, result["selected"]):
+                        stem = row["sample_id"].replace("/", "_")
+                        mono_wav = make_mono(Path(row["resolved_path"]), temp_dir, metadata["duration_s"], stem)
+                        audio_duration = min(metadata["duration_s"], MAX_SECONDS)
+                        started = time.perf_counter()
+                        diarization = pipeline(str(mono_wav))
+                        elapsed = time.perf_counter() - started
+                        summary = summarize_diarization(diarization, audio_duration)
+                        rttm_path = temp_dir / f"{stem}.rttm"
+                        with rttm_path.open("w", encoding="utf-8") as handle:
+                            diarization.write_rttm(handle)
+                        result["runs"].append({"sample_id": row["sample_id"], "audio_duration_s": audio_duration, "elapsed_s": round(elapsed, 6), "rtf": round(elapsed / audio_duration, 6) if audio_duration else None, **summary})
+                    result["status"] = "ok"
+            result["temporary_artifacts_cleaned"] = False
+        result["temporary_artifacts_cleaned"] = True
+    except Exception as exc:
+        result["blocker"] = {"type": "preflight_or_runtime_failure", "message": str(exc)}
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 

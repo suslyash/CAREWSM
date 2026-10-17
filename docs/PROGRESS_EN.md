@@ -79,7 +79,9 @@ three existing TRAIN recordings were selected across DEPRESSION, CONTROL, and
 PARKINSON strata, and ephemeral 16 kHz stereo decodes showed no evidence that
 the channels are respondent/interviewer-separated. Local `diarizen` and
 `torchaudio` are absent, so DiariZen, mono-input creation, model-weight access,
-runtime/RTF, and participant-turn sanity were not measured. No installation or
-download was attempted; temporary artifacts were cleaned and CARE/WSM data
+runtime/RTF, and participant-turn sanity were not measured. The CLI now has a
+safe explicit-local-weights execution path with offline guards, bounded mono
+conversion, timing/RTF, and segment summaries for a future provisioned run. No
+installation or download was attempted; temporary artifacts were cleaned and CARE/WSM data
 were unchanged. Evidence: `docs/TASK-002B_DIARIZEN_GATE_EN.md` and
 `scripts/audio/wsm_diarizen_gate.py`. No tests, extraction, or training ran.

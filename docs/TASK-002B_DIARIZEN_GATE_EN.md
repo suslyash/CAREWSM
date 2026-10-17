@@ -15,11 +15,13 @@ because the required local runtime was unavailable.
 
 ```bash
 ./scripts/audio/wsm_diarizen_gate.py \
-  --wsm-root /media/maxim/Databases/WSM_NEW
+  --wsm-root /media/maxim/Databases/WSM_NEW \
+  --weights /absolute/path/to/local/diarizen-wavlm-large-s80-md
 ```
 
-The CLI requires an explicit WSM root, reads only `splits/train.csv`, rejects
-non-TRAIN and unsafe paths, sorts deterministic existing media candidates, and
+The CLI requires an explicit WSM root and an existing local `--weights` model
+directory. It reads only `splits/train.csv`, rejects non-TRAIN and unsafe paths,
+sorts deterministic existing media candidates, and
 selects at most one row from each available stratum in this order:
 `DEPRESSION`, `CONTROL`, `PARKINSON`. The observed selection was:
 
@@ -54,11 +56,16 @@ were not applied without a successful diarization result.
 
 Read-only checks found `ffprobe`, `ffmpeg`, `torch 2.14.1`, and
 `transformers` locally. Python import checks found no `diarizen` and no
-`torchaudio`. The script records the required offline policy
-(`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`) and has no installation or
-download path. As a result, no temporary 16 kHz mono DiariZen input was
-created and no model weights were accessed. DiariZen processing, detected
-speakers/segments, turn durations, elapsed runtime, and RTF are **unmeasured**.
+`torchaudio`. The corrected CLI now requires an existing local `--weights`
+directory, sets `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, and
+`HF_DATASETS_OFFLINE=1`, and has no installation or download path. With the
+current missing dependencies, no temporary 16 kHz mono DiariZen input was
+created and no model weights were accessed. If dependencies and weights become
+available, the same CLI creates only ephemeral 16 kHz mono WAVs, invokes the
+CARE-compatible `DiariZenPipeline.from_pretrained(local_weights)` path once per
+selected file, writes temporary RTTM, and reports elapsed seconds, RTF, speaker
+counts, segment durations, and longest-speaker coverage. In the current blocked
+run, these DiariZen outputs remain **unmeasured**.
 
 The temporary directory containing the bounded stereo WAVs was removed after
 the command (`temporary_artifacts_cleaned: true`). No files were written under
