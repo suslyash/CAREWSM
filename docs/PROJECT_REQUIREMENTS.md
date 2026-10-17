@@ -64,6 +64,8 @@ A later task may benchmark it on a small representative WSM subset and record:
 
 The manager/owner then chooses retain / optimize narrowly / drop. Do not let diarization block the project for an extended period.
 
+**TASK-002B GPU requirement:** After a system reboot corrected the NVIDIA NVML driver/library mismatch, the owner requires GPU/CUDA PyTorch and rejects CPU-only wheels. Verify functioning `nvidia-smi` and `torch.cuda.is_available()` in the existing `.venv`, repair any accidentally introduced CPU-only `torch`/`torchaudio` by selecting verified official compatible CUDA wheels, and do not use a CPU fallback. If still incompatible, document the blocker; no new environments or dataset writes.
+
 **TASK-002B owner provisioning approval:** Install all needed upstream DiariZen inference libraries (including `tqdm`, `torchaudio`, a compatible `torch` stack, and other required dependencies) and download/cache authentic pretrained DiariZen weights once to unblock a bounded WSM TRAIN feasibility run, **using the existing CAREWSM `.venv` only**, with no additional virtual environments; model/dependency caches stay outside the Git repository and both dataset roots. Compatible package adjustments inside the existing `.venv` are authorized for this task, while `pyproject.toml` stays unchanged. If incompatibility is irreconcilable, report a blocker rather than creating another environment. Model weights and cache files must not be committed; provenance/revisions, install versions, model license/access terms and timings must be documented. This exception never authorizes TEST access, large-corpus processing, training, feature extraction, dataset writes or changing CAREWSM's declared project dependencies.
 
 ## 5. Extraction versus training
