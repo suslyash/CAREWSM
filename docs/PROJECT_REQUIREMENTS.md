@@ -64,6 +64,8 @@ A later task may benchmark it on a small representative WSM subset and record:
 
 The manager/owner then chooses retain / optimize narrowly / drop. Do not let diarization block the project for an extended period.
 
+**TASK-002B owner provisioning approval:** Install all needed upstream DiariZen inference libraries (including `tqdm`, `torchaudio`, a compatible `torch` stack, and other required dependencies) and download/cache authentic pretrained DiariZen weights once to unblock a bounded WSM TRAIN feasibility run, using a separate compatible Python environment and cache outside the Git repository and both dataset roots. Model weights and cache files must not be committed; provenance/revisions, install versions, model license/access terms and timings must be documented. This exception never authorizes TEST access, large-corpus processing, training, feature extraction, dataset writes or changing CAREWSM's project dependencies.
+
 ## 5. Extraction versus training
 
 - One-time feature extraction/preprocessing is outside Chimera ML.

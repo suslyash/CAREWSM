@@ -101,6 +101,8 @@ The first corpus audit must verify actual CSV columns, label values, label avail
 
 One-time corpus feature extraction is outside Chimera ML. **All audio preprocessing/inspection, speech-turn/diarization preparation, audio feature extraction and aggregation scripts belong under root `scripts/audio/`**. They are standalone offline tools and must not import `chimera_ml`, use its plugin/registry/DataModule/trainer, or depend on training configs; training reads produced features afterward through approved ChimeraML modules under `src/audio/`. Do not put audio preparation scripts at `scripts/` root or in `src/`.
 
+**TASK-002B owner exception:** allow installation of all upstream-required DiariZen inference dependencies (including `tqdm`, `torchaudio`, compatible `torch`, and other necessary libraries) and a one-time download/cache of official pretrained weights to run a maximum 3-file WSM TRAIN gate. Keep that runtime in a separate compatible environment instead of modifying the CAREWSM `.venv`/`pyproject.toml`; put caches outside Git and CARE/WSM roots. No feature extraction, TEST access, training or dataset writes are authorized by this exception. See the latest `docs/NEXT_TASK_EN.md` for exact bounds and provenance evidence.
+
 After feature parity/data contracts are established, model training/evaluation pipelines use Chimera ML and project registry/plugin conventions.
 
 Do not force CARE extraction scripts into Chimera.
