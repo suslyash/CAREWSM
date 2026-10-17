@@ -59,3 +59,16 @@ Future manager-approved training configurations must document `checkpoint_callba
 Removed all 157 tracked WSM-era configuration files. Flattened the passive archive into `src/legacy/audio_models/`, `fusion_models/`, `video_models/`, `text_models/`, and `callbacks/`, preserving all 14 model implementation files present in `origin/main` and both historical callback sources without behavior changes or activation; the task wording count of 15 does not match the audited inventory.
 
 Reduced direct project dependencies to `chimera-ml>=0.2.4`; removed legacy Torch/audio/video/ML dependencies including `mamba-ssm`. Existing CAREWSM project identity, no-op plugin entrypoint, and `legacy*` package exclusion remain unchanged. TASK-001D manager **PASS**. Merged PR: https://github.com/suslyash/CAREWSM/pull/12 ; merge SHA `db92aa6eab4f10f4c141c6b730feeee7b0c679bc`. Codex reported `pip install -e . --dry-run` and exact `pip install -e .` PASS; manager independently checked Git changes and representative source blob preservation but did not execute pip on Codex's machine. No tests, extraction, DiariZen, evaluation or training were run.
+
+
+## TASK-002A outcome
+
+TASK-002A read-only WSM TRAIN audio preflight is implemented on its task branch
+and pending manager review. A bounded deterministic sample of five existing TRAIN
+media files was probed with `ffprobe`: all had audio/video streams, AAC audio,
+16 kHz sample rate, two channels, and durations from 41.8 to 79.864 seconds.
+The CARE 16 kHz mono, participant-turn, and representative eGeMAPS/DisVoice/
+XLS-R/TRILLsson contracts are documented in
+`docs/TASK-002A_WSM_AUDIO_PREFLIGHT_EN.md`. No feature parity claim is made;
+extraction, DiariZen, training, evaluation, tests, and corpus writes were not
+performed.
