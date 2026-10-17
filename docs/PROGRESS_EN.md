@@ -71,3 +71,15 @@ XLS-R/TRILLsson contracts are documented in
 `docs/TASK-002A_WSM_AUDIO_PREFLIGHT_EN.md`. No feature parity claim is made;
 extraction, DiariZen, training, evaluation, tests, and corpus writes were not
 performed. Manager independently reviewed the code/report and accepted the preflight; merged PR: https://github.com/suslyash/CAREWSM/pull/15 ; merge SHA `5f97a73fb4bf6f52fb7b7320d794df6a8134b061`. Local external data roots were not independently accessed by the manager. The five samples are all depression/CONTROL and do not demonstrate task-balanced coverage.
+
+## TASK-002B outcome
+
+The bounded local-only DiariZen gate is **pending manager review / blocked**:
+three existing TRAIN recordings were selected across DEPRESSION, CONTROL, and
+PARKINSON strata, and ephemeral 16 kHz stereo decodes showed no evidence that
+the channels are respondent/interviewer-separated. Local `diarizen` and
+`torchaudio` are absent, so DiariZen, mono-input creation, model-weight access,
+runtime/RTF, and participant-turn sanity were not measured. No installation or
+download was attempted; temporary artifacts were cleaned and CARE/WSM data
+were unchanged. Evidence: `docs/TASK-002B_DIARIZEN_GATE_EN.md` and
+`scripts/audio/wsm_diarizen_gate.py`. No tests, extraction, or training ran.
