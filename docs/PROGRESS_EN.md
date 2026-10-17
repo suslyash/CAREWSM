@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2 begins with TASK-002A read-only WSM audio/CARE feature-contract preflight; no extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B bounded DiariZen feasibility gate next**. No feature extraction or training has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-002A — read-only WSM TRAIN audio input probe and CARE feature extraction contract preflight; see `docs/NEXT_TASK_EN.md`. No data writes, audio extraction, DiariZen, tests or training.
+TASK-002B — bounded local-only DiariZen runtime and participant-turn sanity gate (at most 3 short TRAIN files; no corpus writes, automatic downloads, feature extraction, tests or training). See `docs/NEXT_TASK_EN.md`.
 
 ## TASK-001B outcome
 
@@ -63,12 +63,11 @@ Reduced direct project dependencies to `chimera-ml>=0.2.4`; removed legacy Torch
 
 ## TASK-002A outcome
 
-TASK-002A read-only WSM TRAIN audio preflight is implemented on its task branch
-and pending manager review. A bounded deterministic sample of five existing TRAIN
-media files was probed with `ffprobe`: all had audio/video streams, AAC audio,
+TASK-002A read-only WSM TRAIN audio preflight was **accepted (PR #15)**. A bounded deterministic sample of five existing TRAIN
+media files was probed with `ffprobe` according to Codex evidence: all had audio/video streams, AAC audio,
 16 kHz sample rate, two channels, and durations from 41.8 to 79.864 seconds.
 The CARE 16 kHz mono, participant-turn, and representative eGeMAPS/DisVoice/
 XLS-R/TRILLsson contracts are documented in
 `docs/TASK-002A_WSM_AUDIO_PREFLIGHT_EN.md`. No feature parity claim is made;
 extraction, DiariZen, training, evaluation, tests, and corpus writes were not
-performed.
+performed. Manager independently reviewed the code/report and accepted the preflight; merged PR: https://github.com/suslyash/CAREWSM/pull/15 ; merge SHA `5f97a73fb4bf6f52fb7b7320d794df6a8134b061`. Local external data roots were not independently accessed by the manager. The five samples are all depression/CONTROL and do not demonstrate task-balanced coverage.

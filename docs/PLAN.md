@@ -59,14 +59,14 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 ## Stage 2 — WSM feature extraction parity
 
-**Status: NEXT — TASK-002A read-only TRAIN audio/CARE feature-contract preflight**
+**Status: ACTIVE — TASK-002A manager PASS/PR #15 merged; TASK-002B bounded DiariZen gate NEXT**
 
-- Verify raw WSM audio/video input paths, bounded TRAIN media probe and CARE reference extraction scripts before authorizing writes or model downloads.
-- Prepare a read-only stdout-only preflight script at **`scripts/audio/wsm_audio_preflight.py`** and evidence report under `docs/` (no new tests). All future one-time audio preprocessing/DiariZen/feature extraction scripts live in `scripts/audio/`, fully independent of ChimeraML training, registries and DataModules.
+- TASK-002A verified bounded WSM TRAIN media and CARE reference script/schema contracts (report in `docs/TASK-002A_WSM_AUDIO_PREFLIGHT_EN.md`), without extraction.
+- TASK-002A added `scripts/audio/wsm_audio_preflight.py` and evidence report, independently of ChimeraML. All future standalone audio preparation scripts remain under `scripts/audio/`.
+- NEXT TASK-002B: run **at most three short TRAIN media files** through a strictly local/no-download DiariZen feasibility/participant-turn gate (16 kHz mono scratch conversion only, no corpus writes), or report reproducible missing-dependency/weights blockers;
+- manager/owner chooses retain, narrow-optimize or drop diarization based on measured output;
 - adapt CARE extraction logic for WSM outside Chimera ML;
-- run a small extraction smoke before full processing;
-- run the small DiariZen runtime/sanity gate;
-- manager/owner chooses retain or drop diarization;
+- run a small extraction smoke only after separate authorization, before full processing;
 - extract the full required feature family;
 - write CARE-compatible WSM feature files/layout;
 - validate coverage, schemas, fingerprints, and failures.
