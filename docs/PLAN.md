@@ -63,10 +63,10 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 - TASK-002A verified bounded WSM TRAIN media and CARE reference script/schema contracts (report in `docs/TASK-002A_WSM_AUDIO_PREFLIGHT_EN.md`), without extraction.
 - TASK-002A added `scripts/audio/wsm_audio_preflight.py` and evidence report, independently of ChimeraML. All future standalone audio preparation scripts remain under `scripts/audio/`.
-- adapt CARE extraction logic for WSM outside Chimera ML;
-- run a small extraction smoke before full processing;
 - NEXT TASK-002B: run **at most three short TRAIN media files** through a strictly local/no-download DiariZen feasibility/participant-turn gate (16 kHz mono scratch conversion only, no corpus writes), or report reproducible missing-dependency/weights blockers;
-- manager/owner chooses retain or drop diarization;
+- manager/owner chooses retain, narrow-optimize or drop diarization based on measured output;
+- adapt CARE extraction logic for WSM outside Chimera ML;
+- run a small extraction smoke only after separate authorization, before full processing;
 - extract the full required feature family;
 - write CARE-compatible WSM feature files/layout;
 - validate coverage, schemas, fingerprints, and failures.
