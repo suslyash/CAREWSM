@@ -39,6 +39,8 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 TASK-002B — **OWNER-APPROVED CORRECTION IN SAME BRANCH:** install required DiariZen inference dependencies (including `tqdm`, `torchaudio`, compatible `torch` and any other necessary libraries) and cache official pretrained weights outside the repository while using **only the existing CAREWSM `.venv`** (owner rejected additional virtual environments), then run a bounded real diarization gate on at most 3 TRAIN files (120 s each, mono 16 kHz scratch conversion). No corpus writes, feature extraction, tests or training. See `docs/NEXT_TASK_EN.md`.
 
+**Latest TASK-002B owner correction:** Ubuntu reboot resolved NVIDIA driver/NVML mismatch. Cancel attempted CPU `torch==2.11.0+cpu`/`torchaudio==2.11.0+cpu` installation; preserve/recover verified matching CUDA-enabled PyTorch and torchaudio in the existing `.venv`, confirm `torch.cuda.is_available() == True` before bounded DiariZen GPU inference. CPU wheels, CPU fallback and additional environments are prohibited; `pyproject.toml` stays unchanged. Actual DiariZen results still pending.
+
 ## TASK-001B outcome
 
 Created the inactive `src/carewsm/` namespace, future `configs/carewsm/` root,
