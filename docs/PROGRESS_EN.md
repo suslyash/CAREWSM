@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-002B — **OWNER-APPROVED CORRECTION IN SAME BRANCH:** install required DiariZen inference dependencies (including `tqdm`, `torchaudio`, compatible `torch` and any other necessary libraries) and cache official pretrained weights in a separate environment, then run a bounded real diarization gate on at most 3 TRAIN files (120 s each, mono 16 kHz scratch conversion). No corpus writes, feature extraction, tests or training. See `docs/NEXT_TASK_EN.md`.
+TASK-002B — **OWNER-APPROVED CORRECTION IN SAME BRANCH:** install required DiariZen inference dependencies (including `tqdm`, `torchaudio`, compatible `torch` and any other necessary libraries) and cache official pretrained weights outside the repository while using **only the existing CAREWSM `.venv`** (owner rejected additional virtual environments), then run a bounded real diarization gate on at most 3 TRAIN files (120 s each, mono 16 kHz scratch conversion). No corpus writes, feature extraction, tests or training. See `docs/NEXT_TASK_EN.md`.
 
 ## TASK-001B outcome
 
