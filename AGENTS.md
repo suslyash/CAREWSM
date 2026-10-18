@@ -57,6 +57,10 @@ Codex:
 - reports exact facts, commands, blockers, and evidence;
 - does not promote its own suggested next step into work.
 
+## 5. Owner-controlled bandwidth and model downloads
+
+**Permanent owner rule for every future task:** if an action might download substantial dependencies, framework wheels, CUDA packages, checkpoints, pretrained weights, datasets or model snapshots, **Codex must not initiate that download**. Before installing/downloading anything potentially large, prepare exact verified copy/paste commands for the owner, including package/model name, version/revision, download source, approximate expected transfer size and possible transitive downloads, cache target, and a post-download verification command. If size cannot be determined, say **unknown; owner approval required**. The owner runs the commands personally and shares results; Codex resumes only after owner confirmation. Prefer reuse of already-cached assets, `--no-deps` only when its dependency consequences are fully understood, and no blind force-reinstall or duplicate download. Do not use model-loading calls that implicitly download unknown weights. Small purely local diagnostics and routine Git operations are unaffected. If the environment is incompatible, explain the exact issue and seek owner approval before changing/creating environments; the already approved `.venv-diarizen` is a documented exception, not a pattern for every task.
+
 ## 5. Dataset safety
 
 CARE reference corpus: `/media/maxim/Databases/CARE/`.
