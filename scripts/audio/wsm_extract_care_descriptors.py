@@ -14,6 +14,8 @@ import shutil
 import subprocess
 import tempfile
 import time
+import uuid
+from contextlib import contextmanager
 from typing import Iterable
 
 MAX_FILES = 3
@@ -27,6 +29,22 @@ FILES = (
 )
 META_TURN = ["turn_id", "turn_start_sec", "turn_end_sec"]
 META_FRAME = META_TURN + ["frame_start_sec", "frame_end_sec"]
+
+
+@contextmanager
+def safe_disvoice_temp_names():
+    """Give DisVoice and NamedTemporaryFile collision-free per-call names."""
+    previous = tempfile._get_candidate_names
+
+    def candidates():
+        while True:
+            yield "carewsm-" + uuid.uuid4().hex
+
+    tempfile._get_candidate_names = candidates
+    try:
+        yield
+    finally:
+        tempfile._get_candidate_names = previous
 
 
 def reference_headers(care_root: Path, filename: str) -> list[str]:
@@ -252,6 +270,29 @@ def build_descriptor_models():
     return smiles, build_disvoice_models()
 
 
+def normalize_disvoice_praat_paths():
+    """Normalize DisVoice's `..` temp paths before Praat receives them."""
+    for module_name in ("praat.praat_functions", "disvoice.praat.praat_functions"):
+        try:
+            module = __import__(module_name, fromlist=["praat_vuv"])
+        except ImportError:
+            continue
+        if getattr(module, "_carewsm_paths_normalized", False):
+            continue
+        original_vuv = module.praat_vuv
+        original_formants = module.praat_formants
+
+        def praat_vuv(audio, resultsp, resultst, *args, _original=original_vuv, **kwargs):
+            return _original(audio, os.path.realpath(resultsp), os.path.realpath(resultst), *args, **kwargs)
+
+        def praat_formants(audio, results, *args, _original=original_formants, **kwargs):
+            return _original(audio, os.path.realpath(results), *args, **kwargs)
+
+        module.praat_vuv = praat_vuv
+        module.praat_formants = praat_formants
+        module._carewsm_paths_normalized = True
+
+
 def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]], models=None):
     import librosa
     import numpy as np
@@ -271,40 +312,52 @@ def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]],
     else:
         smiles, extractors = models
     rows = {name: [] for name in FILES}
-    for turn_id, (start, end) in enumerate(turns, 1):
-        chunk = waveform[int(start*SAMPLE_RATE):int(end*SAMPLE_RATE)].astype(np.float32)
-        if not len(chunk):
-            continue
-        for filename, smile in smiles.items():
-            raw = smile.process_signal(chunk, SAMPLE_RATE)
-            frame = raw.reset_index(drop=True)
-            frame["turn_id"] = turn_id; frame["turn_start_sec"] = start; frame["turn_end_sec"] = end
-            if filename == "egemaps_lld.csv":
-                frame["frame_start_sec"] = raw.index.get_level_values("start").total_seconds() + start
-                frame["frame_end_sec"] = raw.index.get_level_values("end").total_seconds() + start
-            metadata = META_FRAME if filename == "egemaps_lld.csv" else META_TURN
-            frame = frame[metadata + [c for c in frame.columns if c not in metadata]]
-            rows[filename].append(exact_frame(frame, expected[filename], filename))
-        with tempfile.NamedTemporaryFile(suffix=".wav", dir=scratch, delete=True) as handle:
-            sf.write(handle.name, chunk, SAMPLE_RATE)
-            for name, extractor in extractors.items():
-                static_options = (True,) if name == "articulation" else (True, False)
-                for static in static_options:
-                    kind = "static" if static else "dynamic"
-                    filename = f"disvoice_{name}_{kind}.csv"
-                    value = extractor.extract_features_file(handle.name, static=static, fmt="dataframe")
-                    frame = value.copy()
-                    if not hasattr(frame, "columns"):
-                        raise RuntimeError(f"DisVoice did not return a dataframe for {filename}")
-                    frame["turn_id"] = turn_id; frame["turn_start_sec"] = start; frame["turn_end_sec"] = end
-                    if not static:
-                        hop = {"prosody": 0.01, "phonation": 0.02}[name]
-                        offset = {"prosody": 0, "phonation": 11}[name]
-                        frame["frame_start_sec"] = start + (np.arange(len(frame)) + offset) * hop
-                        frame["frame_end_sec"] = frame["frame_start_sec"] + hop
-                    metadata = META_TURN if static else META_FRAME
-                    frame = frame[metadata + [c for c in frame.columns if c not in metadata]]
-                    rows[filename].append(exact_frame(frame, expected[filename], filename))
+    normalize_disvoice_praat_paths()
+    disvoice_root = scratch / "disvoice"
+    (disvoice_root / "tempfiles").mkdir(parents=True, exist_ok=True)
+    (scratch / "tempfiles").mkdir(parents=True, exist_ok=True)
+    for name, extractor in extractors.items():
+        module_path = disvoice_root / name
+        module_path.mkdir(parents=True, exist_ok=True)
+        module = __import__(extractor.__class__.__module__, fromlist=["PATH"])
+        module.PATH = str(module_path)
+        if hasattr(extractor, "PATH"):
+            extractor.PATH = str(disvoice_root / name)
+    with safe_disvoice_temp_names():
+        for turn_id, (start, end) in enumerate(turns, 1):
+            chunk = waveform[int(start*SAMPLE_RATE):int(end*SAMPLE_RATE)].astype(np.float32)
+            if not len(chunk):
+                continue
+            for filename, smile in smiles.items():
+                raw = smile.process_signal(chunk, SAMPLE_RATE)
+                frame = raw.reset_index(drop=True)
+                frame["turn_id"] = turn_id; frame["turn_start_sec"] = start; frame["turn_end_sec"] = end
+                if filename == "egemaps_lld.csv":
+                    frame["frame_start_sec"] = raw.index.get_level_values("start").total_seconds() + start
+                    frame["frame_end_sec"] = raw.index.get_level_values("end").total_seconds() + start
+                metadata = META_FRAME if filename == "egemaps_lld.csv" else META_TURN
+                frame = frame[metadata + [c for c in frame.columns if c not in metadata]]
+                rows[filename].append(exact_frame(frame, expected[filename], filename))
+            with tempfile.NamedTemporaryFile(suffix=".wav", dir=scratch, delete=True) as handle:
+                sf.write(handle.name, chunk, SAMPLE_RATE)
+                for name, extractor in extractors.items():
+                    static_options = (True,) if name == "articulation" else (True, False)
+                    for static in static_options:
+                        kind = "static" if static else "dynamic"
+                        filename = f"disvoice_{name}_{kind}.csv"
+                        value = extractor.extract_features_file(handle.name, static=static, fmt="dataframe")
+                        frame = value.copy()
+                        if not hasattr(frame, "columns"):
+                            raise RuntimeError(f"DisVoice did not return a dataframe for {filename}")
+                        frame["turn_id"] = turn_id; frame["turn_start_sec"] = start; frame["turn_end_sec"] = end
+                        if not static:
+                            hop = {"prosody": 0.01, "phonation": 0.02}[name]
+                            offset = {"prosody": 0, "phonation": 11}[name]
+                            frame["frame_start_sec"] = start + (np.arange(len(frame)) + offset) * hop
+                            frame["frame_end_sec"] = frame["frame_start_sec"] + hop
+                        metadata = META_TURN if static else META_FRAME
+                        frame = frame[metadata + [c for c in frame.columns if c not in metadata]]
+                        rows[filename].append(exact_frame(frame, expected[filename], filename))
     written = {}; skipped = {}
     for filename in FILES:
         destination = row["destination"] / filename
