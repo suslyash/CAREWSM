@@ -84,6 +84,19 @@ def decode(video: Path, scratch: Path):
     return waveform, len(waveform) / 16000.0
 
 
+def configure_headless_praat(runtime: Path) -> None:
+    """Make DisVoice's hard-coded `praat` call use the non-GUI binary."""
+    candidate = shutil.which("praat_nogui") or "/usr/bin/praat_nogui"
+    if not Path(candidate).is_file():
+        raise RuntimeError("missing local praat_nogui executable")
+    bindir = runtime / "bin"
+    bindir.mkdir(parents=True, exist_ok=True)
+    wrapper = bindir / "praat"
+    wrapper.write_text(f"#!/bin/sh\nexec {candidate} --run \"$@\"\n", encoding="utf-8")
+    wrapper.chmod(0o755)
+    os.environ["PATH"] = str(bindir) + os.pathsep + os.environ.get("PATH", "")
+
+
 def model_preflight(args) -> list[str]:
     errors = []
     for executable in ("ffmpeg", "ffprobe", "praat"):
@@ -219,6 +232,8 @@ def main() -> int:
     args = parser.parse_args(); args.wsm_root=args.wsm_root.resolve(); args.care_root=args.care_root.resolve(); args.runtime=args.runtime.resolve()
     if args.runtime == args.wsm_root or args.runtime in args.wsm_root.parents: raise SystemExit("runtime must be outside WSM root")
     os.environ.update({"HF_HUB_OFFLINE":"1", "HF_DATASETS_OFFLINE":"1", "TRANSFORMERS_OFFLINE":"1"})
+    if args.preflight or args.production:
+        configure_headless_praat(args.runtime)
     errors = model_preflight(args)
     if args.preflight:
         rows, digest = rows_for(args.wsm_root, "train"); selected=rows[:args.preflight_limit]
