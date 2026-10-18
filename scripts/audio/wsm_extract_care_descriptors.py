@@ -273,7 +273,15 @@ def normalize_disvoice_praat_paths():
         original_formants = module.praat_formants
 
         def praat_vuv(audio, resultsp, resultst, *args, _original=original_vuv, **kwargs):
-            return _original(audio, os.path.realpath(resultsp), os.path.realpath(resultst), *args, **kwargs)
+            def prepare(value):
+                path = Path(os.path.realpath(value))
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if path.is_dir():
+                    shutil.rmtree(path)
+                elif path.exists():
+                    path.unlink()
+                return str(path)
+            return _original(audio, prepare(resultsp), prepare(resultst), *args, **kwargs)
 
         def praat_formants(audio, results, *args, _original=original_formants, **kwargs):
             return _original(audio, os.path.realpath(results), *args, **kwargs)
