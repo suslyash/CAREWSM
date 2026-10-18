@@ -291,6 +291,9 @@ def main() -> int:
     if shutil.which("praat") is None:
         result["blocker"] = {"type": "missing_external_dependency", "executable": "praat", "message": "DisVoice requires the Praat executable on PATH; no installation or download was attempted."}
         print(json.dumps(result, indent=2, sort_keys=True)); return 0
+    if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+        result["blocker"] = {"type": "missing_runtime_display", "message": "Praat is installed but this headless session has no DISPLAY; run under an existing display or xvfb-run."}
+        print(json.dumps(result, indent=2, sort_keys=True)); return 0
     result["runs"] = []
     with tempfile.TemporaryDirectory(prefix="carewsm-task003a-") as scratch_name:
         scratch = Path(scratch_name)
