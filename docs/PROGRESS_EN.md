@@ -117,3 +117,35 @@ The bounded smoke was completed successfully for exactly three TRAIN records spa
 ## TASK-003A final manager acceptance
 
 **PASS — bounded WSM audio descriptor smoke only**, merged PR #27: https://github.com/suslyash/CAREWSM/pull/27 ; merge SHA `4f6fadffc29ade18bc252dff43fd9a7d469d7f60`. According to Codex's actual-data run and read-only validation, 7 exact CARE-layout descriptor families were present for each of 3 TRAIN clips (21 CSVs), with verified headers/column order, frame/turn metadata and numeric integrity. Four blank prosody cells were counted, no NaN/Inf. The manager independently reviewed committed GitHub code/report, not the remote corpus bytes. DiariZen returned one speaker per file, respondent identity remains unverified. The owner confirmed original CARE media are unavailable: therefore original CARE numerical output equivalence is **not testable**. This limitation must be documented and must **not** block further WSM audio-only extraction. TASK-003B now targets 4 remaining audio families on same 3 TRAIN files, no new dependency/model downloads by Codex.
+
+
+## TASK-003B bounded outcome
+
+Prepared the offline, no-download extractor and read-only validator for the four
+remaining deep-audio families: XLS-R 300M, TRILLsson 4.1, Emotion MSP trajectories,
+and Emotion MSP embeddings. The implementation follows the inspected CARE model
+IDs, pooling, population-standard-deviation, trajectory-column and NPZ contracts,
+uses canonical manifest-derived WSM destinations, stages on the destination
+filesystem, validates all outputs, and refuses clobbering. The bounded preflight
+selected the same DEPRESSION, CONTROL and PARKINSON TRAIN records. No deep files
+were written because local transformers/TensorFlow Hub/model assets and the local
+DiariZen RTTMs were unavailable; explicit per-family blockers were returned. The locally cached
+XLS-R checkpoint was then used for the same three records, creating and validating
+three `wav2vec_xlsr300m.npz` files on CUDA; DiariZen turns were temporary and no
+RTTM was retained. TRILLsson and Emotion MSP remain blocked. No downloads, tests,
+training, non-audio work, or changes to the accepted 21 CSVs were made. Original CARE audio remains unavailable, so numerical equality is
+UNVERIFIED rather than a blocker. Evidence: `docs/TASK-003B_DEEP_AUDIO_EXTRACTION_EN.md`.
+
+
+## TASK-003B final bounded outcome
+
+Owner-provided local caches enabled completion of all four deep-audio families on
+the same three TRAIN records. Three `wav2vec_xlsr300m.npz`, three
+`trillsson4_1.npz`, three `emotionmsp_embeds.npz`, and three
+`emotionmsp_trajectories.csv` files are present and validated. The all-audio
+read-only validator passed all 11 families with exit code 0. DiariZen used
+temporary mono 16 kHz audio and explicit cached weights; no RTTM or scratch audio
+was retained. TRILLsson ran on CPU to avoid GPU memory contention, while XLS-R and
+Emotion MSP used CUDA. Existing 21 CSVs, raw data, transcripts and manifests
+were not changed. Numerical equality to historical CARE remains UNVERIFIED because
+CARE original audio is unavailable.
