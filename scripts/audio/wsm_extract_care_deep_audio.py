@@ -121,7 +121,15 @@ def turns_for(row: dict, args) -> list[tuple[float, float]]:
         scratch = Path(tempfile.mkdtemp(prefix=".deep-diarization-", dir=row["destination"]))
         try:
             wav = local_wav(row["video"], scratch)
-            pipeline = DiariZenPipeline(diarizen_hub=args.weights, embedding_model=str(args.embedding_weights), rttm_out_dir=None)
+            pipeline = DiariZenPipeline(
+                diarizen_hub=args.weights, embedding_model=str(args.embedding_weights),
+                config_parse={
+                    "model": {"args": {"wavlm_src": "wavlm_large_s80_md", "wavlm_layer_num": 25, "wavlm_feat_dim": 1024, "attention_in": 256, "ffn_hidden": 1024, "num_head": 4, "num_layer": 4, "dropout": 0.1, "chunk_size": 16, "use_posi": False, "output_activate_function": False, "selected_channel": 0}},
+                    "inference": {"args": {"seg_duration": 16, "segmentation_step": 0.1, "batch_size": 1, "apply_median_filtering": True}},
+                    "clustering": {"args": {"method": "VBxClustering", "min_speakers": 1, "max_speakers": 20, "ahc_criterion": "distance", "ahc_threshold": 0.6, "Fa": 0.07, "Fb": 0.8, "lda_dim": 128, "max_iters": 20}},
+                },
+                rttm_out_dir=None,
+            )
             diarization = pipeline(str(wav))
             segments = []; durations = {}
             for segment, _, speaker in diarization.itertracks(yield_label=True):
@@ -135,6 +143,12 @@ def turns_for(row: dict, args) -> list[tuple[float, float]]:
             turns = participant_turns([(labels[speaker], start, end) for speaker, start, end in segments])
         finally:
             shutil.rmtree(scratch, ignore_errors=True)
+            import gc
+            gc.collect()
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
     if not turns:
         raise RuntimeError("no participant turns available")
     return turns
@@ -278,6 +292,7 @@ def infer_outputs(row: dict, turns: list[tuple[float, float]], args, ready: set[
             output["wav2vec_xlsr300m.npz"] = {"mean": np.asarray(means, dtype=np.float32), "std": np.asarray(stds, dtype=np.float32), "turn_ids": np.asarray(ids, dtype=np.int64)}
         if "trillsson4_1" in ready:
             import tensorflow as tf
+            tf.config.set_visible_devices([], "GPU")
             import tensorflow_hub as hub
             model = hub.KerasLayer(str(args.trillsson_model), trainable=False)
             means, stds, ids = [], [], []
@@ -374,7 +389,14 @@ def main() -> int:
             if ready and missing_outputs:
                 started = time.perf_counter()
                 try:
-                    outputs = infer_outputs(row, turns, args, ready)
+                    requested = set()
+                    if "wav2vec_xlsr300m.npz" in missing_outputs:
+                        requested.add("wav2vec_xlsr300m")
+                    if "trillsson4_1.npz" in missing_outputs:
+                        requested.add("trillsson4_1")
+                    if "emotionmsp_embeds.npz" in missing_outputs or "emotionmsp_trajectories.csv" in missing_outputs:
+                        requested.update(("emotionmsp_embeds", "emotionmsp_trajectories"))
+                    outputs = infer_outputs(row, turns, args, requested & ready)
                     outputs = {name: value for name, value in outputs.items() if name in missing_outputs}
                     sample["files"].update(stage_outputs(outputs, row["destination"], turns))
                     sample["elapsed_s"] = round(time.perf_counter() - started, 3)

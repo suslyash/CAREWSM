@@ -158,5 +158,20 @@ model download was run.
 | `PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_001` | 1 | `cuda:0` | 1.915 s | 8,948 | created/validated |
 
 Each NPZ has exact keys `mean`, `std`, `turn_ids`, float32 `(n_turns,1024)`
-arrays, int64 sequential turn IDs, and finite values. The three other families
-remain missing and therefore full 11-family validation is intentionally not PASS.
+arrays, int64 sequential turn IDs, and finite values. All four deep families are now present for all three records. The read-only
+validator passed all eleven audio families with exit code 0.
+
+## Final post-provisioning update
+
+The owner supplied all local assets. The final offline bounded run completed with
+status `ok`. DiariZen used the explicit cached weights and a temporary mono 16 kHz
+WAV; no RTTM was retained. The three selected records had 2, 1 and 1 provisional
+participant turns respectively. XLS-R and Emotion MSP used `cuda:0`; TRILLsson was
+forced to CPU to avoid GPU memory contention with DiariZen/XLS-R. Existing valid
+XLS-R outputs were reused without overwrite. New TRILLsson and Emotion MSP files
+were published with no-clobber staging.
+
+The all-audio read-only validator passed for all 11 families, with no schema,
+shape, dtype, NaN/Inf or metadata errors. This remains structural/algorithmic
+compatibility evidence; numerical identity to historical CARE values remains
+UNVERIFIED because original CARE audio is unavailable.

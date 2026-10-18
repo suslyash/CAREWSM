@@ -135,3 +135,17 @@ three `wav2vec_xlsr300m.npz` files on CUDA; DiariZen turns were temporary and no
 RTTM was retained. TRILLsson and Emotion MSP remain blocked. No downloads, tests,
 training, non-audio work, or changes to the accepted 21 CSVs were made. Original CARE audio remains unavailable, so numerical equality is
 UNVERIFIED rather than a blocker. Evidence: `docs/TASK-003B_DEEP_AUDIO_EXTRACTION_EN.md`.
+
+
+## TASK-003B final bounded outcome
+
+Owner-provided local caches enabled completion of all four deep-audio families on
+the same three TRAIN records. Three `wav2vec_xlsr300m.npz`, three
+`trillsson4_1.npz`, three `emotionmsp_embeds.npz`, and three
+`emotionmsp_trajectories.csv` files are present and validated. The all-audio
+read-only validator passed all 11 families with exit code 0. DiariZen used
+temporary mono 16 kHz audio and explicit cached weights; no RTTM or scratch audio
+was retained. TRILLsson ran on CPU to avoid GPU memory contention, while XLS-R and
+Emotion MSP used CUDA. Existing 21 CSVs, raw data, transcripts and manifests
+were not changed. Numerical equality to historical CARE remains UNVERIFIED because
+CARE original audio is unavailable.
