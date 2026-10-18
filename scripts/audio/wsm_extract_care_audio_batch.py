@@ -111,6 +111,27 @@ def read_turn_metadata(path: Path) -> dict[int, tuple[float, float]]:
     return result
 
 
+def media_duration(video: Path) -> float | None:
+    import subprocess
+    try:
+        result = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(video)], check=True, capture_output=True, text=True)
+        value = float(result.stdout.strip())
+        return value if value > 0 else None
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return None
+
+
+def bound_turns(turns: list[tuple[float, float]], duration: float) -> list[tuple[float, float]] | None:
+    bounded = []
+    for start, end in turns:
+        start = max(0.0, min(float(start), duration))
+        end = max(0.0, min(float(end), duration))
+        if end - start < 0.3:
+            return None
+        bounded.append((start, end))
+    return bounded or None
+
+
 def read_sidecar(row: dict, args) -> tuple[list[tuple[float, float]], dict] | None:
     path = row["destination"] / "_carewsm_audio_turns.json"
     if not path.is_file():
@@ -126,9 +147,13 @@ def read_sidecar(row: dict, args) -> tuple[list[tuple[float, float]], dict] | No
         if data.get("policy") != DIARIZATION_POLICY:
             return None
         turns = [(float(a), float(b)) for a, b in data["turns"]]
-        if not turns or any(b - a < 0.3 for a, b in turns):
+        duration = media_duration(row["video"])
+        if duration is None:
             return None
-        return turns, data
+        bounded = bound_turns(turns, duration)
+        if bounded is None:
+            return None
+        return bounded, data
     except Exception:
         return None
 
@@ -175,7 +200,7 @@ def inspect_record(destination: Path, expected: dict[str, list[str]], sidecar_tu
                 errors.append(f"{filename}: NPZ turn_ids do not match CSV turn_ids")
         if sidecar_turns is not None:
             sidecar_map = {index: value for index, value in enumerate(sidecar_turns, 1)}
-            if sidecar_map != first:
+            if set(sidecar_map) != set(first) or any(any(abs(a - b) > 1e-2 for a, b in zip(sidecar_map[index], first[index])) for index in first):
                 errors.append("cached sidecar turn boundaries do not match feature metadata")
     elif npz_ids:
         expected_ids = next(iter(npz_ids.values()))
@@ -209,6 +234,15 @@ def load_allowlist(path: Path) -> list[str]:
     if len(ids) != len(set(ids)) or set(ids) != set(KNOWN_BLOCKED_SAMPLE_IDS):
         raise RuntimeError("sample-id allowlist must exactly equal the seven manager-approved blocked IDs")
     return list(KNOWN_BLOCKED_SAMPLE_IDS)
+
+
+def load_production_ids(path: Path) -> list[str]:
+    """Read an owner-supplied immutable chunk without applying TASK-003C rules."""
+    ids = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()
+           if line.strip() and not line.lstrip().startswith("#")]
+    if not ids or len(ids) != len(set(ids)):
+        raise RuntimeError("production sample-id chunk must be non-empty and duplicate-free")
+    return ids
 
 
 def budget_receipt(path: Path, rows: list[dict], dry_run: bool, retry: bool) -> dict:
@@ -269,6 +303,26 @@ def diarizer_pipeline(args):
         config_parse={"model": {"args": {"wavlm_src": "wavlm_large_s80_md", "wavlm_layer_num": 25, "wavlm_feat_dim": 1024, "attention_in": 256, "ffn_hidden": 1024, "num_head": 4, "num_layer": 4, "dropout": 0.1, "chunk_size": 16, "use_posi": False, "output_activate_function": False, "selected_channel": 0}}, "inference": {"args": {"seg_duration": 16, "segmentation_step": 0.1, "batch_size": 1, "apply_median_filtering": True}}, "clustering": {"args": {"method": "VBxClustering", "min_speakers": 1, "max_speakers": 20, "ahc_criterion": "distance", "ahc_threshold": 0.6, "Fa": 0.07, "Fb": 0.8, "lda_dim": 128, "max_iters": 20}}}, rttm_out_dir=None)
 
 
+def wave_duration(wav: Path) -> float:
+    import wave
+    with wave.open(str(wav), "rb") as handle:
+        return handle.getnframes() / float(handle.getframerate())
+
+
+def bound_turns_to_audio(turns: list[tuple[float, float]], wav: Path) -> list[tuple[float, float]]:
+    """Reject impossible cached boundaries and clip only an end past decoded audio."""
+    duration = wave_duration(wav)
+    bounded = []
+    for start, end in turns:
+        start = max(0.0, min(float(start), duration))
+        end = max(0.0, min(float(end), duration))
+        if end - start >= 0.3:
+            bounded.append((start, end))
+    if not bounded:
+        raise RuntimeError(f"no valid speech turns after audio-duration validation ({duration:.6f}s)")
+    return bounded
+
+
 def diarize_once(wav: Path, row: dict, args, pipeline, praat_log: Path) -> tuple[list[tuple[float, float]], dict]:
     cached = read_sidecar(row, args)
     if cached is not None:
@@ -286,6 +340,12 @@ def diarize_once(wav: Path, row: dict, args, pipeline, praat_log: Path) -> tuple
     turns = deep.participant_turns([(labels[speaker], start, end) for speaker, start, end in segments])
     if not turns:
         raise RuntimeError("no participant turns after CARE policy")
+    duration = media_duration(row["video"])
+    if duration is None:
+        raise RuntimeError("cannot determine source audio duration")
+    turns = bound_turns(turns, duration) or []
+    if not turns:
+        raise RuntimeError("no valid participant turns after audio-duration validation")
     write_sidecar(row, turns, args)
     return turns, {"source": "local DiariZen", "diarization_runs": 1, "speaker_count": len(durations), "segment_count": len(segments), "praat_log": str(praat_log)}
 
@@ -306,10 +366,17 @@ def load_deep_models(args) -> dict[str, Any]:
 
 def configure_praat_wrapper(scratch: Path, log: Path) -> None:
     real = shutil.which("praat")
+    xvfb = shutil.which("xvfb-run")
     if real is None:
         raise RuntimeError("Praat executable is unavailable")
+    if xvfb is None and not os.environ.get("DISPLAY"):
+        raise RuntimeError("headless Praat requires xvfb-run or an existing DISPLAY")
+    if os.environ.get("DISPLAY"):
+        command = "timeout --kill-after=5 90 " + shlex.join([real, "--run"]) + ' "$@"'
+    else:
+        command = "timeout --kill-after=5 90 " + shlex.join([xvfb, "-a", "--server-args=-screen 0 1024x768x24", real, "--run"]) + ' "$@"'
     wrapper = scratch / "praat"
-    wrapper.write_text("#!/bin/sh\nlog=" + shlex.quote(str(log)) + "\nprintf '%s\\n' \"PRAAT_START $*\" >> \"$log\"\ntimeout --kill-after=5 90 " + shlex.quote(real) + " --run \"$@\" >> \"$log\" 2>&1\nrc=$?\nprintf '%s\\n' \"PRAAT_EXIT $rc\" >> \"$log\"\nexit $rc\n", encoding="utf-8")
+    wrapper.write_text("#!/bin/sh\nlog=" + shlex.quote(str(log)) + "\nprintf '%s\n' \"PRAAT_START $*\" >> \"$log\"\n" + command + " >> \"$log\" 2>&1\nrc=$?\nprintf '%s\n' \"PRAAT_EXIT $rc\" >> \"$log\"\nexit $rc\n", encoding="utf-8")
     wrapper.chmod(0o700)
     os.environ["PATH"] = f"{scratch}{os.pathsep}{os.environ.get('PATH', '')}"
     os.environ["CAREWSM_PRAAT_LOG"] = str(log)
@@ -376,13 +443,22 @@ def main() -> int:
     parser.add_argument("--wsm-root",required=True,type=Path); parser.add_argument("--care-root",required=True,type=Path); parser.add_argument("--split",choices=("train","dev","test"),default="train")
     parser.add_argument("--limit",type=int,default=MAX_PILOT); parser.add_argument("--offset",type=int,default=0); parser.add_argument("--start-after"); parser.add_argument("--per-stratum",type=int,default=10); parser.add_argument("--all",action="store_true"); parser.add_argument("--dry-run",action="store_true")
     parser.add_argument("--sample-ids-file",type=Path); parser.add_argument("--retry-blocked-only",action="store_true"); parser.add_argument("--budget-ledger",type=Path)
+    parser.add_argument("--production", action="store_true", help="owner-only production chunk; requires CAREWSM_ALLOW_PRODUCTION=1")
     parser.add_argument("--report-dir",type=Path,default=Path("/tmp/carewsm-task003c")); parser.add_argument("--device",default="cuda:0")
     parser.add_argument("--weights",type=Path); parser.add_argument("--embedding-weights",type=Path); parser.add_argument("--xlsr-model",type=Path); parser.add_argument("--trillsson-model",type=Path); parser.add_argument("--emotion-model",type=Path)
     args=parser.parse_args()
     if args.limit < 0 or args.offset < 0 or args.per_stratum < 0: parser.error("limit, offset and per-stratum must be non-negative")
-    if args.split != "train" or args.all or args.offset or args.start_after or args.per_stratum not in (0,10):
+    if args.production:
+        if os.environ.get("CAREWSM_ALLOW_PRODUCTION") != "1":
+            parser.error("production requires CAREWSM_ALLOW_PRODUCTION=1")
+        if args.retry_blocked_only or args.all or args.offset or args.start_after or not args.sample_ids_file:
+            parser.error("production requires exactly one explicit sample-id chunk")
+        args.per_stratum = 0
+    elif args.split != "train" or args.all or args.offset or args.start_after or args.per_stratum not in (0,10):
         if not args.retry_blocked_only and args.split != "train": parser.error("only TRAIN is permitted in this corrective task")
-    if args.retry_blocked_only:
+    if args.production:
+        production_ids = load_production_ids(args.sample_ids_file)
+    elif args.retry_blocked_only:
         if args.split != "train" or args.all or not args.sample_ids_file or args.offset or args.start_after or args.per_stratum: parser.error("blocked retry requires TRAIN, no pagination, no --all and --sample-ids-file")
         allowlist=load_allowlist(args.sample_ids_file); args.limit=len(allowlist)
     elif args.sample_ids_file:
@@ -395,26 +471,40 @@ def main() -> int:
     args.budget_ledger=(args.budget_ledger or args.report_dir/"task003c_budget.json").resolve()
     expected={name:descriptors.reference_headers(args.care_root,name) for name in descriptors.FILES}; expected["emotionmsp_trajectories.csv"]=list(deep.TRAJ_HEADER)
     rows=load_rows(args.wsm_root,args.split); by_id={row["sample_id"]:row for row in rows}
-    if args.retry_blocked_only:
+    if args.production:
+        missing_ids = [sample_id for sample_id in production_ids if sample_id not in by_id]
+        if missing_ids: raise RuntimeError(f"production chunk IDs are not eligible files in {args.split}: {missing_ids}")
+        selected=[by_id[sample_id] for sample_id in production_ids]
+    elif args.retry_blocked_only:
         if any(sample_id not in by_id for sample_id in allowlist): raise RuntimeError("allowlist ID missing from TRAIN manifest")
         selected=[by_id[sample_id] for sample_id in allowlist]
     else:
         # Frozen in this corrective branch; kept unreachable as a fail-closed guard.
         selected=stable_selection(rows,args)
-    for row in rows:
+    if args.production:
+        rows_to_inspect = selected
+    else:
+        rows_to_inspect = rows
+    for row in rows_to_inspect:
         sidecar=read_sidecar(row,args)
         row["existing_state"]=inspect_record(row["destination"],expected,sidecar[0] if sidecar else None)
     if args.retry_blocked_only:
         selected=[by_id[sample_id] for sample_id in allowlist]
         if any(row["existing_state"]["complete"] for row in selected):
             raise RuntimeError("approved blocked allowlist contains a now-complete record; refusing ambiguous retry")
-    ledger=budget_receipt(args.budget_ledger,rows,args.dry_run,args.retry_blocked_only)
-    result={"task":"TASK-003C","split":"train","status":"dry_run" if args.dry_run else "running","selection":{"selected":len(selected),"allowlist_exact":args.retry_blocked_only},"budget":ledger,"selected":[{"sample_id":r["sample_id"],"stratum":r["stratum"],"video_path":r["video_path"],"destination":str(r["destination"]),"existing":r["existing_state"]} for r in selected],"downloads":False}
+    ledger = None if args.production else budget_receipt(args.budget_ledger, rows, args.dry_run, args.retry_blocked_only)
+    result={"task":"TASK-003D" if args.production else "TASK-003C","split":args.split,"status":"dry_run" if args.dry_run else "running","selection":{"selected":len(selected),"allowlist_exact":args.retry_blocked_only,"production":args.production},"budget":ledger,"selected":[{"sample_id":r["sample_id"],"stratum":r["stratum"],"video_path":r["video_path"],"destination":str(r["destination"]),"existing":r["existing_state"]} for r in selected],"downloads":False}
     if args.dry_run:
         print(json.dumps(result,indent=2,sort_keys=True)); return 0
     missing_deps=[name for name in ("numpy","pandas","librosa","soundfile","opensmile","disvoice","torch","torchaudio","diarizen","transformers","tensorflow","tensorflow_hub") if importlib.util.find_spec(name) is None]
     if missing_deps: result.update(status="blocked",blocker={"type":"missing_local_dependency","packages":missing_deps}); print(json.dumps(result,indent=2)); return 1
-    checkpoint=args.report_dir/f"{args.split}.jsonl"; processed=[]; descriptor_smiles=descriptors.build_descriptor_models()[0]; models=load_deep_models(args); pipeline=None
+    checkpoint=args.report_dir/(f"production_{args.split}.jsonl" if args.production else f"{args.split}.jsonl"); processed=[]; descriptor_smiles=None; models={}; pipeline=None
+    needs_work=any(not row["existing_state"]["complete"] for row in selected)
+    if needs_work:
+        if shutil.which("praat") is None or (shutil.which("xvfb-run") is None and not os.environ.get("DISPLAY")):
+            result.update(status="blocked",blocker={"type":"missing_headless_praat","message":"Praat requires xvfb-run or DISPLAY"}); print(json.dumps(result,indent=2)); return 1
+        descriptor_smiles=descriptors.build_descriptor_models()[0]
+        models=load_deep_models(args)
     with tempfile.TemporaryDirectory(prefix="carewsm-task003c-",dir=args.report_dir) as worker_scratch:
         worker=Path(worker_scratch); praat_log=worker/"praat.log"; configure_praat_wrapper(worker,praat_log)
         if any(read_sidecar(row,args) is None and not row["existing_state"]["complete"] for row in selected):
@@ -424,11 +514,17 @@ def main() -> int:
             started=time.perf_counter(); destination=row["destination"]
             if row["existing_state"]["complete"]:
                 processed.append({"sample_id":row["sample_id"],"status":"skipped_complete"}); continue
+            if any(status == "blocked_existing_invalid" for status in row["existing_state"]["statuses"].values()):
+                processed.append({"sample_id":row["sample_id"],"status":"invalid_existing","error":row["existing_state"]["errors"]})
+                with checkpoint.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(processed[-1], sort_keys=True) + "\n"); handle.flush()
+                print(f"[{index}/{len(selected)}] {processed[-1]['status']} {row['sample_id']}", flush=True)
+                continue
             destination.mkdir(parents=True,exist_ok=True)
             with tempfile.TemporaryDirectory(prefix=f"{row['sample_id']}-",dir=worker) as record_scratch_name:
                 record_scratch=Path(record_scratch_name); record_log=record_scratch/"praat.log"; configure_praat_wrapper(record_scratch,record_log)
                 try:
-                    wav=decode_audio(row,record_scratch); turns,provenance=diarize_once(wav,row,args,pipeline,record_log)
+                    wav=decode_audio(row,record_scratch); turns,provenance=diarize_once(wav,row,args,pipeline,record_log); turns=bound_turns_to_audio(turns,wav); provenance["audio_duration_s"]=round(wave_duration(wav), 6)
                     descriptor_models=(descriptor_smiles,descriptors.build_disvoice_models())
                     written,skipped=descriptors.extract_row({**row,"audio_wav":wav},turns,record_scratch,expected,models=descriptor_models)
                     record={"sample_id":row["sample_id"],"status":"running","turn_count":len(turns),"turn_provenance":provenance,"written":{**written},"skipped":{**skipped}}
