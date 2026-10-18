@@ -84,6 +84,7 @@ def main() -> int:
     parser.add_argument("--runtime", required=True, type=Path)
     parser.add_argument("--delete-audio-only", action="store_true")
     parser.add_argument("--confirm-replace-diarizen-outputs", action="store_true")
+    parser.add_argument("--fresh", action="store_true", help="start a new reset cycle even when an older receipt exists")
     args = parser.parse_args()
     root = args.wsm_root.resolve(); runtime = args.runtime.resolve()
     if root == runtime or root in runtime.parents:
@@ -97,7 +98,7 @@ def main() -> int:
         if blockers:
             print(json.dumps(result, indent=2, sort_keys=True)); return 2
         receipt = runtime / "audio_reset.receipt.json"
-        if receipt.exists():
+        if receipt.exists() and not args.fresh:
             result.update(status="already_reset", receipt=str(receipt), deleted_count=0)
         else:
             runtime.mkdir(parents=True, exist_ok=True)

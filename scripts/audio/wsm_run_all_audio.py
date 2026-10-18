@@ -231,7 +231,7 @@ def main() -> int:
     parser.add_argument("--runtime", type=Path, required=True); parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--xlsr-model", type=Path, required=True); parser.add_argument("--trillsson-model", type=Path, required=True); parser.add_argument("--emotion-model", type=Path, required=True)
     parser.add_argument("--production", action="store_true"); parser.add_argument("--all-splits", action="store_true")
-    parser.add_argument("--reset-audio", action="store_true"); parser.add_argument("--confirm-replace-diarizen-outputs", action="store_true")
+    parser.add_argument("--reset-audio", action="store_true"); parser.add_argument("--confirm-replace-diarizen-outputs", action="store_true"); parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--preflight", action="store_true"); parser.add_argument("--preflight-limit", type=int, default=3)
     args = parser.parse_args(); args.wsm_root=args.wsm_root.resolve(); args.care_root=args.care_root.resolve(); args.runtime=args.runtime.resolve()
     if args.runtime == args.wsm_root or args.runtime in args.wsm_root.parents: raise SystemExit("runtime must be outside WSM root")
@@ -249,8 +249,13 @@ def main() -> int:
         raise SystemExit("production is fail-closed; set CAREWSM_ALLOW_PRODUCTION=1 in the owner command")
     if errors: print(json.dumps({"status":"blocked","errors":errors}, indent=2)); return 1
     args.runtime.mkdir(parents=True, exist_ok=True); (args.runtime / "scratch").mkdir(exist_ok=True)
-    reset = subprocess.run([sys.executable, str(RESET), "--wsm-root", str(args.wsm_root), "--runtime", str(args.runtime), "--delete-audio-only", "--confirm-replace-diarizen-outputs"], check=False)
+    reset_command = [sys.executable, str(RESET), "--wsm-root", str(args.wsm_root), "--runtime", str(args.runtime), "--delete-audio-only", "--confirm-replace-diarizen-outputs"]
+    if args.fresh: reset_command.append("--fresh")
+    reset = subprocess.run(reset_command, check=False)
     if reset.returncode != 0: return reset.returncode
+    if args.fresh:
+        for path in (args.runtime / "summary.json", *(args.runtime / "state").glob("*.json")):
+            path.unlink(missing_ok=True)
     headers = expected_headers(args.care_root); models = install_models(args); summaries={}
     lock_path=args.runtime / "full_segment.lock"
     with lock_path.open("w", encoding="utf-8") as lock:
