@@ -35,6 +35,8 @@ CV folds are used for development/hyperparameter selection. DEV is used for fina
 
 TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evidence: `docs/TASK-001A_CORPUS_FEATURE_REPO_AUDIT_EN.md`. Merged PR: https://github.com/suslyash/CAREWSM/pull/3 ; merge SHA: `4097bd52adc3d46551f2439dd24c040f06a55e47`. No models or TEST metrics produced.
 
+**LATEST OWNER OVERRIDE:** TASK-003D now authorizes one single-target Parkinson DisVoice/Praat source diagnosis plus **at most one real extraction attempt** for `PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_003`, preserving 506 existing validated audio files. Codex will produce a **single complete owner-operated `tmux` launcher command** for all 11 CARE-style audio feature families over all eligible WSM TRAIN+DEV+TEST input media. Codex may not launch bulk extraction, touch nonaudio features or access DEV/TEST before owner starts the full workflow. One sample may remain blocked if repair isn't scientifically safe; flag it explicitly and do not block unrelated data. This supersedes the previous TASK-003D no-retry/no-DEV-TEST-launch wording only for the owner-executed all-splits future run. Numerical equality to old CARE CSV values remains UNVERIFIABLE; current CARE structural/NPZ/column parity is validated by existing files/reports.
+
 ## Next task
 
 TASK-003D — prepare safe owner-executed full WSM AUDIO extraction mode and exact finite TRAIN chunk commands; no data writes/inference by Codex in this task, no DEV/TEST access, no downloads/tests/training. Existing 506 audio files remain intact; one Parkinson `PRAAT_EXIT 255` sample must be tracked as blocked, not silently retried. Full TRAIN production requires manager code review, then explicit owner execution. See `docs/NEXT_TASK_EN.md`.
