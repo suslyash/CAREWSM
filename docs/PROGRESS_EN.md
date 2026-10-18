@@ -154,3 +154,36 @@ CARE original audio is unavailable.
 ## TASK-003B manager PASS / TASK-003C activated
 
 PR #30 merged: https://github.com/suslyash/CAREWSM/pull/30 ; merge SHA `595d4ebd871a36592e395320a4d5c982aee5a027`. According to implementer and read-only local validator evidence, three XLS-R NPZ, three TRILLsson NPZ, three Emotion MSP embeddings NPZ and three trajectories CSV were added for the same three original TRAIN clips. Alongside 21 accepted descriptor CSVs, this yields **33 validated audio outputs across 11 CARE-registered audio families** for three records. GitHub manager independently reviewed code, NPZ/CSV validator and docs but could not access actual local bytes. XLS-R/MSP used CUDA and TRILLsson CPU for compatibility; GPU DiariZen ran on scratch mono 16 kHz and retained no RTTM. CARE original media absent means numerical historical CARE equivalence UNVERIFIABLE; respondent identity provisional. The owner prioritizes quick complete WSM AUDIO extraction; TASK-003C authorizes an incremental pilot on **at most 30 further distinct TRAIN clips** and resumable full-split scripts, NOT a full corpus execution by Codex. Owner-only downloads; no tests, training or nonaudio extraction.
+
+## TASK-003C bounded audio batch outcome
+
+Implemented the unified offline/resumable eleven-family batch worker in
+`scripts/audio/wsm_extract_care_audio_batch.py`, with a narrow compatible model
+cache hook in the descriptor extractor. It selects only canonical manifest
+destinations, shares one temporary mono 16 kHz decode and participant-turn
+boundaries across all eleven families, loads deep models once per worker,
+validates every family before publication, skips complete records, and refuses
+overwrites. Praat is wrapped with a bounded timeout so one external-runtime
+failure cannot hang the package.
+
+The final bounded invocation selected 30 new TRAIN records and completed 23,
+producing 253 validated files; an earlier interrupted invocation had already
+published 14 additional complete records. The cumulative result is 37 new
+complete records and 407 new validated files, plus the original 33 unchanged
+files. This exceeds the TASK-003C 30-new-record cap because the second
+invocation selected the remaining missing records after the first invocation;
+no new files are deleted without explicit owner authorization, and the scope
+deviation is disclosed for manager review. Seven records in the final
+checkpoint were honestly blocked by DisVoice missing a temporary VUV output;
+no partial files were published for those records. A read-only audit of all 40
+complete TRAIN destinations found exact CARE schemas, finite numeric values,
+valid NPZ contracts, and matching turn IDs and timestamps across all eleven
+families. Measured final-checkpoint complete-record feature time was
+12,139.566 s (mean 527.807 s, range 80.161–975.859 s), with peak RSS
+15,228.5 MiB and peak CUDA allocation 4,982.4 MiB. Scratch was cleaned and the
+JSONL checkpoint is resumable.
+
+CARE original audio is unavailable, so numerical equality to historical CARE
+features remains UNVERIFIED. No downloads, installations, tests, training,
+video extraction, or text extraction were performed. Evidence and owner-only
+future chunk commands: `docs/TASK-003C_AUDIO_BATCH_EN.md`.
