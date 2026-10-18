@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B bounded DiariZen feasibility gate next**. No feature extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B bounded DiariZen feasibility gate completed pending manager review**. No feature extraction or training has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-002B — bounded local-only DiariZen runtime and participant-turn sanity gate (at most 3 short TRAIN files; no corpus writes, automatic downloads, feature extraction, tests or training). See `docs/NEXT_TASK_EN.md`.
+Manager review of TASK-002B results, followed by an explicit decision to retain, narrow-optimize, or drop DiariZen before any extraction authorization.
 
 ## TASK-001B outcome
 
@@ -74,14 +74,15 @@ performed. Manager independently reviewed the code/report and accepted the prefl
 
 ## TASK-002B outcome
 
-The bounded local-only DiariZen gate is **pending manager review / blocked**:
-three existing TRAIN recordings were selected across DEPRESSION, CONTROL, and
-PARKINSON strata, and ephemeral 16 kHz stereo decodes showed no evidence that
-the channels are respondent/interviewer-separated. At the latest manual-provisioning handoff, `.venv` has GPU `torch/torchaudio
-2.11.0+cu128`, CUDA 12.8, and RTX 4080 availability; `diarizen` and official
-weights remain user-provisioned. DiariZen, mono-input creation, model-weight access,
-runtime/RTF, and participant-turn sanity were not measured. The CLI now has a
-safe explicit-local-weights execution path with offline guards, bounded mono
-conversion, timing/RTF, and segment summaries for a future provisioned run. Codex did not install packages or download models in this handoff; temporary artifacts were cleaned and CARE/WSM data
-were unchanged. Evidence: `docs/TASK-002B_DIARIZEN_GATE_EN.md` and
+The bounded local-only DiariZen gate **completed pending manager review**.
+Three existing TRAIN recordings were selected across DEPRESSION, CONTROL, and
+PARKINSON strata. Ephemeral 16 kHz stereo checks found no evidence of
+respondent/interviewer channel separation; ephemeral mono 16 kHz inputs then
+ran successfully through DiariZen using local weights. Runtime was 1.429725–
+2.495638 seconds for 61.463965–100.063965 seconds of audio, with RTF
+0.023261–0.028673. The runs produced 21–24 segments and one detected speaker
+per recording; longest-speaker coverage was 0.587987–0.871842 and respondent/
+interviewer sanity remained unverified. Temporary artifacts were cleaned,
+offline download guards were active, and CARE/WSM data were unchanged.
+Evidence: `docs/TASK-002B_DIARIZEN_GATE_EN.md` and
 `scripts/audio/wsm_diarizen_gate.py`. No tests, extraction, or training ran.

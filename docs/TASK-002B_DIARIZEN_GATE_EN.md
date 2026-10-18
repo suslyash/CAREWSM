@@ -2,14 +2,15 @@
 
 ## Outcome
 
-The local-only gate is **blocked pending manager review**. It selected three
-existing TRAIN recordings, measured their stereo channels before any mono
-conversion, and did not invoke DiariZen because the local environment lacks
-both `diarizen` and `torchaudio`. No package, model, or weight was downloaded.
+The local-only gate **completed successfully pending manager review**. It
+selected three existing TRAIN recordings, measured their stereo channels
+before mono conversion, ran DiariZen with explicitly supplied local weights,
+and produced runtime, RTF, speaker and segment summaries. No package, model,
+or weight was downloaded by the gate.
 
-This is not evidence that DiariZen is unusable corpus-wide. The gate provides
-no speaker segments, participant-turn coverage, wall-clock runtime, or RTF
-because the required local runtime was unavailable.
+This is not evidence that DiariZen is usable corpus-wide. The bounded run
+provides runtime and detected-turn observations, but respondent/interviewer
+identity remains unverified.
 
 ## Exact command and bounded selection
 
@@ -51,35 +52,38 @@ These channel statistics cannot identify respondent versus interviewer. The
 CARE reference policy therefore remains unverified for WSM: CARE labels the
 longest-speaking speaker `PARTICIPANT`, while `turn_utils.py` merges gaps up
 to three seconds and treats interviewer speech as a boundary. Those semantics
-were not applied without a successful diarization result.
+were not treated as verified speaker identity; the reported longest-speaker
+mapping remains a diagnostic only.
 
-## Local setup and blocker
+## Local setup and measured runtime
 
-Read-only checks found `ffprobe`, `ffmpeg`, `torch 2.14.1`, and
-`transformers` locally. Python import checks found no `diarizen` and no
-`torchaudio`. The corrected CLI now requires an existing local `--weights`
-directory, sets `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, and
-`HF_DATASETS_OFFLINE=1`, and has no installation or download path. With the
-current missing dependencies, no temporary 16 kHz mono DiariZen input was
-created and no model weights were accessed. If dependencies and weights become
-available, the same CLI creates only ephemeral 16 kHz mono WAVs, invokes the
-CARE-compatible `DiariZenPipeline(diarizen_hub=local_model_dir,
-embedding_model=local_embedding_file)` path once per selected file, writes temporary RTTM, and reports elapsed seconds, RTF, speaker
-counts, segment durations, and longest-speaker coverage. In the current blocked
-run, these DiariZen outputs remain **unmeasured**.
+The successful run used a separate Python 3.10 `.venv-diarizen` environment
+with the official DiariZen stack and CUDA GPU execution. The model directory
+was `/media/maxim/Programs/ml_cache/huggingface/models--BUT-FIT--diarizen-wavlm-large-s80-md/snapshots/6285693ddd5b38e8229acb93f864f3d04a82bee1`,
+and the local WeSpeaker embedding file was
+`/media/maxim/Programs/ml_cache/huggingface/blobs/db/dbae20d3c4f8fc381db5d514a7d4069c87d09feba054c2b248f7333b073e08cd`.
 
-The temporary directory containing the bounded stereo WAVs was removed after
-the command (`temporary_artifacts_cleaned: true`). No files were written under
-CARE or WSM.
+| sample ID | audio duration (s) | elapsed (s) | RTF | speakers | segments | longest-speaker coverage |
+|---|---:|---:|---:|---:|---:|---:|
+| `DEPRESSION__DEPRESSION__-7UpRmNVJzQ__-7UpRmNVJzQ_001` | 75.263965 | 2.158076 | 0.028673 | 1 | 23 | 0.659545 |
+| `CONTROL__DEPRESSION__0efS0axfX0E__0efS0axfX0E_001` | 61.463965 | 1.429725 | 0.023261 | 1 | 24 | 0.587987 |
+| `PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_001` | 100.063965 | 2.495638 | 0.024940 | 1 | 21 | 0.871842 |
+
+All three runs returned one detected speaker. This is a runtime and bounded
+feasibility result, not proof that the recordings contain one human speaker or
+that speaker `1` is the respondent. `respondent_interviewer_sanity` therefore
+remains `unverified`.
+
+Temporary mono WAV and RTTM artifacts were created only under a temporary
+directory and cleaned after the run. No files were written under CARE or WSM.
 
 ## Recommendation for manager decision
 
-**Narrow-optimize / re-gate**, rather than retain or drop based on this result:
-the three-file channel check is useful negative evidence against assuming
-stereo speaker separation, but the missing local runtime prevents a DiariZen
-feasibility decision. A future task would need explicit owner-approved local
-installation/weight provisioning and the same bounded mono-16 kHz runtime
-gate; it must not silently download models.
+**Retain provisionally / narrow-optimize only if needed**: the bounded run is
+fast on the observed GPU (RTF below 0.03 for all three files), and the gate
+completed without corpus writes or downloads. The single-speaker outputs and
+unverified respondent mapping do not establish participant-turn quality;
+manager/owner review is still required before using DiariZen for extraction.
 
 ## Manual provisioning commands (not run by Codex)
 
@@ -96,21 +100,19 @@ tqdm        4.70.1
 
 The official DiariZen README specifies Python 3.10, PyTorch/torchaudio 2.1.1
 for CUDA 12.1, installation from its `requirements.txt` and editable source,
-and the local `pyannote-audio` package. This CAREWSM `.venv` already has a
-working newer compatible CUDA pair, so do **not** replace it unless the check
-above fails. If it does fail, install only this GPU pair; never install CPU
-PyTorch:
+and the local `pyannote-audio` package. The successful run used the separate
+`.venv-diarizen`; the CAREWSM `.venv` was not modified by the gate.
 
 ```bash
-.venv/bin/python - <<'PY'
+.venv-diarizen/bin/python - <<'PY'
 import torch, torchaudio
 print(torch.__version__, torchaudio.__version__, torch.version.cuda, torch.cuda.is_available())
 PY
 
-# Run only if the check does not report torch/torchaudio 2.11.0+cu128 and CUDA=True.
-.venv/bin/pip install --upgrade --force-reinstall \
-  torch==2.11.0+cu128 torchaudio==2.11.0+cu128 \
-  --index-url https://download.pytorch.org/whl/cu128
+# Official DiariZen CUDA pair for this Python 3.10 environment, if needed.
+.venv-diarizen/bin/pip install --upgrade --force-reinstall \
+  torch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 \
+  --index-url https://download.pytorch.org/whl/cu121
 ```
 
 Install the official source and dependencies into the existing environment:
@@ -118,9 +120,9 @@ Install the official source and dependencies into the existing environment:
 ```bash
 DIARIZEN_SRC=/tmp/CAREWSM-DiariZen
 git clone --depth 1 --recurse-submodules https://github.com/BUTSpeechFIT/DiariZen.git "$DIARIZEN_SRC"
-.venv/bin/pip install -r "$DIARIZEN_SRC/requirements.txt"
-.venv/bin/pip install -e "$DIARIZEN_SRC"
-.venv/bin/pip install -e "$DIARIZEN_SRC/pyannote-audio[dev,testing]" -c "$DIARIZEN_SRC/constraints.txt"
+.venv-diarizen/bin/pip install -r "$DIARIZEN_SRC/requirements.txt"
+.venv-diarizen/bin/pip install -e "$DIARIZEN_SRC"
+.venv-diarizen/bin/pip install -e "$DIARIZEN_SRC/pyannote-audio[dev,testing]" -c "$DIARIZEN_SRC/constraints.txt"
 ```
 
 Cache the official DiariZen model and its additional WeSpeaker embedding
@@ -128,7 +130,7 @@ weight. The downloader is intentionally not run by Codex:
 
 ```bash
 HF_CACHE=/media/maxim/Programs/ml_cache/huggingface
-.venv/bin/python scripts/audio/cache_diarizen_weights.py --cache-dir "$HF_CACHE"
+.venv-diarizen/bin/python scripts/audio/cache_diarizen_weights.py --cache-dir "$HF_CACHE"
 ```
 
 The downloader uses the official repositories
@@ -138,7 +140,7 @@ The downloader uses the official repositories
 the gate:
 
 ```bash
-.venv/bin/python - <<'PY'
+.venv-diarizen/bin/python - <<'PY'
 import json, subprocess
 print('Use the JSON paths printed by cache_diarizen_weights.py as --weights and --embedding-weights.')
 print('No model download is performed by this check.')
@@ -148,7 +150,7 @@ PY
 Then run the bounded gate with those printed paths:
 
 ```bash
-.venv/bin/python scripts/audio/wsm_diarizen_gate.py \
+.venv-diarizen/bin/python scripts/audio/wsm_diarizen_gate.py \
   --wsm-root /media/maxim/Databases/WSM_NEW \
   --weights /exact/model_dir/from/downloader \
   --embedding-weights /exact/pytorch_model.bin/from/downloader
