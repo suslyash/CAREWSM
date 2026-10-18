@@ -1,5 +1,8 @@
 # CAREWSM Project Requirements
 
+**LATEST OWNER TASK-004 SCIENTIFIC DECISION (supersedes previous speaker/DiariZen extraction design):** For WSM audio feature production, **each existing segmented VIDEO media file is the entire sample**. No DiariZen or secondary speaker/utterance segmentation now: leave it for a later task. Decode entire audio once at mono 16 kHz and map to one CARE-format output turn (`turn_id=1, turn_start_sec=0, turn_end_sec=decoded_n_samples/16000`), while preserving CARE 11-family filenames/numeric schema and internal frame descriptors. Owner explicitly directs destruction/regeneration **ONLY** of previously generated 11 owned audio family files and old `_carewsm_audio_turns.json` in canonical WSM `extracted/` manifest-mapped directories, never raw/media/manifests/transcripts/other teams' features. Owner's existing `tmux` production must be stopped and all writers exited before purge; Codex does not delete WSM files or run full corpus. The implementation delivers a one-command owner-run reset/complete all-splits extraction, new independent runtime and idempotent restart; no DiariZen load/model/RTTM use, no downloads, no tests, no training. **SCHEMA/FORMAT parity to CARE is retained; CARE historical numeric or respondent-turn semantic parity is not claimed.** TASK-004 `docs/NEXT_TASK_EN.md` is the current canonical contract and supersedes old descriptions below.
+
+
 ## 1. Goal
 
 CAREWSM studies multitask, multilabel recognition of Depression and Parkinson's disease across CARE and WSM, starting with unimodal audio and progressing to multimodal modelling.
