@@ -273,18 +273,24 @@ def normalize_disvoice_praat_paths():
         original_formants = module.praat_formants
 
         def praat_vuv(audio, resultsp, resultst, *args, _original=original_vuv, **kwargs):
-            def prepare(value):
-                path = Path(os.path.realpath(value))
-                path.parent.mkdir(parents=True, exist_ok=True)
-                if path.is_dir():
-                    shutil.rmtree(path)
-                elif path.exists():
-                    path.unlink()
-                return str(path)
-            return _original(audio, prepare(resultsp), prepare(resultst), *args, **kwargs)
+            target_p = Path(os.path.realpath(resultsp))
+            target_t = Path(os.path.realpath(resultst))
+            work = target_p.parent / ".carewsm-praat"
+            work.mkdir(parents=True, exist_ok=True)
+            token = uuid.uuid4().hex
+            temp_p = work / ("f0-" + token + ".txt")
+            temp_t = work / ("vuv-" + token + ".txt")
+            _original(audio, str(temp_p), str(temp_t), *args, **kwargs)
+            if not temp_p.is_file() or not temp_t.is_file():
+                raise RuntimeError(f"Praat did not create expected outputs: {temp_p} {temp_t}")
+            target_p.unlink(missing_ok=True); target_t.unlink(missing_ok=True)
+            os.replace(temp_p, target_p); os.replace(temp_t, target_t)
 
         def praat_formants(audio, results, *args, _original=original_formants, **kwargs):
-            return _original(audio, os.path.realpath(results), *args, **kwargs)
+            target = Path(os.path.realpath(results))
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.unlink(missing_ok=True)
+            return _original(audio, str(target), *args, **kwargs)
 
         module.praat_vuv = praat_vuv
         module.praat_formants = praat_formants
