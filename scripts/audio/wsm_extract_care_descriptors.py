@@ -294,6 +294,12 @@ def main() -> int:
     if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
         result["blocker"] = {"type": "missing_runtime_display", "message": "Praat is installed but this headless session has no DISPLAY; run under an existing display or xvfb-run."}
         print(json.dumps(result, indent=2, sort_keys=True)); return 0
+    disvoice_spec = importlib.util.find_spec("disvoice")
+    disvoice_root = Path(disvoice_spec.origin).parent if disvoice_spec and disvoice_spec.origin else None
+    missing_scripts = [] if disvoice_root is None else [str(disvoice_root / "praat" / name) for name in ("vuv_praat.praat", "FormantsPraat.praat") if not (disvoice_root / "praat" / name).is_file()]
+    if missing_scripts:
+        result["blocker"] = {"type": "missing_disvoice_resources", "paths": missing_scripts, "message": "Installed DisVoice code is missing its required Praat scripts; no download was attempted."}
+        print(json.dumps(result, indent=2, sort_keys=True)); return 0
     result["runs"] = []
     with tempfile.TemporaryDirectory(prefix="carewsm-task003a-") as scratch_name:
         scratch = Path(scratch_name)
