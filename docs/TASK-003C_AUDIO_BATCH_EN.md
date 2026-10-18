@@ -140,3 +140,31 @@ HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
 Before any large continuation, run the same command with `--dry-run`, inspect
 the selected IDs and disk space, and preserve each report directory. No
 download/install command is part of this task.
+
+## TASK-003C corrective review outcome
+
+The corrective worker now fails closed for new samples in this branch. It has a
+persistent budget receipt, rejects ordinary selection without an approved
+receipt, applies pagination to stable manifest order before existing-file
+filtering, supports exact `--sample-ids-file` plus mandatory
+`--retry-blocked-only`, diagnoses Praat exit/stderr/output paths, processes one
+record at a time, reuses one worker-local DiariZen pipeline, and cross-checks
+CSV turn metadata, NPZ `turn_ids`, trajectories and cached sidecar boundaries.
+Praat is guarded by a timeout but failures are not treated as timeout-only.
+
+A read-only audit and dry-run selected exactly the seven manager-approved IDs
+from `docs/NEXT_TASK_EN.md`; all seven were incomplete and no other IDs were
+selected. The single authorized retry completed six records, adding 66 files
+(6 × 11). One record remains blocked:
+`PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_003`. Its diagnostic log
+records `PRAAT_EXIT 255` for `vuv_praat.praat` and the expected
+`tempVUVprosody*.txt` was absent. This is a reproducible DisVoice/Praat output
+failure, not a timeout; no zero/blank substitute was written. Retry time was
+303.325 s total, 43.332 s mean.
+
+The final read-only TRAIN audit found 46 complete records × 11 = 506 valid
+feature files, with no noncomplete destination containing feature files. This
+is 43 new complete records / 473 new files plus the previous 33 accepted files;
+the previous 440 files remain untouched. The retry receipt is marked one-time and
+prevents a second retry. No new records, DEV/TEST data, tests, training,
+downloads or installations were used.
