@@ -306,6 +306,8 @@ def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]],
     disvoice_root = scratch / "disvoice"
     for name, extractor in extractors.items():
         module_path = disvoice_root / name / "impl"
+        if name == "articulation":
+            module_path = module_path / "inner"
         module_path.mkdir(parents=True, exist_ok=True)
         module = __import__(extractor.__class__.__module__, fromlist=["PATH"])
         module.PATH = str(module_path)
