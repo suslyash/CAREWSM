@@ -261,12 +261,23 @@ def main() -> int:
             rows,digest=rows_for(args.wsm_root,split); state_path=args.runtime / "state" / f"{split}.json"
             state=json.loads(state_path.read_text()) if state_path.exists() else {"manifest_sha256":digest,"row_count":len(rows),"next_index":0,"records":{}}
             if state.get("manifest_sha256") != digest or state.get("row_count") != len(rows): raise SystemExit(f"manifest changed: {split}")
-            for index in range(state["next_index"], len(rows)):
+            pending = set(range(state["next_index"], len(rows)))
+            for index, row in enumerate(rows[:state["next_index"]]):
+                previous = state["records"].get(row["sample_id"], {})
+                if previous.get("status") not in {"complete", "already_complete"}:
+                    pending.add(index)
+            for index in sorted(pending):
                 if STOP: break
                 row=rows[index]
                 try: record=process(row,args,headers,models)
                 except Exception as exc: record={"sample_id":row["sample_id"],"status":"blocked","error":str(exc)}
-                record["position"]=index; state["records"][row["sample_id"]]=record; state["next_index"]=index+1; state["high_water_sample_id"]=row["sample_id"]
+                record["position"]=index; state["records"][row["sample_id"]]=record
+                while state["next_index"] < len(rows):
+                    current = state["records"].get(rows[state["next_index"]]["sample_id"], {})
+                    if current.get("status") not in {"complete", "already_complete"}:
+                        break
+                    state["next_index"] += 1
+                state["high_water_sample_id"]=row["sample_id"]
                 atomic_json(state_path,state); summaries[split]=state; atomic_json(args.runtime / "summary.json",summaries)
                 print(json.dumps({"split":split,"position":index,"status":record["status"],"sample_id":row["sample_id"]}), flush=True)
             summaries[split]=state; atomic_json(args.runtime / "summary.json",summaries)
