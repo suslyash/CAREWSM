@@ -83,3 +83,14 @@ Owner-authorized local CUDA DiariZen runtime setup required a separate Python 3.
 
 
 **Manager outcome, TASK-002B:** PASS for bounded GPU feasibility, merged PR https://github.com/suslyash/CAREWSM/pull/21 ; SHA `6c5056bfe6b65424d386c1dfe0872b160e2433be`. Measured run results were documented by Codex; the manager verified committed source/report and preserved newer manager contracts during the merge, without independently rerunning external data. The three files all received one detected speaker, so DiariZen remains provisional pending qualitative speaker sanity. The owner approved a separate `.venv-diarizen` to resolve real Python/runtime incompatibilities. **Owner's permanent traffic rule:** Codex must supply commands, sources, versions and expected/unknown download sizes for any potentially large dependencies or weights; owner executes those downloads, not Codex.
+
+## TASK-002C outcome
+
+TASK-002C prepared a bounded owner listening checklist for exactly the same
+three TRAIN recordings used by TASK-002B. It provides three short audio-only
+`ffplay` windows per recording, centered on previously observed DiariZen speech
+segments, and a response table distinguishing audible speaker count from
+respondent identifiability. The intervals are model-derived and not ground
+truth. Manual owner confirmation is **pending**. No new media, downloads,
+installations, inference reruns, tests, extraction, training, or dataset writes
+were performed. Evidence: `docs/TASK-002C_SPEAKER_SANITY_EN.md`.
