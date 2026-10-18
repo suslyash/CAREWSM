@@ -4,7 +4,7 @@
 
 TASK-003A is limited to the seven lightweight audio families owned by this team. The five video and three linguistic families are external-team outputs and are not implemented, validated, downloaded, or written here. The four deep-audio families are reserved for TASK-003B.
 
-The bounded extraction implementation and read-only parity validator were prepared and exercised in dry-run/preflight mode. The actual seven-family smoke is **blocked pending owner dependency provisioning and manifest-destination resolution**. No WSM feature files were written.
+The bounded extraction implementation and read-only parity validator were corrected and exercised. The three-record smoke reached local DiariZen but is **blocked by a NumPy/Torch ABI mismatch before feature extraction**. No WSM feature files were written.
 
 ## Fixed TRAIN selection
 
@@ -16,7 +16,7 @@ The extractor deterministically selects at most one available row from each stra
 | `CONTROL__DEPRESSION__0efS0axfX0E__0efS0axfX0E_001` | depression | `depression/train_labels/0efS0axfX0E/segments/0efS0axfX0E_001.mp4` | `depression/train_labels/0efS0axfX0E/features/0efS0axfX0E_001` |
 | `PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_001` | parkinson | `parkinson/train_labels/-1N99QsfWRk/segments/-1N99QsfWRk_001.mp4` | `parkinson/train_labels/-1N99QsfWRk/features/-1N99QsfWRk_001` |
 
-The source paths and destination fields were read from the TRAIN manifest; no sample IDs were split to reconstruct paths. The current manifest values do not begin with the contract-required `extracted/` prefix. The extractor reports this mismatch and refuses to write rather than silently remapping or creating a second WSM layout. This needs an owner/manager decision before production writes.
+The source paths and destination fields were read from the TRAIN manifest; no sample IDs were split to reconstruct paths. The current manifest `feature_dir` values are treated as source-feature metadata only. They are not used as output paths. The target is built from the real manifest fields `label_id`, `subgroup`, `profile_id`, and `video_id` under `WSM_NEW/extracted/`; the existing profile directories were checked before the smoke, and target VIDEO directories are created only for this authorized run.
 
 ## CARE parity contract implemented
 
@@ -26,9 +26,10 @@ The extractor follows the inspected CARE producers:
 - eGeMAPSv02 openSMILE Functionals and LowLevelDescriptors;
 - CARE metadata order for functionals/turn files: `turn_id,turn_start_sec,turn_end_sec`;
 - CARE metadata order for frame/segment files: `turn_id,turn_start_sec,turn_end_sec,frame_start_sec,frame_end_sec`;
-- DisVoice `Prosody`, `Phonation`, and `Articulation` producers;
+- DisVoice `Prosody`, `Phonation`, and `Articulation` producers with `fmt="dataframe"`;
 - DisVoice dynamic timing: prosody hop/offset `0.01/0`, phonation `0.02/11`, articulation `0.04/2`;
-- CARE turn policy: provisional longest detected speaker as `PARTICIPANT`, interviewer labels as boundaries, merge gaps up to 3 seconds, discard turns shorter than 0.3 seconds.
+- CARE turn policy: provisional longest detected speaker as `PARTICIPANT`, interviewer labels as boundaries, merge gaps up to 3 seconds, discard turns shorter than 0.3 seconds;
+- existing valid feature files are skipped, invalid existing files stop the run, and new CSVs use a temporary file inside the final destination directory before `os.replace`.
 
 The seven target files and numeric widths are:
 
@@ -63,7 +64,7 @@ python3 scripts/audio/validate_care_audio_parity.py \
   --split train --limit 3
 ```
 
-The validator found none of the seven target files at the observed manifest destinations. The bounded extractor preflight reported missing local `opensmile` and `disvoice` in `.venv-diarizen` and did not install, download, or write anything. `numpy`, `pandas`, `librosa`, `soundfile`, `torch`, `torchaudio`, `diarizen`, and `tqdm` were present there.
+The validator found none of the seven target files at the corrected extracted destinations. The owner-installed environment contains `opensmile`, `disvoice`, `numpy`, `pandas`, `librosa`, `soundfile`, `torch`, `torchaudio`, `diarizen`, and `tqdm`. The smoke reached DiariZen, but `torch 2.1.1` cannot initialize against `numpy 2.2.6` and returned `Numpy is not available`; no descriptor file was written.
 
 After the owner provisions the missing dependencies and the destination contract is resolved, the intended bounded command is:
 
@@ -75,15 +76,17 @@ After the owner provisions the missing dependencies and the destination contract
   --embedding-weights /media/maxim/Programs/ml_cache/huggingface/blobs/db/dbae20d3c4f8fc381db5d514a7d4069c87d09feba054c2b248f7333b073e08cd
 ```
 
-This command is documented but was not run because it would still be blocked by the current manifest `feature_dir` values and missing packages.
+This command was run for the three authorized rows. It was blocked before descriptor output by the NumPy/Torch ABI error; temporary audio artifacts were cleaned.
 
 ## Owner-only dependency commands and traffic
 
-No package download was initiated by Codex. The CARE script requires these missing dependencies in the already approved `.venv-diarizen`:
+No package download was initiated by Codex. The owner-installed descriptor packages are present, but two local compatibility issues remain:
 
 ```bash
-.venv-diarizen/bin/python -m pip install opensmile==2.6.0 disvoice==0.1.4
+.venv-diarizen/bin/python -m pip install --upgrade numpy==1.26.4 "setuptools<81"
 ```
+
+This is owner-executed only. Expected traffic is approximately 20 MB for the NumPy Linux wheel plus a small setuptools wheel and resolver metadata; owner approval is required. Official sources: [NumPy 1.26.4 on PyPI](https://pypi.org/project/numpy/1.26.4/) and [setuptools on PyPI](https://pypi.org/project/setuptools/). The pinned setuptools upper bound restores `pkg_resources`, which the installed DisVoice dependency imports.
 
 Official sources: [openSMILE Python](https://audeering.github.io/opensmile/install.html) and [DisVoice](https://github.com/jcvasquezc/DisVoice). DisVoice also requires Praat to be installed and available on `PATH` according to its official instructions. If Praat is absent, the owner must install it separately using the official Ubuntu/package source.
 
@@ -104,6 +107,16 @@ PY
 ```
 
 No video/text package, model, or feature extractor is requested by this task.
+
+## CARE same-code comparison
+
+The existing CARE archives contain reference descriptor CSVs and RTTMs but no
+raw audio files (`.wav`, `.mp4`, `.flac`, or equivalent) in the available CARE
+file inventory. Therefore the same-code CARE numeric extraction could not be
+run without inventing or downloading an input source. The validator still
+compares the generated-output contract against the existing CARE CSV headers,
+metadata order, numeric widths, and numeric-value semantics. CARE reference
+files and archives remained read-only.
 
 ## Data integrity and limitations
 

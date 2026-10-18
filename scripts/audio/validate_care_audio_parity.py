@@ -83,8 +83,11 @@ def main() -> int:
     if args.all_audio:
         result["families"] += list(DEEP)
     for row in rows:
-        destination = (args.wsm_root / row["feature_dir"]).resolve()
-        sample = {"sample_id": row["sample_id"], "feature_dir": row["feature_dir"], "files": {}}
+        for field in ("label_id", "subgroup", "profile_id", "video_id"):
+            if not row.get(field):
+                raise RuntimeError(f"manifest row missing output field: {field}")
+        destination = (args.wsm_root / "extracted" / row["label_id"] / row["subgroup"] / f"PROFILE_{row['profile_id']}" / f"VIDEO_{row['video_id']}").resolve()
+        sample = {"sample_id": row["sample_id"], "source_feature_dir_ignored": row["feature_dir"], "destination": str(destination), "files": {}}
         for filename in SEVEN:
             path = destination / filename
             headers = reference_headers(args.care_root, filename)
