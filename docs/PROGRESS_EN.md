@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. **TASK-003A and TASK-003B bounded smokes accepted (PR #27, PR #30): 33 reported structurally valid audio CSV/NPZ outputs on 3 WSM TRAIN recordings, covering all 11 registered audio families. TASK-003C resumable TRAIN batch pilot is NEXT, up to 30 additional samples.** Five video and three linguistic families are supplied by other teams for future fusion; no video/text extraction or training.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. **TASK-003A/B accepted (PR #27/#30); TASK-003C first-pass pilot reports 37 additional complete TRAIN records (407 new audio files), with 7 VUV-blocked attempts; combined 40 complete records / 440 audio files. Cumulative 30-record limit was exceeded, so Draft PR #32 is on HOLD pending targeted correction.** Five video and three linguistic families are supplied by other teams for future fusion; no video/text extraction or training.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-003C — implement a resumable 11-audio-family WSM batch pipeline, reuse model loads/one DiariZen turn source per recording, owner-cached weights only, no-clobber, per-sample and per-family progress, and a new **at-most-30-TRAIN-row pilot**. Full TRAIN/DEV/TEST processing must be launched only after manager review via explicit owner commands. No nonaudio extraction, test suite or training. See `docs/NEXT_TASK_EN.md`.
+TASK-003C correction — no NEW recordings permitted. Preserve 40 complete TRAIN output dirs and 440 verified feature files. Fix task-wide limit and unstable resume `--offset`, diagnose Praat/DisVoice temporary-VUV failures, enforce cross-family NPZ/CSV/sidecar turn matching, and retry **only seven specified previously attempted blocked IDs** at most once after dry-run/guards; no DEV/TEST/bulk. Draft PR #32 remains manager-controlled. See `docs/NEXT_TASK_EN.md`.
 
 **Latest TASK-002B owner correction:** Ubuntu reboot resolved NVIDIA driver/NVML mismatch. Cancel attempted CPU `torch==2.11.0+cpu`/`torchaudio==2.11.0+cpu` installation; preserve/recover verified matching CUDA-enabled PyTorch and torchaudio in the existing `.venv`, confirm `torch.cuda.is_available() == True` before bounded DiariZen GPU inference. CPU wheels, CPU fallback and additional environments are prohibited; `pyproject.toml` stays unchanged. Actual DiariZen results still pending.
 
@@ -155,35 +155,7 @@ CARE original audio is unavailable.
 
 PR #30 merged: https://github.com/suslyash/CAREWSM/pull/30 ; merge SHA `595d4ebd871a36592e395320a4d5c982aee5a027`. According to implementer and read-only local validator evidence, three XLS-R NPZ, three TRILLsson NPZ, three Emotion MSP embeddings NPZ and three trajectories CSV were added for the same three original TRAIN clips. Alongside 21 accepted descriptor CSVs, this yields **33 validated audio outputs across 11 CARE-registered audio families** for three records. GitHub manager independently reviewed code, NPZ/CSV validator and docs but could not access actual local bytes. XLS-R/MSP used CUDA and TRILLsson CPU for compatibility; GPU DiariZen ran on scratch mono 16 kHz and retained no RTTM. CARE original media absent means numerical historical CARE equivalence UNVERIFIABLE; respondent identity provisional. The owner prioritizes quick complete WSM AUDIO extraction; TASK-003C authorizes an incremental pilot on **at most 30 further distinct TRAIN clips** and resumable full-split scripts, NOT a full corpus execution by Codex. Owner-only downloads; no tests, training or nonaudio extraction.
 
-## TASK-003C bounded audio batch outcome
 
-Implemented the unified offline/resumable eleven-family batch worker in
-`scripts/audio/wsm_extract_care_audio_batch.py`, with a narrow compatible model
-cache hook in the descriptor extractor. It selects only canonical manifest
-destinations, shares one temporary mono 16 kHz decode and participant-turn
-boundaries across all eleven families, loads deep models once per worker,
-validates every family before publication, skips complete records, and refuses
-overwrites. Praat is wrapped with a bounded timeout so one external-runtime
-failure cannot hang the package.
+## TASK-003C first-pass manager HOLD and corrective scope
 
-The final bounded invocation selected 30 new TRAIN records and completed 23,
-producing 253 validated files; an earlier interrupted invocation had already
-published 14 additional complete records. The cumulative result is 37 new
-complete records and 407 new validated files, plus the original 33 unchanged
-files. This exceeds the TASK-003C 30-new-record cap because the second
-invocation selected the remaining missing records after the first invocation;
-no new files are deleted without explicit owner authorization, and the scope
-deviation is disclosed for manager review. Seven records in the final
-checkpoint were honestly blocked by DisVoice missing a temporary VUV output;
-no partial files were published for those records. A read-only audit of all 40
-complete TRAIN destinations found exact CARE schemas, finite numeric values,
-valid NPZ contracts, and matching turn IDs and timestamps across all eleven
-families. Measured final-checkpoint complete-record feature time was
-12,139.566 s (mean 527.807 s, range 80.161–975.859 s), with peak RSS
-15,228.5 MiB and peak CUDA allocation 4,982.4 MiB. Scratch was cleaned and the
-JSONL checkpoint is resumable.
-
-CARE original audio is unavailable, so numerical equality to historical CARE
-features remains UNVERIFIED. No downloads, installations, tests, training,
-video extraction, or text extraction were performed. Evidence and owner-only
-future chunk commands: `docs/TASK-003C_AUDIO_BATCH_EN.md`.
+Codex commit `50cd8474eb74722c0eaa5dfe817f6d5fa047d1fe` reported two sequential pilots and **37 new complete WSM TRAIN samples** = 407 new audio files, exceeding the cumulative owner/manager cap of 30. Combined with 3 previous accepted TRAIN samples, **40 complete × 11 audio families = 440 validated files**, according to a read-only audit on the remote machine. Seven additional previously attempted TRAIN records remained incomplete after DisVoice/Praat missing `tempVUVprosody*.txt` errors; latest batch correctly exited nonzero. Per-complete-record mean 527.807 seconds; peak RSS 15,228.5 MiB, CUDA allocation 4,982.4 MiB. All existing validated WSM audio files must be kept; this is a documented **scope violation** and does not permit more new pilot records. Manager review found current CLI `--offset` is applied **after complete rows are filtered**, making published sequential chunk commands skip eligible rows; cumulative cap not persisted across invocations; NPZ `turn_ids` not cross-compared against CSV timing; sidecar checks incomplete; 30 WAVs may be retained until features finish. Draft PR #32 is HOLD until bounded corrective code and VUV analysis. The **only** authorized further WSM outputs are an at-most-once retry of the **seven exact previously attempted blocked TRAIN IDs**, after safe allowlist-only dry-run and source safeguards. No new recordings, bulk extraction, DEV/TEST reads, tests or downloads by Codex.
