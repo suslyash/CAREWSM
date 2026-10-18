@@ -141,9 +141,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--wsm-root", required=True, type=Path)
     parser.add_argument("--weights", required=True, type=Path, help="existing local DiariZen model directory; never downloaded")
+    parser.add_argument("--embedding-weights", required=True, type=Path, help="existing local WeSpeaker embedding file; never downloaded")
     args = parser.parse_args()
     root = args.wsm_root.resolve()
     weights = args.weights.expanduser().resolve()
+    embedding_weights = args.embedding_weights.expanduser().resolve()
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     os.environ["HF_DATASETS_OFFLINE"] = "1"
@@ -155,6 +157,7 @@ def main() -> int:
         "selection_cap": MAX_FILES,
         "duration_cap_s": MAX_SECONDS,
         "weights": str(weights),
+        "embedding_weights": str(embedding_weights),
         "offline_model_policy": {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1", "HF_DATASETS_OFFLINE": "1", "downloads": False},
     }
     try:
@@ -176,13 +179,19 @@ def main() -> int:
                 result["blocker"] = {"type": "missing_local_dependency", "packages": missing, "message": "DiariZen was not invoked; no installation or model download was attempted."}
             elif not weights.is_dir():
                 result["blocker"] = {"type": "missing_local_weights", "path": str(weights), "message": "--weights must name an existing local model directory; no download was attempted."}
+            elif not embedding_weights.is_file():
+                result["blocker"] = {"type": "missing_local_embedding_weights", "path": str(embedding_weights), "message": "--embedding-weights must name an existing local file; no download was attempted."}
             else:
                 import torch
                 if not torch.cuda.is_available():
                     result["blocker"] = {"type": "unavailable_gpu", "message": "DiariZen was not invoked because CUDA is unavailable locally."}
                 else:
                     from diarizen.pipelines.inference import DiariZenPipeline
-                    pipeline = DiariZenPipeline.from_pretrained(str(weights))
+                    pipeline = DiariZenPipeline(
+                        diarizen_hub=weights,
+                        embedding_model=str(embedding_weights),
+                        rttm_out_dir=None,
+                    )
                     result["runs"] = []
                     for row, metadata in zip(selected, result["selected"]):
                         stem = row["sample_id"].replace("/", "_")

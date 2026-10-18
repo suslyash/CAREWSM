@@ -77,11 +77,11 @@ performed. Manager independently reviewed the code/report and accepted the prefl
 The bounded local-only DiariZen gate is **pending manager review / blocked**:
 three existing TRAIN recordings were selected across DEPRESSION, CONTROL, and
 PARKINSON strata, and ephemeral 16 kHz stereo decodes showed no evidence that
-the channels are respondent/interviewer-separated. Local `diarizen` and
-`torchaudio` are absent, so DiariZen, mono-input creation, model-weight access,
+the channels are respondent/interviewer-separated. At the latest manual-provisioning handoff, `.venv` has GPU `torch/torchaudio
+2.11.0+cu128`, CUDA 12.8, and RTX 4080 availability; `diarizen` and official
+weights remain user-provisioned. DiariZen, mono-input creation, model-weight access,
 runtime/RTF, and participant-turn sanity were not measured. The CLI now has a
 safe explicit-local-weights execution path with offline guards, bounded mono
-conversion, timing/RTF, and segment summaries for a future provisioned run. No
-installation or download was attempted; temporary artifacts were cleaned and CARE/WSM data
+conversion, timing/RTF, and segment summaries for a future provisioned run. Codex did not install packages or download models in this handoff; temporary artifacts were cleaned and CARE/WSM data
 were unchanged. Evidence: `docs/TASK-002B_DIARIZEN_GATE_EN.md` and
 `scripts/audio/wsm_diarizen_gate.py`. No tests, extraction, or training ran.

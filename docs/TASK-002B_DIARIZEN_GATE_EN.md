@@ -16,7 +16,8 @@ because the required local runtime was unavailable.
 ```bash
 ./scripts/audio/wsm_diarizen_gate.py \
   --wsm-root /media/maxim/Databases/WSM_NEW \
-  --weights /absolute/path/to/local/diarizen-wavlm-large-s80-md
+  --weights /path/to/hf-cache/models--BUT-FIT--diarizen-wavlm-large-s80-md/snapshots/<revision> \
+  --embedding-weights /path/to/hf-cache/models--pyannote--wespeaker-voxceleb-resnet34-LM/snapshots/<revision>/pytorch_model.bin
 ```
 
 The CLI requires an explicit WSM root and an existing local `--weights` model
@@ -62,8 +63,8 @@ directory, sets `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, and
 current missing dependencies, no temporary 16 kHz mono DiariZen input was
 created and no model weights were accessed. If dependencies and weights become
 available, the same CLI creates only ephemeral 16 kHz mono WAVs, invokes the
-CARE-compatible `DiariZenPipeline.from_pretrained(local_weights)` path once per
-selected file, writes temporary RTTM, and reports elapsed seconds, RTF, speaker
+CARE-compatible `DiariZenPipeline(diarizen_hub=local_model_dir,
+embedding_model=local_embedding_file)` path once per selected file, writes temporary RTTM, and reports elapsed seconds, RTF, speaker
 counts, segment durations, and longest-speaker coverage. In the current blocked
 run, these DiariZen outputs remain **unmeasured**.
 
@@ -79,3 +80,82 @@ stereo speaker separation, but the missing local runtime prevents a DiariZen
 feasibility decision. A future task would need explicit owner-approved local
 installation/weight provisioning and the same bounded mono-16 kHz runtime
 gate; it must not silently download models.
+
+## Manual provisioning commands (not run by Codex)
+
+The verified environment state before manual provisioning was:
+
+```text
+torch       2.11.0+cu128
+torchaudio 2.11.0+cu128
+CUDA build  12.8
+CUDA        available: True
+GPU         NVIDIA GeForce RTX 4080
+tqdm        4.70.1
+```
+
+The official DiariZen README specifies Python 3.10, PyTorch/torchaudio 2.1.1
+for CUDA 12.1, installation from its `requirements.txt` and editable source,
+and the local `pyannote-audio` package. This CAREWSM `.venv` already has a
+working newer compatible CUDA pair, so do **not** replace it unless the check
+above fails. If it does fail, install only this GPU pair; never install CPU
+PyTorch:
+
+```bash
+.venv/bin/python - <<'PY'
+import torch, torchaudio
+print(torch.__version__, torchaudio.__version__, torch.version.cuda, torch.cuda.is_available())
+PY
+
+# Run only if the check does not report torch/torchaudio 2.11.0+cu128 and CUDA=True.
+.venv/bin/pip install --upgrade --force-reinstall \
+  torch==2.11.0+cu128 torchaudio==2.11.0+cu128 \
+  --index-url https://download.pytorch.org/whl/cu128
+```
+
+Install the official source and dependencies into the existing environment:
+
+```bash
+DIARIZEN_SRC=/tmp/CAREWSM-DiariZen
+git clone --depth 1 --recurse-submodules https://github.com/BUTSpeechFIT/DiariZen.git "$DIARIZEN_SRC"
+.venv/bin/pip install -r "$DIARIZEN_SRC/requirements.txt"
+.venv/bin/pip install -e "$DIARIZEN_SRC"
+.venv/bin/pip install -e "$DIARIZEN_SRC/pyannote-audio[dev,testing]" -c "$DIARIZEN_SRC/constraints.txt"
+```
+
+Cache the official DiariZen model and its additional WeSpeaker embedding
+weight. The downloader is intentionally not run by Codex:
+
+```bash
+HF_CACHE=/media/maxim/Programs/ml_cache/huggingface
+.venv/bin/python scripts/audio/cache_diarizen_weights.py --cache-dir "$HF_CACHE"
+```
+
+The downloader uses the official repositories
+`BUT-FIT/diarizen-wavlm-large-s80-md` and
+`pyannote/wespeaker-voxceleb-resnet34-LM` (`pytorch_model.bin`) through
+`huggingface_hub`. It prints exact local paths. Verify both paths before running
+the gate:
+
+```bash
+.venv/bin/python - <<'PY'
+import json, subprocess
+print('Use the JSON paths printed by cache_diarizen_weights.py as --weights and --embedding-weights.')
+print('No model download is performed by this check.')
+PY
+```
+
+Then run the bounded gate with those printed paths:
+
+```bash
+.venv/bin/python scripts/audio/wsm_diarizen_gate.py \
+  --wsm-root /media/maxim/Databases/WSM_NEW \
+  --weights /exact/model_dir/from/downloader \
+  --embedding-weights /exact/pytorch_model.bin/from/downloader
+```
+
+The model weights are distributed by the official project under CC BY-NC 4.0
+(non-commercial research) terms. Hugging Face access, cache permissions, and
+any model-card terms must be accepted by the user before downloading. The gate
+keeps converted mono WAVs and RTTM files only in an ephemeral temporary
+directory and never writes CARE/WSM roots.
