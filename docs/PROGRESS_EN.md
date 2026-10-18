@@ -201,3 +201,8 @@ PR #32 merged: https://github.com/suslyash/CAREWSM/pull/32 ; merge SHA `55dcb7b4
 The single authorized corrective attempt for `PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_003` succeeded: the stale sidecar ended at 50.2125 s while decoded audio ended at 49.9759375 s; duration validation clipped only that impossible end boundary, preserving feature algorithms. Praat returned EXIT 0 and all 11 families were written and read-only validated in 38.940 s. Existing 506 outputs were not overwritten; the WSM audio-file count is now 517.
 
 Added a separate owner-only, explicit-opt-in launcher for TRAIN+DEV+TEST with deterministic manifest fingerprints, chunk checkpoints, resume, lock, no-clobber and per-sample failure accounting. The full-corpus command was NOT run by Codex; DEV/TEST were not read during development. No downloads, tests, training or nonaudio extraction. See `docs/TASK-003D_AUDIO_PRODUCTION_EN.md`.
+
+
+## TASK-003D production correction after Draft PR #36
+
+The production launcher was corrected without corpus extraction: Praat now has an explicit Xvfb/headless preflight and the owner command inherits `xvfb-run`; cached turn boundaries are bounded against the audio stream duration and compared to saved feature timestamps with container-timebase tolerance without rewriting published files; production workers inspect only their selected chunk; TRAIN-only preflight lists immutable positions, IDs, canonical destinations and all 11 family statuses; progress state and summary are atomically saved after each chunk; the cursor remains unchanged for incomplete worker reports. Existing 517 outputs were not modified. Full production remains unrun by Codex, with no DEV/TEST access during development.

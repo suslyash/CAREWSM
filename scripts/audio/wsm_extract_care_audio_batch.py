@@ -111,6 +111,27 @@ def read_turn_metadata(path: Path) -> dict[int, tuple[float, float]]:
     return result
 
 
+def media_duration(video: Path) -> float | None:
+    import subprocess
+    try:
+        result = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(video)], check=True, capture_output=True, text=True)
+        value = float(result.stdout.strip())
+        return value if value > 0 else None
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return None
+
+
+def bound_turns(turns: list[tuple[float, float]], duration: float) -> list[tuple[float, float]] | None:
+    bounded = []
+    for start, end in turns:
+        start = max(0.0, min(float(start), duration))
+        end = max(0.0, min(float(end), duration))
+        if end - start < 0.3:
+            return None
+        bounded.append((start, end))
+    return bounded or None
+
+
 def read_sidecar(row: dict, args) -> tuple[list[tuple[float, float]], dict] | None:
     path = row["destination"] / "_carewsm_audio_turns.json"
     if not path.is_file():
@@ -126,9 +147,13 @@ def read_sidecar(row: dict, args) -> tuple[list[tuple[float, float]], dict] | No
         if data.get("policy") != DIARIZATION_POLICY:
             return None
         turns = [(float(a), float(b)) for a, b in data["turns"]]
-        if not turns or any(b - a < 0.3 for a, b in turns):
+        duration = media_duration(row["video"])
+        if duration is None:
             return None
-        return turns, data
+        bounded = bound_turns(turns, duration)
+        if bounded is None:
+            return None
+        return bounded, data
     except Exception:
         return None
 
@@ -175,7 +200,7 @@ def inspect_record(destination: Path, expected: dict[str, list[str]], sidecar_tu
                 errors.append(f"{filename}: NPZ turn_ids do not match CSV turn_ids")
         if sidecar_turns is not None:
             sidecar_map = {index: value for index, value in enumerate(sidecar_turns, 1)}
-            if sidecar_map != first:
+            if set(sidecar_map) != set(first) or any(any(abs(a - b) > 1e-2 for a, b in zip(sidecar_map[index], first[index])) for index in first):
                 errors.append("cached sidecar turn boundaries do not match feature metadata")
     elif npz_ids:
         expected_ids = next(iter(npz_ids.values()))
@@ -315,6 +340,12 @@ def diarize_once(wav: Path, row: dict, args, pipeline, praat_log: Path) -> tuple
     turns = deep.participant_turns([(labels[speaker], start, end) for speaker, start, end in segments])
     if not turns:
         raise RuntimeError("no participant turns after CARE policy")
+    duration = media_duration(row["video"])
+    if duration is None:
+        raise RuntimeError("cannot determine source audio duration")
+    turns = bound_turns(turns, duration) or []
+    if not turns:
+        raise RuntimeError("no valid participant turns after audio-duration validation")
     write_sidecar(row, turns, args)
     return turns, {"source": "local DiariZen", "diarization_runs": 1, "speaker_count": len(durations), "segment_count": len(segments), "praat_log": str(praat_log)}
 
@@ -335,10 +366,17 @@ def load_deep_models(args) -> dict[str, Any]:
 
 def configure_praat_wrapper(scratch: Path, log: Path) -> None:
     real = shutil.which("praat")
+    xvfb = shutil.which("xvfb-run")
     if real is None:
         raise RuntimeError("Praat executable is unavailable")
+    if xvfb is None and not os.environ.get("DISPLAY"):
+        raise RuntimeError("headless Praat requires xvfb-run or an existing DISPLAY")
+    if os.environ.get("DISPLAY"):
+        command = "timeout --kill-after=5 90 " + shlex.join([real, "--run"]) + ' "$@"'
+    else:
+        command = "timeout --kill-after=5 90 " + shlex.join([xvfb, "-a", "--server-args=-screen 0 1024x768x24", real, "--run"]) + ' "$@"'
     wrapper = scratch / "praat"
-    wrapper.write_text("#!/bin/sh\nlog=" + shlex.quote(str(log)) + "\nprintf '%s\\n' \"PRAAT_START $*\" >> \"$log\"\ntimeout --kill-after=5 90 " + shlex.quote(real) + " --run \"$@\" >> \"$log\" 2>&1\nrc=$?\nprintf '%s\\n' \"PRAAT_EXIT $rc\" >> \"$log\"\nexit $rc\n", encoding="utf-8")
+    wrapper.write_text("#!/bin/sh\nlog=" + shlex.quote(str(log)) + "\nprintf '%s\n' \"PRAAT_START $*\" >> \"$log\"\n" + command + " >> \"$log\" 2>&1\nrc=$?\nprintf '%s\n' \"PRAAT_EXIT $rc\" >> \"$log\"\nexit $rc\n", encoding="utf-8")
     wrapper.chmod(0o700)
     os.environ["PATH"] = f"{scratch}{os.pathsep}{os.environ.get('PATH', '')}"
     os.environ["CAREWSM_PRAAT_LOG"] = str(log)
@@ -443,7 +481,11 @@ def main() -> int:
     else:
         # Frozen in this corrective branch; kept unreachable as a fail-closed guard.
         selected=stable_selection(rows,args)
-    for row in rows:
+    if args.production:
+        rows_to_inspect = selected
+    else:
+        rows_to_inspect = rows
+    for row in rows_to_inspect:
         sidecar=read_sidecar(row,args)
         row["existing_state"]=inspect_record(row["destination"],expected,sidecar[0] if sidecar else None)
     if args.retry_blocked_only:
@@ -456,7 +498,13 @@ def main() -> int:
         print(json.dumps(result,indent=2,sort_keys=True)); return 0
     missing_deps=[name for name in ("numpy","pandas","librosa","soundfile","opensmile","disvoice","torch","torchaudio","diarizen","transformers","tensorflow","tensorflow_hub") if importlib.util.find_spec(name) is None]
     if missing_deps: result.update(status="blocked",blocker={"type":"missing_local_dependency","packages":missing_deps}); print(json.dumps(result,indent=2)); return 1
-    checkpoint=args.report_dir/(f"production_{args.split}.jsonl" if args.production else f"{args.split}.jsonl"); processed=[]; descriptor_smiles=descriptors.build_descriptor_models()[0]; models=load_deep_models(args); pipeline=None
+    checkpoint=args.report_dir/(f"production_{args.split}.jsonl" if args.production else f"{args.split}.jsonl"); processed=[]; descriptor_smiles=None; models={}; pipeline=None
+    needs_work=any(not row["existing_state"]["complete"] for row in selected)
+    if needs_work:
+        if shutil.which("praat") is None or (shutil.which("xvfb-run") is None and not os.environ.get("DISPLAY")):
+            result.update(status="blocked",blocker={"type":"missing_headless_praat","message":"Praat requires xvfb-run or DISPLAY"}); print(json.dumps(result,indent=2)); return 1
+        descriptor_smiles=descriptors.build_descriptor_models()[0]
+        models=load_deep_models(args)
     with tempfile.TemporaryDirectory(prefix="carewsm-task003c-",dir=args.report_dir) as worker_scratch:
         worker=Path(worker_scratch); praat_log=worker/"praat.log"; configure_praat_wrapper(worker,praat_log)
         if any(read_sidecar(row,args) is None and not row["existing_state"]["complete"] for row in selected):
@@ -466,6 +514,12 @@ def main() -> int:
             started=time.perf_counter(); destination=row["destination"]
             if row["existing_state"]["complete"]:
                 processed.append({"sample_id":row["sample_id"],"status":"skipped_complete"}); continue
+            if any(status == "blocked_existing_invalid" for status in row["existing_state"]["statuses"].values()):
+                processed.append({"sample_id":row["sample_id"],"status":"invalid_existing","error":row["existing_state"]["errors"]})
+                with checkpoint.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(processed[-1], sort_keys=True) + "\n"); handle.flush()
+                print(f"[{index}/{len(selected)}] {processed[-1]['status']} {row['sample_id']}", flush=True)
+                continue
             destination.mkdir(parents=True,exist_ok=True)
             with tempfile.TemporaryDirectory(prefix=f"{row['sample_id']}-",dir=worker) as record_scratch_name:
                 record_scratch=Path(record_scratch_name); record_log=record_scratch/"praat.log"; configure_praat_wrapper(record_scratch,record_log)
