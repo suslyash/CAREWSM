@@ -159,3 +159,31 @@ PR #30 merged: https://github.com/suslyash/CAREWSM/pull/30 ; merge SHA `595d4ebd
 ## TASK-003C first-pass manager HOLD and corrective scope
 
 Codex commit `50cd8474eb74722c0eaa5dfe817f6d5fa047d1fe` reported two sequential pilots and **37 new complete WSM TRAIN samples** = 407 new audio files, exceeding the cumulative owner/manager cap of 30. Combined with 3 previous accepted TRAIN samples, **40 complete × 11 audio families = 440 validated files**, according to a read-only audit on the remote machine. Seven additional previously attempted TRAIN records remained incomplete after DisVoice/Praat missing `tempVUVprosody*.txt` errors; latest batch correctly exited nonzero. Per-complete-record mean 527.807 seconds; peak RSS 15,228.5 MiB, CUDA allocation 4,982.4 MiB. All existing validated WSM audio files must be kept; this is a documented **scope violation** and does not permit more new pilot records. Manager review found current CLI `--offset` is applied **after complete rows are filtered**, making published sequential chunk commands skip eligible rows; cumulative cap not persisted across invocations; NPZ `turn_ids` not cross-compared against CSV timing; sidecar checks incomplete; 30 WAVs may be retained until features finish. Draft PR #32 is HOLD until bounded corrective code and VUV analysis. The **only** authorized further WSM outputs are an at-most-once retry of the **seven exact previously attempted blocked TRAIN IDs**, after safe allowlist-only dry-run and source safeguards. No new recordings, bulk extraction, DEV/TEST reads, tests or downloads by Codex.
+
+## TASK-003C corrective review outcome
+
+The corrective worker now fails closed for new samples in this branch. It has a
+persistent budget receipt, rejects ordinary selection without an approved
+receipt, applies pagination to stable manifest order before existing-file
+filtering, supports exact `--sample-ids-file` plus mandatory
+`--retry-blocked-only`, diagnoses Praat exit/stderr/output paths, processes one
+record at a time, reuses one worker-local DiariZen pipeline, and cross-checks
+CSV turn metadata, NPZ `turn_ids`, trajectories and cached sidecar boundaries.
+Praat is guarded by a timeout but failures are not treated as timeout-only.
+
+A read-only audit and dry-run selected exactly the seven manager-approved IDs
+from `docs/NEXT_TASK_EN.md`; all seven were incomplete and no other IDs were
+selected. The single authorized retry completed six records, adding 66 files
+(6 × 11). One record remains blocked:
+`PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_003`. Its diagnostic log
+records `PRAAT_EXIT 255` for `vuv_praat.praat` and the expected
+`tempVUVprosody*.txt` was absent. This is a reproducible DisVoice/Praat output
+failure, not a timeout; no zero/blank substitute was written. Retry time was
+303.325 s total, 43.332 s mean.
+
+The final read-only TRAIN audit found 46 complete records × 11 = 506 valid
+feature files, with no noncomplete destination containing feature files. This
+is 43 new complete records / 473 new files plus the previous 33 accepted files;
+the previous 440 files remain untouched. The retry receipt is marked one-time and
+prevents a second retry. No new records, DEV/TEST data, tests, training,
+downloads or installations were used.

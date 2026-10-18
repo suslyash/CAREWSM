@@ -225,7 +225,34 @@ def exact_frame(frame, expected, filename):
     return frame
 
 
-def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]]):
+def build_disvoice_models():
+    """Create fresh DisVoice objects; their legacy temp-file state is per recording."""
+    import numpy as np
+    if not hasattr(np, "int"):
+        np.int = int
+    from disvoice.articulation import Articulation
+    from disvoice.phonation import Phonation
+    from disvoice.prosody import Prosody
+    return {"prosody": Prosody(), "phonation": Phonation(), "articulation": Articulation()}
+
+
+def build_descriptor_models():
+    """Load the seven descriptor objects once for a batch worker."""
+    import opensmile
+    import numpy as np
+    if not hasattr(np, "int"):
+        np.int = int
+    from disvoice.articulation import Articulation
+    from disvoice.phonation import Phonation
+    from disvoice.prosody import Prosody
+    smiles = {
+        "egemaps_func.csv": opensmile.Smile(feature_set=opensmile.FeatureSet.eGeMAPSv02, feature_level=opensmile.FeatureLevel.Functionals),
+        "egemaps_lld.csv": opensmile.Smile(feature_set=opensmile.FeatureSet.eGeMAPSv02, feature_level=opensmile.FeatureLevel.LowLevelDescriptors),
+    }
+    return smiles, build_disvoice_models()
+
+
+def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]], models=None):
     import librosa
     import numpy as np
     if not hasattr(np, "int"):
@@ -237,11 +264,10 @@ def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]])
     from disvoice.phonation import Phonation
     from disvoice.prosody import Prosody
     waveform, _ = librosa.load(str(row["audio_wav"]), sr=SAMPLE_RATE, mono=True)
-    smiles = {
-        "egemaps_func.csv": opensmile.Smile(feature_set=opensmile.FeatureSet.eGeMAPSv02, feature_level=opensmile.FeatureLevel.Functionals),
-        "egemaps_lld.csv": opensmile.Smile(feature_set=opensmile.FeatureSet.eGeMAPSv02, feature_level=opensmile.FeatureLevel.LowLevelDescriptors),
-    }
-    extractors = {"prosody": Prosody(), "phonation": Phonation(), "articulation": Articulation()}
+    if models is None:
+        smiles, extractors = build_descriptor_models()
+    else:
+        smiles, extractors = models
     rows = {name: [] for name in FILES}
     for turn_id, (start, end) in enumerate(turns, 1):
         chunk = waveform[int(start*SAMPLE_RATE):int(end*SAMPLE_RATE)].astype(np.float32)
