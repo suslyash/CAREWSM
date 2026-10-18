@@ -1,5 +1,8 @@
 # CAREWSM Research and Engineering Plan
 
+**LATEST STATUS — TASK-004 WHOLE-WSM-SEGMENT AUDIO RESET (OWNER OVERRIDE):** Discard the previous DiariZen/longest-speaker feature-extraction plan (TASK-003A/B/C/D/E artifacts and 517+ files are OBSOLETE for the intended WSM representation). Each supplied WSM VIDEO segment is one complete audio input; NO extra diarization; 11 CARE-schema AUDIO output families per video with single metadata turn 1 (0 → actual decoded audio duration). Owner authorized exact-scoped deletion of previous 11 owned audio files and stale turn sidecars only, AFTER existing `tmux` process and workers have stopped. Prepare simple all-TRAIN/DEV/TEST owner-run background extraction, full refresh and resume with a NEW runtime; Codex does not run corpus reset or bulk itself. Prior conflicting stage plans below are historical. Full video/text features belong to other teams, no tests, installs or training.
+
+
 Exact model families and missing-label methods remain **unfrozen** after TASK-001A. Audit findings must be translated into validated data/feature contracts before model implementation.
 
 ## Stage 0 — Repository bootstrap and legacy reset
