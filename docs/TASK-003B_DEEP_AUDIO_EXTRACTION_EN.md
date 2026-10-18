@@ -8,10 +8,12 @@ The offline implementation covers the four CARE-compatible WSM deep-audio famili
 CARE turn policy (longest detected speaker provisionally labelled participant,
 interviewer hard boundaries, maximum gap 3 seconds, minimum turn 0.3 seconds).
 
-No deep output was created in this bounded run. The three target directories had
-no local `diarizen_diarization.rttm`; the deep model stacks were also not fully
-provisioned locally. The script therefore returned explicit blocked statuses and
-did not create fake arrays, overwrite the 21 accepted CSVs, or trigger downloads.
+The locally cached XLS-R checkpoint was available. Three `wav2vec_xlsr300m.npz`
+files were created on CUDA for the same TRAIN records. DiariZen generated turns
+in temporary scratch space because no persistent local `diarizen_diarization.rttm`
+was present; no RTTM was retained. The TRILLsson and Emotion MSP families
+remained explicitly blocked because their package/model resources were absent.
+The run did not overwrite the 21 accepted CSVs or trigger downloads.
 
 Original CARE audio is unavailable. Numerical equality with historical CARE values
 remains UNVERIFIED and is not a blocker.
@@ -50,8 +52,9 @@ Observed without installation or download:
 - The targeted local Hugging Face Emotion MSP snapshot is absent.
 - No targeted XLS-R checkpoint was found in the inspected torch/cache paths.
 - No targeted TRILLsson SavedModel was found in the inspected cache paths.
-- The three canonical target directories contain the accepted seven CSVs; no
-  deep files or local DiariZen RTTM was present.
+- The three canonical target directories contain the accepted seven CSVs and,
+  after the bounded run, one valid XLS-R NPZ each; no persistent DiariZen RTTM
+  was present.
 
 The read-only CARE representative had exact shapes: XLS-R and TRILLsson
 `mean/std` `(1,1024)` float32 plus int64 `turn_ids`; Emotion MSP `embed`
@@ -145,3 +148,15 @@ Read-only validation of all 11 audio families is:
 
 No tests, training, bulk extraction, video/text work, package installation, or
 model download was run.
+
+## Bounded result
+
+| sample | turns | device | wall time | XLS-R bytes | status |
+|---|---:|---|---:|---:|---|
+| `DEPRESSION__DEPRESSION__-7UpRmNVJzQ__-7UpRmNVJzQ_001` | 2 | `cuda:0` | 2.583 s | 17,148 | created/validated |
+| `CONTROL__DEPRESSION__0efS0axfX0E__0efS0axfX0E_001` | 1 | `cuda:0` | 1.698 s | 8,948 | created/validated |
+| `PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_001` | 1 | `cuda:0` | 1.915 s | 8,948 | created/validated |
+
+Each NPZ has exact keys `mean`, `std`, `turn_ids`, float32 `(n_turns,1024)`
+arrays, int64 sequential turn IDs, and finite values. The three other families
+remain missing and therefore full 11-family validation is intentionally not PASS.

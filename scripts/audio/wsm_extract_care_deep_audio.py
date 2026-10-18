@@ -102,13 +102,41 @@ def participant_turns(segments: list[tuple[str, float, float]]) -> list[tuple[fl
     return [(a, b) for a, b in turns if b - a >= 0.3]
 
 
-def turns_for(row: dict) -> list[tuple[float, float]]:
+def turns_for(row: dict, args) -> list[tuple[float, float]]:
     rttm = row["destination"] / "diarizen_diarization.rttm"
-    if not rttm.is_file():
-        raise RuntimeError(f"missing local RTTM: {rttm}")
-    turns = participant_turns(parse_rttm(rttm))
+    if rttm.is_file():
+        turns = participant_turns(parse_rttm(rttm))
+    else:
+        if not args.weights or not args.embedding_weights:
+            raise RuntimeError(f"missing local RTTM: {rttm}; provide explicit local DiariZen weights for temporary turns")
+        if not args.weights.is_dir() or not args.embedding_weights.is_file():
+            raise RuntimeError("explicit local DiariZen weights or embedding file is missing")
+        missing = package_missing(("torch", "torchaudio", "diarizen"))
+        if missing:
+            raise RuntimeError(f"missing local DiariZen dependencies: {missing}")
+        import torch
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA unavailable; CPU DiariZen is prohibited")
+        from diarizen.pipelines.inference import DiariZenPipeline
+        scratch = Path(tempfile.mkdtemp(prefix=".deep-diarization-", dir=row["destination"]))
+        try:
+            wav = local_wav(row["video"], scratch)
+            pipeline = DiariZenPipeline(diarizen_hub=args.weights, embedding_model=str(args.embedding_weights), rttm_out_dir=None)
+            diarization = pipeline(str(wav))
+            segments = []; durations = {}
+            for segment, _, speaker in diarization.itertracks(yield_label=True):
+                start, end, label = float(segment.start), float(segment.end), str(speaker)
+                segments.append((label, start, end)); durations[label] = durations.get(label, 0.0) + max(0.0, end - start)
+            if not segments:
+                raise RuntimeError("DiariZen returned no speech segments")
+            ordered = sorted(durations, key=durations.get, reverse=True)
+            labels = {ordered[0]: "PARTICIPANT"}
+            labels.update({speaker: "INTERVIEWER" for speaker in ordered[1:]})
+            turns = participant_turns([(labels[speaker], start, end) for speaker, start, end in segments])
+        finally:
+            shutil.rmtree(scratch, ignore_errors=True)
     if not turns:
-        raise RuntimeError(f"no participant turns in {rttm}")
+        raise RuntimeError("no participant turns available")
     return turns
 
 
@@ -123,13 +151,14 @@ def validate_npz(path: Path, family: str, turn_count: int) -> dict:
         if turns.dtype != np.dtype("int64") or turns.shape != (turn_count,) or not np.array_equal(turns, np.arange(1, turn_count + 1, dtype=np.int64)):
             raise RuntimeError(f"{path.name}: invalid turn_ids shape/dtype/order")
         key = "embed" if family == "emotionmsp_embeds" else "mean"
+        shape = list(data[key].shape)
         for name in expected:
             value = data[name]
             if name != "turn_ids" and (value.dtype != np.dtype("float32") or value.shape != (turn_count, 1024)):
                 raise RuntimeError(f"{path.name}: invalid {name} dtype/shape {value.dtype}/{value.shape}")
             if not np.isfinite(value).all():
                 raise RuntimeError(f"{path.name}: nonfinite {name}")
-    return {"bytes": path.stat().st_size, "shape": list(data[key].shape), "turns": turn_count}
+    return {"bytes": path.stat().st_size, "shape": shape, "turns": turn_count}
 
 
 def validate_trajectories(path: Path, turns: list[tuple[float, float]]) -> dict:
@@ -305,6 +334,8 @@ def main() -> int:
     parser.add_argument("--trillsson-model", type=Path, help="local TensorFlow Hub trillsson4/1 SavedModel; never downloaded")
     parser.add_argument("--emotion-model", type=Path, help="local audeering Emotion MSP HF snapshot; never downloaded")
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--weights", type=Path, help="explicit local DiariZen snapshot; never downloaded")
+    parser.add_argument("--embedding-weights", type=Path, help="explicit local DiariZen embedding file; never downloaded")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     os.environ.update({"HF_HUB_OFFLINE": "1", "HF_DATASETS_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"})
@@ -319,7 +350,7 @@ def main() -> int:
     for row in selected:
         sample = {"sample_id": row["sample_id"], "destination": str(row["destination"]), "files": {}}
         try:
-            turns = turns_for(row)
+            turns = turns_for(row, args)
             sample["turn_count"] = len(turns)
         except Exception as exc:
             sample["blocker"] = {"type": "missing_local_rttm", "message": str(exc)}

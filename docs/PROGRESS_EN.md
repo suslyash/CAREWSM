@@ -129,7 +129,9 @@ uses canonical manifest-derived WSM destinations, stages on the destination
 filesystem, validates all outputs, and refuses clobbering. The bounded preflight
 selected the same DEPRESSION, CONTROL and PARKINSON TRAIN records. No deep files
 were written because local transformers/TensorFlow Hub/model assets and the local
-DiariZen RTTMs were unavailable; explicit per-family blockers were returned. No
-downloads, tests, training, non-audio work, or changes to the accepted 21 CSVs
-were made. Original CARE audio remains unavailable, so numerical equality is
+DiariZen RTTMs were unavailable; explicit per-family blockers were returned. The locally cached
+XLS-R checkpoint was then used for the same three records, creating and validating
+three `wav2vec_xlsr300m.npz` files on CUDA; DiariZen turns were temporary and no
+RTTM was retained. TRILLsson and Emotion MSP remain blocked. No downloads, tests,
+training, non-audio work, or changes to the accepted 21 CSVs were made. Original CARE audio remains unavailable, so numerical equality is
 UNVERIFIED rather than a blocker. Evidence: `docs/TASK-003B_DEEP_AUDIO_EXTRACTION_EN.md`.
