@@ -41,6 +41,8 @@ TASK-002B — **OWNER-APPROVED CORRECTION IN SAME BRANCH:** install required Dia
 
 **Latest TASK-002B owner correction:** Ubuntu reboot resolved NVIDIA driver/NVML mismatch. Cancel attempted CPU `torch==2.11.0+cpu`/`torchaudio==2.11.0+cpu` installation; preserve/recover verified matching CUDA-enabled PyTorch and torchaudio in the existing `.venv`, confirm `torch.cuda.is_available() == True` before bounded DiariZen GPU inference. CPU wheels, CPU fallback and additional environments are prohibited; `pyproject.toml` stays unchanged. Actual DiariZen results still pending.
 
+**Latest TASK-002B workflow:** Owner will install dependencies and download weights personally. Codex is restricted to preparing an exact verified shell-command handoff and an **unexecuted** `scripts/audio/cache_diarizen_weights.py` helper plus bounded gate code/report. Await owner's GPU/CUDA dependencies and model-cache outputs before manager authorizes any DiariZen inference; no Codex installations/downloads/inference in preparation phase. Existing `.venv` only; no CPU-only Torch.
+
 ## TASK-001B outcome
 
 Created the inactive `src/carewsm/` namespace, future `configs/carewsm/` root,
