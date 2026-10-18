@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. **TASK-003A accepted (PR #27 merged): 21 CARE-schema-compatible descriptor CSVs for 3 WSM TRAIN recordings (7 of 11 audio families). TASK-003B deep audio is NEXT (4 more).** Five video and three linguistic families are supplied by other teams for future fusion; no video/text extraction or training.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. **TASK-003A and TASK-003B bounded smokes accepted (PR #27, PR #30): 33 reported structurally valid audio CSV/NPZ outputs on 3 WSM TRAIN recordings, covering all 11 registered audio families. TASK-003C resumable TRAIN batch pilot is NEXT, up to 30 additional samples.** Five video and three linguistic families are supplied by other teams for future fusion; no video/text extraction or training.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-003B — extract four remaining CARE-compatible deep-audio outputs (XLS-R, TRILLsson, emotion MSP trajectories/embeddings) on the **same three WSM TRAIN clips** using only already-cached model assets; report owner-run download commands if missing. Task-003A 21-CSV smoke is accepted for schema/validity, not CARE numerical identity. No nonaudio extraction, test suite, training or bulk. See `docs/NEXT_TASK_EN.md`.
+TASK-003C — implement a resumable 11-audio-family WSM batch pipeline, reuse model loads/one DiariZen turn source per recording, owner-cached weights only, no-clobber, per-sample and per-family progress, and a new **at-most-30-TRAIN-row pilot**. Full TRAIN/DEV/TEST processing must be launched only after manager review via explicit owner commands. No nonaudio extraction, test suite or training. See `docs/NEXT_TASK_EN.md`.
 
 **Latest TASK-002B owner correction:** Ubuntu reboot resolved NVIDIA driver/NVML mismatch. Cancel attempted CPU `torch==2.11.0+cpu`/`torchaudio==2.11.0+cpu` installation; preserve/recover verified matching CUDA-enabled PyTorch and torchaudio in the existing `.venv`, confirm `torch.cuda.is_available() == True` before bounded DiariZen GPU inference. CPU wheels, CPU fallback and additional environments are prohibited; `pyproject.toml` stays unchanged. Actual DiariZen results still pending.
 
@@ -149,3 +149,8 @@ was retained. TRILLsson ran on CPU to avoid GPU memory contention, while XLS-R a
 Emotion MSP used CUDA. Existing 21 CSVs, raw data, transcripts and manifests
 were not changed. Numerical equality to historical CARE remains UNVERIFIED because
 CARE original audio is unavailable.
+
+
+## TASK-003B manager PASS / TASK-003C activated
+
+PR #30 merged: https://github.com/suslyash/CAREWSM/pull/30 ; merge SHA `595d4ebd871a36592e395320a4d5c982aee5a027`. According to implementer and read-only local validator evidence, three XLS-R NPZ, three TRILLsson NPZ, three Emotion MSP embeddings NPZ and three trajectories CSV were added for the same three original TRAIN clips. Alongside 21 accepted descriptor CSVs, this yields **33 validated audio outputs across 11 CARE-registered audio families** for three records. GitHub manager independently reviewed code, NPZ/CSV validator and docs but could not access actual local bytes. XLS-R/MSP used CUDA and TRILLsson CPU for compatibility; GPU DiariZen ran on scratch mono 16 kHz and retained no RTTM. CARE original media absent means numerical historical CARE equivalence UNVERIFIABLE; respondent identity provisional. The owner prioritizes quick complete WSM AUDIO extraction; TASK-003C authorizes an incremental pilot on **at most 30 further distinct TRAIN clips** and resumable full-split scripts, NOT a full corpus execution by Codex. Owner-only downloads; no tests, training or nonaudio extraction.
