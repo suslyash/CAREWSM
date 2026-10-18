@@ -1,5 +1,8 @@
 # CAREWSM Active Progress
 
+**LATEST OWNER CORRECTION — TASK-004:** Existing 11-family outputs created via DiariZen turn selection are now **obsolete and scheduled for exact-file deletion**. WSM source VIDEO media are already segmented; current intended output is 11 CARE-schema audio families per **whole VIDEO**, single `turn_id=1` with 0-to-decoded-duration metadata, without DiariZen or RTTM. The former 517+ output count and currently active TASK-003D production progress are **legacy evidence only, not accepted coverage for new TASK-004 segment-native features**. Owner must stop old `tmux` and all writers before any reset. TASK-004 authorizes code and bounded scratch TRAIN smoke in isolated worktree; owner later runs one reset-and-reextract all TRAIN/DEV/TEST command from new runtime, deleting only the 11 exact old audio files and old `_carewsm_audio_turns.json` in canonical manifest-mapped destinations; all other files preserved. Do not count new-mode progress until actual new outputs are generated and validated. No DiariZen downloads/inference, tests, training or other modalities.
+
+
 ## Project state
 
 Project: **CAREWSM**
