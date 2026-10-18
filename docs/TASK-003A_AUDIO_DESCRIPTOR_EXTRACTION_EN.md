@@ -64,11 +64,9 @@ python3 scripts/audio/validate_care_audio_parity.py \
   --split train --limit 3
 ```
 
-The validator found none of the seven target files at the corrected extracted destinations. The owner-installed environment contains `opensmile`, `disvoice`, `numpy`, `pandas`, `librosa`, `soundfile`, `torch`, `torchaudio`, `diarizen`, and `tqdm`. After the owner repaired the NumPy/Torch ABI (`numpy 1.26.4`, `torch 2.1.1+cu121`, `torchaudio 2.1.1+cu121`, CUDA available on an RTX 4080), the bounded smoke reached DiariZen successfully for all three selected records. DisVoice then blocked because the required `praat` executable is absent from `PATH`; no descriptor file was written and temporary audio artifacts were cleaned.
+The owner-installed environment contains `opensmile`, `disvoice`, `numpy`, `pandas`, `librosa`, `soundfile`, `torch`, `torchaudio`, `diarizen`, `tqdm`, Praat and Xvfb. The earlier NumPy/Torch and Praat blockers were resolved. The bounded smoke completed successfully through CUDA and headless Praat execution. All three selected TRAIN records produced all seven requested CSV families (21 files total) at the manifest-derived extracted destinations. DiariZen reported one detected speaker per record; participant labeling remains provisional longest-speaker relabeling. The run used a temporary `praat --run` wrapper to avoid Praat singleton IPC in headless execution; the extractor now creates that wrapper automatically. CARE headers, metadata order, widths, and numeric-value semantics matched the reference contract. Existing CARE files remained read-only.
 
-The owner then restored the two official Praat scripts and the bounded smoke completed successfully through an Xvfb display. All three selected TRAIN records produced all seven requested CSV families (21 files total) at the manifest-derived extracted destinations. DiariZen reported one detected speaker per record; participant labeling remains provisional longest-speaker relabeling. The run used a temporary `praat --run` wrapper to avoid Praat singleton IPC in headless execution; the extractor now creates that wrapper automatically. CARE headers, metadata order, widths, and numeric-value semantics matched the reference contract. Existing CARE files remained read-only.
-
-After the owner provisions the missing dependencies and the destination contract is resolved, the intended bounded command is:
+For provenance, the bounded command used for the already-created smoke outputs was:
 
 ```bash
 .venv-diarizen/bin/python scripts/audio/wsm_extract_care_descriptors.py \
@@ -78,7 +76,7 @@ After the owner provisions the missing dependencies and the destination contract
   --embedding-weights /media/maxim/Programs/ml_cache/huggingface/blobs/db/dbae20d3c4f8fc381db5d514a7d4069c87d09feba054c2b248f7333b073e08cd
 ```
 
-This command was run for the three authorized rows. It was blocked before descriptor output by the NumPy/Torch ABI error; temporary audio artifacts were cleaned.
+This command was run for the three authorized rows and completed with status `ok`. Existing valid outputs were not overwritten; temporary audio artifacts were cleaned.
 
 ## Owner-only dependency commands and traffic
 
@@ -88,11 +86,11 @@ No package download was initiated by Codex. The owner-installed descriptor packa
 .venv-diarizen/bin/python -m pip install --upgrade numpy==1.26.4 "setuptools<81"
 ```
 
-This is owner-executed only. Expected traffic is approximately 20 MB for the NumPy Linux wheel plus a small setuptools wheel and resolver metadata; owner approval is required. Official sources: [NumPy 1.26.4 on PyPI](https://pypi.org/project/numpy/1.26.4/) and [setuptools on PyPI](https://pypi.org/project/setuptools/). The pinned setuptools upper bound restores `pkg_resources`, which the installed DisVoice dependency imports.
+These repairs were owner-executed before the successful smoke. No package installation or model download was performed during this corrective review. Official sources: [NumPy 1.26.4 on PyPI](https://pypi.org/project/numpy/1.26.4/) and [setuptools on PyPI](https://pypi.org/project/setuptools/). The pinned setuptools upper bound restored `pkg_resources`, which the installed DisVoice dependency imports.
 
 Official sources: [openSMILE Python](https://audeering.github.io/opensmile/install.html) and [DisVoice](https://github.com/jcvasquezc/DisVoice). DisVoice also requires Praat to be installed and available on `PATH` according to its official instructions. The extractor preflights `praat` and the display environment. If Praat is absent, the owner must install it separately using the official Ubuntu/package source. In a headless SSH session, run the extractor under an owner-installed `xvfb-run` wrapper; no virtual-display package is downloaded by Codex. The installed DisVoice wheel must also contain `disvoice/praat/vuv_praat.praat` and `disvoice/praat/FormantsPraat.praat`; the extractor now reports a blocker when those resources are absent.
 
-Expected traffic: **unknown; owner approval required**. The openSMILE PyPI Linux wheel includes native binaries/configuration; the public PyPI listing shows a sub-megabyte Windows wheel but does not establish the Linux transfer size. DisVoice's package and transitive scientific dependencies, plus Praat, may add substantial traffic. Use the owner-controlled environment and inspect package metadata before accepting the install. Post-install verification:
+The dependency setup is complete for this bounded smoke. Future environment changes remain owner-executed under the repository bandwidth rule. Post-install verification:
 
 ```bash
 .venv-diarizen/bin/python - <<'PY'
@@ -122,4 +120,4 @@ files and archives remained read-only.
 
 ## Data integrity and limitations
 
-No CARE or WSM files were changed. No `extracted/` output was created, no transcript or existing feature was overwritten, and temporary artifacts from preflight were not retained. DiariZen respondent identity remains provisional and TASK-002C human listening is deferred; any eventual output must preserve that uncertainty in the extraction report. The seven descriptors are not all 11 audio families, and none of the eight nonaudio families are part of this team's extraction.
+CARE reference files, WSM manifests, raw media and transcripts were not changed. The authorized 21 WSM feature CSVs already existed before this corrective review and were audited read-only; no extraction was rerun and no feature was overwritten. Temporary audit artifacts were not retained. DiariZen respondent identity remains provisional and TASK-002C human listening is deferred; any eventual output must preserve that uncertainty in the extraction report. The seven descriptors are not all 11 audio families, and none of the eight nonaudio families are part of this team's extraction.

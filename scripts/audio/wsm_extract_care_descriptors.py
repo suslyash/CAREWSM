@@ -6,6 +6,7 @@ import argparse
 import csv
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import shlex
@@ -43,20 +44,32 @@ def numeric_width(headers: list[str], filename: str) -> int:
 def validate_existing(path: Path, expected: list[str]) -> bool:
     if not path.is_file() or path.stat().st_size == 0:
         return False
+    metadata = set(META_FRAME if "dynamic" in path.name or path.name == "egemaps_lld.csv" else META_TURN)
     with path.open(newline="", encoding="utf-8") as handle:
-        actual = next(csv.reader(handle))
-        if actual != expected:
+        reader = csv.DictReader(handle)
+        if reader.fieldnames != expected:
             raise RuntimeError(f"existing feature has invalid CARE header: {path}")
-        reader = csv.DictReader(handle, fieldnames=actual)
-        first = next(reader, None)
-    if first is None:
-        raise RuntimeError(f"existing feature is empty: {path}")
-    for column in expected:
-        if column not in META_TURN and column not in ("frame_start_sec", "frame_end_sec"):
-            try:
-                float(first[column])
-            except (TypeError, ValueError) as exc:
-                raise RuntimeError(f"existing feature has nonnumeric value: {path}:{column}") from exc
+        row_count = 0
+        for row_number, row in enumerate(reader, 2):
+            row_count += 1
+            if None in row:
+                raise RuntimeError(f"existing feature has extra columns: {path}:{row_number}")
+            for column in expected:
+                value = row.get(column)
+                if value is None or (value.strip() == "" and column in metadata):
+                    raise RuntimeError(f"existing feature has missing metadata: {path}:{row_number}:{column}")
+                if value.strip() == "":
+                    continue
+                try:
+                    number = float(value)
+                except ValueError as exc:
+                    raise RuntimeError(f"existing feature has nonnumeric value: {path}:{row_number}:{column}") from exc
+                if not math.isfinite(number):
+                    raise RuntimeError(f"existing feature has NaN/Inf: {path}:{row_number}:{column}")
+            if "turn_id" in metadata and float(row["turn_id"]) != int(float(row["turn_id"])):
+                raise RuntimeError(f"existing feature has noninteger turn_id: {path}:{row_number}")
+        if row_count == 0:
+            raise RuntimeError(f"existing feature is empty: {path}")
     return True
 
 
@@ -67,7 +80,9 @@ def atomic_csv(frame, destination: Path) -> None:
         temporary = Path(handle.name)
     try:
         frame.to_csv(temporary, index=False)
-        os.replace(temporary, destination)
+        if destination.exists():
+            raise FileExistsError(f"refusing to overwrite existing feature: {destination}")
+        os.link(temporary, destination)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -296,23 +311,23 @@ def main() -> int:
             result["status"] = "dry_run"; print(json.dumps(result, indent=2, sort_keys=True)); return 0
     except Exception as exc:
         result["blocker"] = {"type": "selection_or_schema_preflight", "message": str(exc)}
-        print(json.dumps(result, indent=2, sort_keys=True)); return 0
+        print(json.dumps(result, indent=2, sort_keys=True)); return 1
     missing = [name for name in ("numpy", "pandas", "librosa", "soundfile", "opensmile", "disvoice") if importlib.util.find_spec(name) is None]
     if missing:
         result["blocker"] = {"type": "missing_local_dependency", "packages": missing, "message": "No installation or download was attempted."}
-        print(json.dumps(result, indent=2, sort_keys=True)); return 0
+        print(json.dumps(result, indent=2, sort_keys=True)); return 1
     if shutil.which("praat") is None:
         result["blocker"] = {"type": "missing_external_dependency", "executable": "praat", "message": "DisVoice requires the Praat executable on PATH; no installation or download was attempted."}
-        print(json.dumps(result, indent=2, sort_keys=True)); return 0
+        print(json.dumps(result, indent=2, sort_keys=True)); return 1
     if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
         result["blocker"] = {"type": "missing_runtime_display", "message": "Praat is installed but this headless session has no DISPLAY; run under an existing display or xvfb-run."}
-        print(json.dumps(result, indent=2, sort_keys=True)); return 0
+        print(json.dumps(result, indent=2, sort_keys=True)); return 1
     disvoice_spec = importlib.util.find_spec("disvoice")
     disvoice_root = Path(disvoice_spec.origin).parent if disvoice_spec and disvoice_spec.origin else None
     missing_scripts = [] if disvoice_root is None else [str(disvoice_root / "praat" / name) for name in ("vuv_praat.praat", "FormantsPraat.praat") if not (disvoice_root / "praat" / name).is_file()]
     if missing_scripts:
         result["blocker"] = {"type": "missing_disvoice_resources", "paths": missing_scripts, "message": "Installed DisVoice code is missing its required Praat scripts; no download was attempted."}
-        print(json.dumps(result, indent=2, sort_keys=True)); return 0
+        print(json.dumps(result, indent=2, sort_keys=True)); return 1
     result["runs"] = []
     with tempfile.TemporaryDirectory(prefix="carewsm-task003a-") as scratch_name:
         scratch = Path(scratch_name)
@@ -333,7 +348,7 @@ def main() -> int:
     if result["runs"] and all(item["status"] == "ok" for item in result["runs"]):
         result["status"] = "ok"
     print(json.dumps(result, indent=2, sort_keys=True))
-    return 0
+    return 0 if result.get("status") == "ok" else 1
 
 if __name__ == "__main__":
     raise SystemExit(main())

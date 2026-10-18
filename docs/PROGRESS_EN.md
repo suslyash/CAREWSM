@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. Owner prioritizes **TASK-003A real CARE-compatible WSM AUDIO feature extraction**, targeting only **11 audio families** (7 descriptors, 4 deep audio). Five video and three linguistic families are produced by other teams; CAREWSM integrates their outputs later in multimodal models. No feature extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. Owner prioritizes **TASK-003A real CARE-compatible WSM AUDIO feature extraction**, targeting only **11 audio families** (7 descriptors, 4 deep audio). Five video and three linguistic families are produced by other teams; CAREWSM integrates their outputs later in multimodal models. Bounded TASK-003A feature extraction has completed for three TRAIN records; no training has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -99,6 +99,14 @@ truth. Manual owner confirmation is **pending**. No new media, downloads,
 installations, inference reruns, tests, extraction, training, or dataset writes
 were performed. Evidence: `docs/TASK-002C_SPEAKER_SANITY_EN.md`.
 
-## TASK-003A outcome
 
-TASK-003A corrected the standalone seven-family eGeMAPS/DisVoice extractor and read-only CARE audio parity validator, both under `scripts/audio/` and without ChimeraML. The deterministic three-TRAIN selection and manifest-field-derived `WSM_NEW/extracted/<label>/<subgroup>/PROFILE_<profile>/VIDEO_<video>` destinations were verified. The smoke reached local DiariZen but is **blocked by `torch 2.1.1` versus `numpy 2.2.6` ABI incompatibility** before descriptor output; no WSM feature files were written. CARE raw audio is absent from the available archives, so same-code numeric CARE extraction remains unrun; existing CARE CSV schema comparison is implemented. The four remaining audio families and all eight nonaudio families are outside this task. Evidence: `docs/TASK-003A_AUDIO_DESCRIPTOR_EXTRACTION_EN.md`.
+## TASK-003A first-pass manager review (corrective work required)
+
+Codex commit `f04678bfa34cfaee0db7948f090b64a6b895dd2e` prepared the seven-family extractor, audio-only validator and report but **wrote no WSM features**. The audited TRAIN manifest `feature_dir` values are legacy `*/train_labels/*/features/*` inputs/metadata, not the authorized canonical CARE-compatible `WSM_NEW/extracted/<STRATUM>/<SUBGROUP>/PROFILE_<id>/VIDEO_<segment>/` destination. Do **not** edit manifests or write into legacy `feature_dir`. Resolve target output mapping with checked manifest columns against existing transcripts and validate paths/collisions.
+
+Manager review found blocking code issues besides owner-uninstalled `opensmile` and `disvoice`: DisVoice file API must use `fmt='dataframe'`, numeric column headers must exactly match CARE rather than numbered placeholders, existing RTTM participant segments must apply CARE turn merging and interviewer boundaries, and all seven results need schema validation before same-filesystem atomic no-clobber output. Preserve `transcript.txt`, raw media, existing feature files and external-team modalities. First-pass **FAIL for merge / pending corrected smoke**, continue the **same task branch**; owner executes any new downloads. Task-003B deep-audio and the broader audio batch are not yet authorized.
+
+
+## TASK-003A corrective review outcome
+
+The bounded smoke was completed successfully for exactly three TRAIN records spanning DEPRESSION, CONTROL and PARKINSON. All seven requested eGeMAPS/DisVoice CSV families were written (21 files total) at the manifest-derived WSM extracted destinations. NumPy and Praat blockers were resolved by the owner; the headless runner now uses a temporary Praat `--run` wrapper. This evidence establishes successful bounded extraction and CARE-compatible schema checks only; it does **not** establish numerical equivalence of WSM feature values to CARE because CARE raw audio was unavailable for same-code re-extraction. Existing WSM outputs are now subject to read-only audit and no-overwrite protection.

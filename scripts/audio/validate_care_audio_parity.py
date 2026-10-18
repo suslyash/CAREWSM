@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 
 SEVEN = (
@@ -35,28 +36,49 @@ def reference_headers(care_root: Path, filename: str) -> list[str]:
         return next(csv.reader(handle))
 
 
-def validate_csv(path: Path, headers: list[str], max_rows: int = 100) -> dict:
-    with path.open(newline="", encoding="utf-8") as handle:
-        actual = next(csv.reader(handle))
-    if actual != headers:
-        return {"status": "fail", "reason": "header_mismatch", "actual_columns": len(actual), "expected_columns": len(headers)}
-    numeric = [column for column in headers if column not in META.get(path.name, ())]
-    bad = []
-    rows_checked = 0
+def validate_csv(path: Path, headers: list[str]) -> dict:
+    errors = []
+    blank_values = 0
+    nonfinite_values = 0
+    row_count = 0
+    metadata = set(META.get(path.name, ()))
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
-        for row in reader:
-            rows_checked += 1
-            for column in numeric:
+        if reader.fieldnames != headers:
+            return {"status": "fail", "reason": "header_mismatch", "actual_columns": len(reader.fieldnames or []), "expected_columns": len(headers)}
+        for row_number, row in enumerate(reader, 2):
+            row_count += 1
+            if None in row:
+                errors.append(f"row {row_number}: extra columns")
+            for column in headers:
+                value = row.get(column)
+                if value is None:
+                    errors.append(f"row {row_number}: missing {column}")
+                    continue
+                if value.strip() == "":
+                    if column in metadata:
+                        errors.append(f"row {row_number}: blank metadata {column}")
+                    else:
+                        blank_values += 1
+                    continue
                 try:
-                    float(row[column])
-                except (TypeError, ValueError):
-                    bad.append(column)
-            if rows_checked >= max_rows:
-                break
-    if bad:
-        return {"status": "fail", "reason": "non_numeric_feature_columns", "columns": sorted(set(bad))}
-    return {"status": "ok", "rows_checked": rows_checked, "columns": len(headers), "numeric_columns": len(numeric)}
+                    number = float(value)
+                except ValueError:
+                    errors.append(f"row {row_number}: nonnumeric {column}")
+                    continue
+                if not math.isfinite(number):
+                    nonfinite_values += 1
+                    errors.append(f"row {row_number}: nonfinite {column}")
+            if "turn_id" in metadata:
+                value = row.get("turn_id", "")
+                try:
+                    if value.strip() and float(value) != int(float(value)):
+                        errors.append(f"row {row_number}: noninteger turn_id")
+                except ValueError:
+                    pass
+    if row_count == 0:
+        errors.append("empty data rows")
+    return {"status": "ok" if not errors else "fail", "rows": row_count, "columns": len(headers), "numeric_columns": len(headers) - len(metadata), "blank_feature_values": blank_values, "nonfinite_values": nonfinite_values, **({"errors": errors[:20]} if errors else {})}
 
 
 def main() -> int:
@@ -79,7 +101,7 @@ def main() -> int:
             selected.append(row)
             used.add(row["sample_id"])
     rows = selected[:args.limit]
-    result = {"task": "TASK-003A", "mode": "read_only", "split": args.split, "families": list(SEVEN), "samples": []}
+    result = {"task": "TASK-003A", "mode": "read_only", "split": args.split, "families": list(SEVEN), "samples": [], "status": "ok", "errors": []}
     if args.all_audio:
         result["families"] += list(DEEP)
     for row in rows:
@@ -88,15 +110,24 @@ def main() -> int:
                 raise RuntimeError(f"manifest row missing output field: {field}")
         destination = (args.wsm_root / "extracted" / row["label_id"] / row["subgroup"] / f"PROFILE_{row['profile_id']}" / f"VIDEO_{row['video_id']}").resolve()
         sample = {"sample_id": row["sample_id"], "source_feature_dir_ignored": row["feature_dir"], "destination": str(destination), "files": {}}
+        root = args.wsm_root.resolve()
+        if root not in destination.parents:
+            result["errors"].append(f"destination escapes WSM root: {destination}")
         for filename in SEVEN:
             path = destination / filename
             headers = reference_headers(args.care_root, filename)
-            sample["files"][filename] = {"path": str(path), "exists": path.is_file()}
+            file_result = {"path": str(path), "exists": path.is_file(), "bytes": path.stat().st_size if path.is_file() else 0}
             if path.is_file():
-                sample["files"][filename]["validation"] = validate_csv(path, headers)
+                file_result["validation"] = validate_csv(path, headers)
+                if file_result["validation"]["status"] != "ok":
+                    result["errors"].append(f"{row['sample_id']}:{filename}")
+            else:
+                result["errors"].append(f"missing {row['sample_id']}:{filename}")
+            sample["files"][filename] = file_result
         result["samples"].append(sample)
+    result["status"] = "ok" if not result["errors"] else "fail"
     print(json.dumps(result, indent=2, sort_keys=True))
-    return 0
+    return 0 if result["status"] == "ok" else 1
 
 
 if __name__ == "__main__":
