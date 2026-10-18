@@ -33,18 +33,8 @@ META_FRAME = META_TURN + ["frame_start_sec", "frame_end_sec"]
 
 @contextmanager
 def safe_disvoice_temp_names():
-    """Give DisVoice and NamedTemporaryFile collision-free per-call names."""
-    previous = tempfile._get_candidate_names
-
-    def candidates():
-        while True:
-            yield "carewsm-" + uuid.uuid4().hex
-
-    tempfile._get_candidate_names = candidates
-    try:
-        yield
-    finally:
-        tempfile._get_candidate_names = previous
+    """Keep Python standard collision-safe tempfile allocation unchanged."""
+    yield
 
 
 def reference_headers(care_root: Path, filename: str) -> list[str]:
