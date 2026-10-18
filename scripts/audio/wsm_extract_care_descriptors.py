@@ -314,15 +314,13 @@ def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]],
     rows = {name: [] for name in FILES}
     normalize_disvoice_praat_paths()
     disvoice_root = scratch / "disvoice"
-    (disvoice_root / "tempfiles").mkdir(parents=True, exist_ok=True)
-    (scratch / "tempfiles").mkdir(parents=True, exist_ok=True)
     for name, extractor in extractors.items():
-        module_path = disvoice_root / name
+        module_path = disvoice_root / name / "impl"
         module_path.mkdir(parents=True, exist_ok=True)
         module = __import__(extractor.__class__.__module__, fromlist=["PATH"])
         module.PATH = str(module_path)
         if hasattr(extractor, "PATH"):
-            extractor.PATH = str(disvoice_root / name)
+            extractor.PATH = str(module_path)
     with safe_disvoice_temp_names():
         for turn_id, (start, end) in enumerate(turns, 1):
             chunk = waveform[int(start*SAMPLE_RATE):int(end*SAMPLE_RATE)].astype(np.float32)
