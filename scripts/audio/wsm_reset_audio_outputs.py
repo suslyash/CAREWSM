@@ -26,8 +26,9 @@ def old_job_running(runtime: Path) -> list[str]:
             blockers.append("tmux session carewsm-audio-prod still exists")
     except OSError:
         pass
+    ignored_pids = {os.getpid(), os.getppid()}
     for proc in Path("/proc").iterdir():
-        if not proc.name.isdigit():
+        if not proc.name.isdigit() or int(proc.name) in ignored_pids:
             continue
         try:
             command = (proc / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
