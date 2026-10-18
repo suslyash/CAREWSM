@@ -100,6 +100,8 @@ installations, inference reruns, tests, extraction, training, or dataset writes
 were performed. Evidence: `docs/TASK-002C_SPEAKER_SANITY_EN.md`.
 
 
+**Latest owner requirement — TASK-003A CARE numerical replay:** re-extract exactly the seven descriptor families using the same WSM-ready code on original CARE audio (up to three CARE TRAIN samples), with matching original CARE RTTM/turns, all outputs in temporary scratch outside both corpus roots, then compare each resulting CSV numerically to CARE's existing reference CSV. Existing WSM 21-file validation is schema-only, not proof that original CARE values can be reproduced. Earlier TASK-003A documentation reported that CARE raw media were absent from its available archive inventory; if this remains true, record a precise `blocked_missing_care_raw_audio` result rather than substituting audio. CARE and WSM existing data remain read-only; no downloads, training, TEST or tests. PR #27 remains Draft pending review.
+
 ## TASK-003A first-pass manager review (corrective work required)
 
 Codex commit `f04678bfa34cfaee0db7948f090b64a6b895dd2e` prepared the seven-family extractor, audio-only validator and report but **wrote no WSM features**. The audited TRAIN manifest `feature_dir` values are legacy `*/train_labels/*/features/*` inputs/metadata, not the authorized canonical CARE-compatible `WSM_NEW/extracted/<STRATUM>/<SUBGROUP>/PROFILE_<id>/VIDEO_<segment>/` destination. Do **not** edit manifests or write into legacy `feature_dir`. Resolve target output mapping with checked manifest columns against existing transcripts and validate paths/collisions.
