@@ -57,26 +57,18 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 - Removed obsolete direct WSM package dependencies from `pyproject.toml` including `mamba-ssm`; the remaining project direct dependency is `chimera-ml>=0.2.4`. Codex reports bounded dry-run and exact editable install PASS; independent manager verification covers Git content, not the implementer's local pip environment.
 - No tests, extraction, diarization, model loading, TEST evaluation, training or dataset writes.
 
-## Stage 2 — WSM feature extraction parity
+## Stage 2 — CARE-compatible WSM **audio feature extraction only**
 
-**Status: PRIORITY — TASK-003A actual CARE-compatible WSM feature extraction; TASK-002C owner listening DEFERRED.** Target all 19 registry families; begin real WSM TRAIN production on the seven eGeMAPS/DisVoice descriptor outputs with strict schema checks. See `docs/FEATURE_PARITY_TARGET_EN.md`.
+**Status: ACTIVE — TASK-003A bounded extraction of 7 CARE eGeMAPS/DisVoice families. Owner's latest scope: 11 audio families; zero video/text feature extraction by us.** See `docs/FEATURE_PARITY_TARGET_EN.md` for exact filenames, widths, keys and source limitations.
 
-- TASK-002A verified bounded WSM TRAIN media and CARE reference script/schema contracts (report in `docs/TASK-002A_WSM_AUDIO_PREFLIGHT_EN.md`), without extraction.
-- TASK-002A added `scripts/audio/wsm_audio_preflight.py` and evidence report, independently of ChimeraML. All future standalone audio preparation scripts remain under `scripts/audio/`.
-- NEXT TASK-002B manual-setup gate: Codex first drafts verified CUDA DiariZen dependency installation commands plus `scripts/audio/cache_diarizen_weights.py`, without executing any install/download or model inference. The owner executes setup/weight-caching commands directly in the existing `.venv`, shares results, and the manager then separately authorizes the bounded 3-file GPU runtime.
-- NEXT TASK-002B GPU correction: the NVIDIA driver/NVML mismatch was resolved by reboot; **use CUDA-enabled GPU `torch`/`torchaudio` in the existing project `.venv` only**, never CPU wheels or CPU inference, and check `torch.cuda.is_available()` after resolving wheel compatibility. Stop and report if GPU runtime remains blocked.
-- NEXT TASK-002B: **owner approved installation of all required DiariZen inference packages (including `tqdm`, `torchaudio`, compatible `torch`, other upstream dependencies) plus official weights download and caching** (use **only the existing CAREWSM `.venv`**, no new virtualenvs; install required packages there and verify compatible `torch`/`torchaudio`), then run at most three short WSM TRAIN recordings through the bounded mono-16 kHz diarization gate. Preserve original data, caches outside Git and datasets; report runtime/speaker-turn evidence, or exact unresolved setup blocker. The existing first-pass branch requires a real inference path before merge;
-- TASK-002B runtime gate accepted provisionally: three TRAIN files had inference-only RTF 0.023261–0.028673, 21–24 segments each, and one speaker per recording; voice identity not verified. The separate `.venv-diarizen` was required by dependency incompatibility and approved by the owner.
-- TASK-002C documentation was accepted and merged (PR #23); the owner connects by SSH and cannot listen now. Human participant-turn confirmation is DEFERRED rather than a blocker to engineering the extractor. Unverified speaker identity remains a documented scientific limitation.
-- Owner alone runs potentially large dependency/weight downloads after Codex provides verified commands, estimated transfer sizes and cache details; no hidden downloads or new environments without approval.
-- **TASK-003A NOW:** implement standalone `scripts/audio/wsm_extract_care_descriptors.py` for seven CARE eGeMAPS/DisVoice families, with manifest `video_path`/`feature_dir` mapping, provisional speaker/turn provenance, read-only CARE schema comparison and at most 3 genuine TRAIN outputs in WSM `extracted/`. Owner specifically authorizes this narrow feature-output write; no full run before manager acceptance.
-- **TASK-003B/003C/003D NEXT IN PARALLEL MODALITY SEQUENCE:** deep audio 4, video 5, linguistic 3 (when observed transcripts/weights available). Match exact registered files, shape/key semantics and producer logic; never fabricate missing features. See `docs/FEATURE_PARITY_TARGET_EN.md`.
-- **TASK-003E THEN:** resume batch extraction over fixed WSM TRAIN/DEV/TEST inputs, track per-family coverage/schema/status; TEST preprocessing does not read labels or metrics.
-- adapt CARE extraction logic for WSM outside Chimera ML;
-- run a small extraction smoke only after separate authorization, before full processing;
-- extract the full required feature family;
-- write CARE-compatible WSM feature files/layout;
-- validate coverage, schemas, fingerprints, and failures.
+- TASK-002A bounded media preflight accepted (PR #15). CARE references use 16 kHz mono and respondent-aligned turns; standalone extractors must live in `scripts/audio/`, not ChimeraML.
+- TASK-002B DiariZen bounded GPU feasibility accepted (PR #21): one speaker detected in each of three clips, inference-only RTF 0.023261–0.028673; respondent identity **unverified**. The owner accepted the exceptional `.venv-diarizen` because of dependency incompatibility.
+- TASK-002C playback/listening checklist accepted (PR #23) but **deferred** because the owner connects over SSH and cannot play the remote audio. This does not block clearly labeled provisional descriptor extraction.
+- **TASK-003A NOW:** implement `scripts/audio/wsm_extract_care_descriptors.py` for 7 CARE-compatible eGeMAPS/DisVoice outputs and `scripts/audio/validate_care_audio_parity.py`. Owner authorizes writing new feature files only for at most 3 TRAIN clips under the manifest-provided WSM `extracted/` path in this first smoke. Reuse the actual CARE extraction algorithms/schema and report unresolved participant alignment.
+- **TASK-003B NEXT:** four remaining CARE-registered **audio** outputs (XLS-R and TRILLsson turn embeddings, emotion MSP trajectories and embeddings) with exact source semantics. Models/dependencies can be obtained only through owner-executed commands with source/version/size estimates and approved caches.
+- **TASK-003C AUDIO BATCH:** after bounded manager PASS, resumably process all eligible fixed WSM TRAIN/DEV/TEST media for **only the 11 audio outputs**, preserving existing feature files, without reading TEST labels or changing split/fold assignments. Report per-audio-family coverage, errors, cache fingerprints and runtimes.
+- **Not our extraction scope:** other teams produce CARE-compatible video (five) and linguistic (three) features. We do not implement `scripts/video/` or `scripts/text/` extractors or acquire those model weights. Integration/masking of externally supplied features belongs to later multimodal modelling.
+- **Permanent owner traffic rule:** potentially large packages, GPU framework wheels and model weights are never downloaded by Codex. Codex gives exact commands, official sources, revisions, size estimates or unknown-size warnings and cache paths; the owner downloads personally.
 
 ## Stage 3 — Unified CAREWSM data layer
 
@@ -97,7 +89,7 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 ## Stage 5 — Multimodal baselines
 
-- choose non-audio modalities from the audited CARE inventory and reproducible WSM coverage;
+- integrate available **externally supplied** video/text feature artifacts from other teams (we do **not** extract them), with explicit provenance and compatible input schema;
 - build simple fusion baselines before specialized architectures;
 - preserve explicit missing-modality masks;
 - keep evaluation/selection policy unchanged.
