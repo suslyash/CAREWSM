@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. **TASK-003A/B accepted (PR #27/#30); TASK-003C first-pass pilot reports 37 additional complete TRAIN records (407 new audio files), with 7 VUV-blocked attempts; combined 40 complete records / 440 audio files. Cumulative 30-record limit was exceeded, so Draft PR #32 is on HOLD pending targeted correction.** Five video and three linguistic families are supplied by other teams for future fusion; no video/text extraction or training.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. **TASK-003A/B accepted (PR #27/#30); TASK-003C corrective accepted (PR #32): 46 complete WSM TRAIN records × 11 audio files = 506 validator-reported outputs; six of seven blocked attempts recovered, one VUV/Praat failure remains. TASK-003D owner-operated production release preparation is NEXT, Codex read-only TRAIN preflight only.** Five video and three linguistic families are supplied by other teams for future fusion; no video/text extraction or training.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-003C correction — no NEW recordings permitted. Preserve 40 complete TRAIN output dirs and 440 verified feature files. Fix task-wide limit and unstable resume `--offset`, diagnose Praat/DisVoice temporary-VUV failures, enforce cross-family NPZ/CSV/sidecar turn matching, and retry **only seven specified previously attempted blocked IDs** at most once after dry-run/guards; no DEV/TEST/bulk. Draft PR #32 remains manager-controlled. See `docs/NEXT_TASK_EN.md`.
+TASK-003D — prepare safe owner-executed full WSM AUDIO extraction mode and exact finite TRAIN chunk commands; no data writes/inference by Codex in this task, no DEV/TEST access, no downloads/tests/training. Existing 506 audio files remain intact; one Parkinson `PRAAT_EXIT 255` sample must be tracked as blocked, not silently retried. Full TRAIN production requires manager code review, then explicit owner execution. See `docs/NEXT_TASK_EN.md`.
 
 **Latest TASK-002B owner correction:** Ubuntu reboot resolved NVIDIA driver/NVML mismatch. Cancel attempted CPU `torch==2.11.0+cpu`/`torchaudio==2.11.0+cpu` installation; preserve/recover verified matching CUDA-enabled PyTorch and torchaudio in the existing `.venv`, confirm `torch.cuda.is_available() == True` before bounded DiariZen GPU inference. CPU wheels, CPU fallback and additional environments are prohibited; `pyproject.toml` stays unchanged. Actual DiariZen results still pending.
 
@@ -187,3 +187,8 @@ is 43 new complete records / 473 new files plus the previous 33 accepted files;
 the previous 440 files remain untouched. The retry receipt is marked one-time and
 prevents a second retry. No new records, DEV/TEST data, tests, training,
 downloads or installations were used.
+
+
+## TASK-003C final manager acceptance and TASK-003D
+
+PR #32 merged: https://github.com/suslyash/CAREWSM/pull/32 ; merge SHA `55dcb7b4b8688a97b5247b728ca3acae622fbdd3`. Corrected branch `codex/task-003c-audio-batch` contains immutable-order pagination, a fail-closed 30-record historical scope ledger, exact seven-ID one-time retry, NPZ/CSV/sidecar turn checks, one worker-local DiariZen pipeline, one-record scratch processing and Praat exit/stderr diagnostics. According to the implementer's remote audit, **46 WSM TRAIN recordings** have **11 valid audio files each** = **506 verified outputs** (43 new complete clips, 473 new files, plus the original three/33 files). Six of seven authorized retries completed without touching previous 440 files; **one** `PARKINSON__PARKINSON__-1N99QsfWRk__-1N99QsfWRk_003` remains `blocked_disvoice_vuv`, showing `PRAAT_EXIT 255` and missing `tempVUVprosody*.txt`. Retry permission is exhausted. Earlier cap violation remains documented. The manager independently reviewed source/report in GitHub but not local WSM files; status is **PASS for bounded/corrected implementation**, NOT full corpus feature coverage or proof of CARE numerical identity/participant identity. TASK-003D now prepares **owner-operated production** mode and finite TRAIN commands **without any Codex extraction or DEV/TEST access**. Owner-only model downloads, audio extraction scope, no tests/training still apply.
