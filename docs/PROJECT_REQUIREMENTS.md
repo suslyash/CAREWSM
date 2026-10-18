@@ -50,6 +50,10 @@ Before Chimera ML modelling, WSM must obtain CARE-compatible versions of all req
 
 Registered CARE features and representative schemas are documented in `docs/TASK-001A_CORPUS_FEATURE_REPO_AUDIT_EN.md` (19 registered families, including non-audio families). WSM has **0/19 CARE-registered feature filenames** across 8,433 audited manifest rows; 1,776 `transcript.txt` files are not equivalent to these registered features. The CARE `linguistic_turnlevel` registry declares `original_feature_dim=41` while the sampled CSV exposes 39 feature names/columns plus three metadata columns. This discrepancy is unresolved and **must not be silently normalized**. Loader behavior and across-sample schema variants remain unverified. No feature extraction is authorized by this document alone.
 
+## 4. User-controlled downloads and traffic
+
+For all subsequent stages, potentially large installs/downloads (notably CUDA/PyTorch wheels, feature extractors, model weights, datasets, caches and their transitive dependencies) are **owner-executed only**. Codex must present verified exact commands, official sources, package/model versions and revisions, expected size/uncertainty, cache paths and post-install verification **before** any such download. If size is unknown or the command can download recursively, explicitly flag the risk. No implicit `from_pretrained` or package-manager network fetch without specific owner approval. Existing cached weights should be reused. The owner-approved existing `.venv-diarizen` exception is permitted where the DiariZen stack genuinely conflicts with CAREWSM's primary `.venv`; Codex may not proliferate new environments by default. Routine local work and Git metadata fetch are unaffected.
+
 ## 4. DiariZen gate
 
 DiariZen is a small engineering gate, not an independent research programme.
