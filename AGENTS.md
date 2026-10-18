@@ -1,5 +1,8 @@
 # CAREWSM Codex Operating Contract
 
+**CRITICAL NEW OWNER OVERRIDE — TASK-004 (supersedes TASK-003E and all earlier DiariZen audio extraction):** WSM `VIDEO_xxx` files are ALREADY the intended segments. **NO DIARIZEN, NO speaker turns/RTTM/participant inference in current extraction**; reserve DiariZen for a future separate task. Take **the entire existing WSM VIDEO segment** as one audio unit, decode mono 16 kHz and produce **one CARE-schema pseudo-turn** `turn_id=1, start=0, end=actual decoded duration` for each of the 11 registered AUDIO families. The owner explicitly authorizes a **one-time exact-file scoped DELETE and full fresh regeneration of all OLD team-owned 11 audio outputs + their old `_carewsm_audio_turns.json`**, preserving raw videos, split/fold manifests, transcripts and external teams' video/linguistic artifacts. Owner's old `tmux` pipeline MUST be stopped and old writer exit confirmed before any destructive work. Codex develops code in an isolated worktree; it MUST NOT purge canonical WSM or start the bulk extraction itself. New independent task004 runtime, simple single-worker once-loaded XLS-R/TRILLsson/MSP models, one owner-executed background reset-and-run command, per-record resume; no DiariZen weights required or imported. No tests, downloads, training or nonaudio extraction. Read `docs/NEXT_TASK_EN.md` TASK-004 FIRST; prior historical instructions about DiariZen, old schema turn policies, retaining old 517+ feature files and TASK-003E debugging are SUPERSEDED.
+
+
 These rules apply to the whole repository. Codex is an implementer controlled by a manager agent.
 
 ## 1. Required reading
