@@ -98,3 +98,10 @@ respondent identifiability. The intervals are model-derived and not ground
 truth. Manual owner confirmation is **pending**. No new media, downloads,
 installations, inference reruns, tests, extraction, training, or dataset writes
 were performed. Evidence: `docs/TASK-002C_SPEAKER_SANITY_EN.md`.
+
+
+## TASK-003A first-pass manager review (corrective work required)
+
+Codex commit `f04678bfa34cfaee0db7948f090b64a6b895dd2e` prepared the seven-family extractor, audio-only validator and report but **wrote no WSM features**. The audited TRAIN manifest `feature_dir` values are legacy `*/train_labels/*/features/*` inputs/metadata, not the authorized canonical CARE-compatible `WSM_NEW/extracted/<STRATUM>/<SUBGROUP>/PROFILE_<id>/VIDEO_<segment>/` destination. Do **not** edit manifests or write into legacy `feature_dir`. Resolve target output mapping with checked manifest columns against existing transcripts and validate paths/collisions.
+
+Manager review found blocking code issues besides owner-uninstalled `opensmile` and `disvoice`: DisVoice file API must use `fmt='dataframe'`, numeric column headers must exactly match CARE rather than numbered placeholders, existing RTTM participant segments must apply CARE turn merging and interviewer boundaries, and all seven results need schema validation before same-filesystem atomic no-clobber output. Preserve `transcript.txt`, raw media, existing feature files and external-team modalities. First-pass **FAIL for merge / pending corrected smoke**, continue the **same task branch**; owner executes any new downloads. Task-003B deep-audio and the broader audio batch are not yet authorized.
