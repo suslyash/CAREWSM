@@ -59,7 +59,7 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 ## Stage 2 — WSM feature extraction parity
 
-**Status: ACTIVE — TASK-002A manager PASS/PR #15 merged; TASK-002B bounded DiariZen gate NEXT**
+**Status: PRIORITY — TASK-003A actual CARE-compatible WSM feature extraction; TASK-002C owner listening DEFERRED.** Target all 19 registry families; begin real WSM TRAIN production on the seven eGeMAPS/DisVoice descriptor outputs with strict schema checks. See `docs/FEATURE_PARITY_TARGET_EN.md`.
 
 - TASK-002A verified bounded WSM TRAIN media and CARE reference script/schema contracts (report in `docs/TASK-002A_WSM_AUDIO_PREFLIGHT_EN.md`), without extraction.
 - TASK-002A added `scripts/audio/wsm_audio_preflight.py` and evidence report, independently of ChimeraML. All future standalone audio preparation scripts remain under `scripts/audio/`.
@@ -67,8 +67,11 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 - NEXT TASK-002B GPU correction: the NVIDIA driver/NVML mismatch was resolved by reboot; **use CUDA-enabled GPU `torch`/`torchaudio` in the existing project `.venv` only**, never CPU wheels or CPU inference, and check `torch.cuda.is_available()` after resolving wheel compatibility. Stop and report if GPU runtime remains blocked.
 - NEXT TASK-002B: **owner approved installation of all required DiariZen inference packages (including `tqdm`, `torchaudio`, compatible `torch`, other upstream dependencies) plus official weights download and caching** (use **only the existing CAREWSM `.venv`**, no new virtualenvs; install required packages there and verify compatible `torch`/`torchaudio`), then run at most three short WSM TRAIN recordings through the bounded mono-16 kHz diarization gate. Preserve original data, caches outside Git and datasets; report runtime/speaker-turn evidence, or exact unresolved setup blocker. The existing first-pass branch requires a real inference path before merge;
 - TASK-002B runtime gate accepted provisionally: three TRAIN files had inference-only RTF 0.023261–0.028673, 21–24 segments each, and one speaker per recording; voice identity not verified. The separate `.venv-diarizen` was required by dependency incompatibility and approved by the owner.
-- NEXT TASK-002C: no-download, tiny TRAIN-only speaker-count plausibility check by owner-listenable excerpts and bounded DiariZen segment timestamps; no training/feature extraction. Manager/owner then chooses retain / narrow-optimize / drop diarization based on observations.
+- TASK-002C documentation was accepted and merged (PR #23); the owner connects by SSH and cannot listen now. Human participant-turn confirmation is DEFERRED rather than a blocker to engineering the extractor. Unverified speaker identity remains a documented scientific limitation.
 - Owner alone runs potentially large dependency/weight downloads after Codex provides verified commands, estimated transfer sizes and cache details; no hidden downloads or new environments without approval.
+- **TASK-003A NOW:** implement standalone `scripts/audio/wsm_extract_care_descriptors.py` for seven CARE eGeMAPS/DisVoice families, with manifest `video_path`/`feature_dir` mapping, provisional speaker/turn provenance, read-only CARE schema comparison and at most 3 genuine TRAIN outputs in WSM `extracted/`. Owner specifically authorizes this narrow feature-output write; no full run before manager acceptance.
+- **TASK-003B/003C/003D NEXT IN PARALLEL MODALITY SEQUENCE:** deep audio 4, video 5, linguistic 3 (when observed transcripts/weights available). Match exact registered files, shape/key semantics and producer logic; never fabricate missing features. See `docs/FEATURE_PARITY_TARGET_EN.md`.
+- **TASK-003E THEN:** resume batch extraction over fixed WSM TRAIN/DEV/TEST inputs, track per-family coverage/schema/status; TEST preprocessing does not read labels or metrics.
 - adapt CARE extraction logic for WSM outside Chimera ML;
 - run a small extraction smoke only after separate authorization, before full processing;
 - extract the full required feature family;

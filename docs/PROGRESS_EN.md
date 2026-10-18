@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; speaker identification remains unverified and TASK-002C speaker-turn plausibility review is NEXT. No feature extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B manager PASS for bounded GPU runtime (PR #21)**; TASK-002C playback checklist **accepted and deferred** due to SSH audio limitations. Owner prioritizes **TASK-003A real CARE-compatible WSM feature extraction**, targeting all 19 families via staged producers. No feature extraction or training has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,7 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-TASK-002C — bounded speaker-count plausibility and respondent/interviewer sanity on the same three WSM TRAIN files. No new downloads, feature extraction, tests, full-corpus jobs or training. See `docs/NEXT_TASK_EN.md`.
+TASK-003A — standalone WSM eGeMAPS and DisVoice extraction for the first 7 of 19 CARE-registered families, strict WSM `feature_dir` and CARE numeric schema/metadata compatibility, and at most 3 actual TRAIN smoke outputs under WSM `extracted/`. The owner authorized new WSM feature-output writes for this bounded smoke. `docs/NEXT_TASK_EN.md` and `docs/FEATURE_PARITY_TARGET_EN.md` are source of truth; other families follow immediately in TASK-003B/C/D, then batch TASK-003E.
 
 **Latest TASK-002B owner correction:** Ubuntu reboot resolved NVIDIA driver/NVML mismatch. Cancel attempted CPU `torch==2.11.0+cpu`/`torchaudio==2.11.0+cpu` installation; preserve/recover verified matching CUDA-enabled PyTorch and torchaudio in the existing `.venv`, confirm `torch.cuda.is_available() == True` before bounded DiariZen GPU inference. CPU wheels, CPU fallback and additional environments are prohibited; `pyproject.toml` stays unchanged. Actual DiariZen results still pending.
 
@@ -81,6 +81,10 @@ performed. Manager independently reviewed the code/report and accepted the prefl
 
 Owner-authorized local CUDA DiariZen runtime setup required a separate Python 3.10 `.venv-diarizen` because upstream packages conflicted with the CAREWSM `.venv`. The owner accepted this specific exception; both environments and downloaded weights remain untracked. According to the implementer's reported run, exactly three TRAIN clips spanning DEPRESSION, CONTROL and PARKINSON were converted to temporary 16 kHz mono WAV and processed with locally cached DiariZen weights on GPU: inference-only RTF 0.023261–0.028673, 21–24 diarized segments and exactly one speaker detected in each. Respondent-vs-interviewer labels remain **unverified**; output is runtime feasibility, not turn-quality validation or across-corpus parity. The WSM/CARE files were reported unchanged, scratch WAV/RTTM files cleaned, no TEST access, tests, feature extraction or training. Manager reviewed Git source/report but could not independently rerun the local data or GPU inference.
 
+
+**TASK-002C manager outcome:** PASS for the documented manual listening checklist, merged PR https://github.com/suslyash/CAREWSM/pull/23 ; merge SHA `9629135645c8f10745e3537ad006c83fb27d69bb`. The owner accesses this machine via SSH and cannot currently hear audio, so the human one-vs-multiple-speaker and respondent-identity checks are DEFERRED; none are claimed as verified. This limitation does not stop supervised, explicit provisional feature extraction; keep semantic parity qualified.
+
+**NEW extraction priority:** the owner requests as quickly as possible all **19 CARE registered features** across eligible WSM clips, respecting actual WSM `feature_dir` structure and CARE filename, columns, numerical meanings, NPZ keys and turn/aggregation policy. Task 003A immediately implements seven eGeMAPS/DisVoice families and produces an actual bounded TRAIN smoke under `WSM_NEW/extracted/`, with strict schema validation and idempotence; no large batch yet, no CARE, WSM raw or manifest writes. Deep audio (4), video (5) and linguistic (3) follow without unnecessary audits. Missing transcript/weights/uncertain diarization must remain explicit; do not fabricate data. New large downloads remain OWNER-executed only.
 
 **Manager outcome, TASK-002B:** PASS for bounded GPU feasibility, merged PR https://github.com/suslyash/CAREWSM/pull/21 ; SHA `6c5056bfe6b65424d386c1dfe0872b160e2433be`. Measured run results were documented by Codex; the manager verified committed source/report and preserved newer manager contracts during the merge, without independently rerunning external data. The three files all received one detected speaker, so DiariZen remains provisional pending qualitative speaker sanity. The owner approved a separate `.venv-diarizen` to resolve real Python/runtime incompatibilities. **Owner's permanent traffic rule:** Codex must supply commands, sources, versions and expected/unknown download sizes for any potentially large dependencies or weights; owner executes those downloads, not Codex.
 
