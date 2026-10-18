@@ -98,3 +98,7 @@ respondent identifiability. The intervals are model-derived and not ground
 truth. Manual owner confirmation is **pending**. No new media, downloads,
 installations, inference reruns, tests, extraction, training, or dataset writes
 were performed. Evidence: `docs/TASK-002C_SPEAKER_SANITY_EN.md`.
+
+## TASK-003A outcome
+
+TASK-003A prepared the standalone seven-family eGeMAPS/DisVoice extractor and read-only CARE audio parity validator, both under `scripts/audio/` and without ChimeraML. The deterministic three-TRAIN selection was verified. The actual feature smoke is **blocked pending owner dependency provisioning and manifest path-contract resolution**: `.venv-diarizen` lacks `opensmile` and `disvoice`, and the observed `train.csv` `feature_dir` values do not use the required `extracted/` prefix. No WSM feature files were written. The four remaining audio families and all eight nonaudio families are outside this task. Evidence: `docs/TASK-003A_AUDIO_DESCRIPTOR_EXTRACTION_EN.md`.
