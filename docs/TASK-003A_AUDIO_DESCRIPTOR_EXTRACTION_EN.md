@@ -64,7 +64,7 @@ python3 scripts/audio/validate_care_audio_parity.py \
   --split train --limit 3
 ```
 
-The validator found none of the seven target files at the corrected extracted destinations. The owner-installed environment contains `opensmile`, `disvoice`, `numpy`, `pandas`, `librosa`, `soundfile`, `torch`, `torchaudio`, `diarizen`, and `tqdm`. The smoke reached DiariZen, but `torch 2.1.1` cannot initialize against `numpy 2.2.6` and returned `Numpy is not available`; no descriptor file was written.
+The validator found none of the seven target files at the corrected extracted destinations. The owner-installed environment contains `opensmile`, `disvoice`, `numpy`, `pandas`, `librosa`, `soundfile`, `torch`, `torchaudio`, `diarizen`, and `tqdm`. After the owner repaired the NumPy/Torch ABI (`numpy 1.26.4`, `torch 2.1.1+cu121`, `torchaudio 2.1.1+cu121`, CUDA available on an RTX 4080), the bounded smoke reached DiariZen successfully for all three selected records. DisVoice then blocked because the required `praat` executable is absent from `PATH`; no descriptor file was written and temporary audio artifacts were cleaned.
 
 After the owner provisions the missing dependencies and the destination contract is resolved, the intended bounded command is:
 
@@ -88,7 +88,7 @@ No package download was initiated by Codex. The owner-installed descriptor packa
 
 This is owner-executed only. Expected traffic is approximately 20 MB for the NumPy Linux wheel plus a small setuptools wheel and resolver metadata; owner approval is required. Official sources: [NumPy 1.26.4 on PyPI](https://pypi.org/project/numpy/1.26.4/) and [setuptools on PyPI](https://pypi.org/project/setuptools/). The pinned setuptools upper bound restores `pkg_resources`, which the installed DisVoice dependency imports.
 
-Official sources: [openSMILE Python](https://audeering.github.io/opensmile/install.html) and [DisVoice](https://github.com/jcvasquezc/DisVoice). DisVoice also requires Praat to be installed and available on `PATH` according to its official instructions. If Praat is absent, the owner must install it separately using the official Ubuntu/package source.
+Official sources: [openSMILE Python](https://audeering.github.io/opensmile/install.html) and [DisVoice](https://github.com/jcvasquezc/DisVoice). DisVoice also requires Praat to be installed and available on `PATH` according to its official instructions. The extractor preflights `praat` and returns an explicit blocker if it is absent. If Praat is absent, the owner must install it separately using the official Ubuntu/package source.
 
 Expected traffic: **unknown; owner approval required**. The openSMILE PyPI Linux wheel includes native binaries/configuration; the public PyPI listing shows a sub-megabyte Windows wheel but does not establish the Linux transfer size. DisVoice's package and transitive scientific dependencies, plus Praat, may add substantial traffic. Use the owner-controlled environment and inspect package metadata before accepting the install. Post-install verification:
 

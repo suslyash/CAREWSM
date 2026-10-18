@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import time
@@ -286,6 +287,9 @@ def main() -> int:
     missing = [name for name in ("numpy", "pandas", "librosa", "soundfile", "opensmile", "disvoice") if importlib.util.find_spec(name) is None]
     if missing:
         result["blocker"] = {"type": "missing_local_dependency", "packages": missing, "message": "No installation or download was attempted."}
+        print(json.dumps(result, indent=2, sort_keys=True)); return 0
+    if shutil.which("praat") is None:
+        result["blocker"] = {"type": "missing_external_dependency", "executable": "praat", "message": "DisVoice requires the Praat executable on PATH; no installation or download was attempted."}
         print(json.dumps(result, indent=2, sort_keys=True)); return 0
     result["runs"] = []
     with tempfile.TemporaryDirectory(prefix="carewsm-task003a-") as scratch_name:
