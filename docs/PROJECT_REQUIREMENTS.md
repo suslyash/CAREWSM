@@ -21,6 +21,8 @@ Observed differences from the initial owner-provided expected file list:
 
 These are observations, not permission to change split, label or evaluation policy. Source: `docs/TASK-001A_CORPUS_FEATURE_REPO_AUDIT_EN.md`.
 
+**Current owner execution priority (TASK-003A onward):** extract all 19 CARE-registered feature families for eligible WSM recordings as soon as practical, preserving actual WSM `feature_dir` path structure *and* CARE exact file names, producers/numeric meanings, metadata/column order, NPZ keys/dtypes/dimensions, turn alignment and missingness. See `docs/FEATURE_PARITY_TARGET_EN.md` for all 19. First perform a genuine seven-family eGeMAPS/DisVoice extraction for at most **three TRAIN records**, which the owner now explicitly authorizes to write under `WSM_NEW/extracted/` only. Do not overwrite existing valid files, source transcripts or manifests. Subsequent multi-family/bulk writes must be released by separate task. Manual TASK-002C speaker listening is postponed due to SSH-only access; longest-speaker selection is provisional and cannot be reported as verified participant identity. Owner personally executes potentially large dependency/model downloads using Codex-provided commands/size estimates.
+
 ## 3. Feature parity
 
 CARE is the reference for feature naming, storage, file format, keys, shapes, dtypes, aggregation, and loader semantics.
