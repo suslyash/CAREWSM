@@ -76,6 +76,10 @@ By default:
 - Do not overwrite/delete existing extracted features without explicit approval.
 - Do not edit CARE reference features or extraction scripts in place unless the task authorizes the exact path. Prefer project-controlled adapted scripts for WSM extraction.
 
+## 6. Current owner priority — CARE-exact WSM feature extraction
+
+**TASK-003A owner authorization:** prioritize actual extraction of all 19 CARE-registered feature families for eligible WSM media, starting immediately with seven eGeMAPS/DisVoice descriptor outputs. For this initial task only, authorized WSM feature-output writes are restricted to at most **three deterministic TRAIN samples under `WSM_NEW/extracted/`**; do not touch raw videos, splits/folds/labels, transcripts or existing valid features. Follow actual manifest `video_path` and `feature_dir`, exact CARE producer parameterization, columns, metadata, numerical meaning and NPZ keys/shapes. Provisional DiariZen respondent selection must be marked unverified because TASK-002C owner playback is deferred (SSH access); do not block extractor work on remote audio playback. Future full 19-family batch extraction requires separately scoped manager task and a successful small smoke. All audio producer scripts under `scripts/audio/`, independent of ChimeraML, and keep permanently owner-executed potentially large downloads as specified above. The general corpus-write prohibition below is overridden ONLY for the explicitly authorized feature-output paths/limit of TASK-003A.
+
 ## 6. Intended task semantics
 
 Owner intent is two independent binary outputs: Depression and Parkinson. Unknown/unavailable labels are intended to be masked, never silently mapped to negative.
