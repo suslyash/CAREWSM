@@ -59,6 +59,8 @@ Audit accepted with explicit limitations (missing CARE loader, CARE `videos.csv`
 
 ## Stage 2 — CARE-compatible WSM **audio feature extraction only**
 
+**CURRENT STAGE — TASK-004A FULL-SEGMENT AUDIO RESET (HIGHEST OWNER PRIORITY):** The owner rejected using DiariZen at this stage. WSM `VIDEO_*` inputs already represent segments; the entire 16kHz mono audio of each clip is the extraction unit. Remove 11 old audio output filenames and stale DiariZen sidecars **ONLY** from WSM extracted directories after old production stops; preserve external modalities, transcripts and source datasets. Re-extract 11 families with one synthetic CARE-layout turn per clip and deliver a single owner-operated resumable background all-splits command. This overrides all historical DiariZen/timebase plans and prior audio-output preservation for the wrong-policy feature files. Only owner full run; Codex at most 3 TRAIN real smoke records, no tests or downloads.
+
 **Status: TASK-003C CORRECTIVE PASS (PR #32 merged): 46 complete TRAIN records × 11 audio = 506 files; one Parkinson VUV/Praat error remains. OWNER OVERRIDE TASK-003D: one tightly scoped correction+attempt of that exact sample, plus a robust single `tmux` owner-run launcher across all WSM TRAIN/DEV/TEST. Codex itself must NOT launch full corpus or read DEV/TEST before owner starts it.** See `docs/FEATURE_PARITY_TARGET_EN.md` for exact filenames, widths, keys and source limitations.
 
 - TASK-002A bounded media preflight accepted (PR #15). CARE references use 16 kHz mono and respondent-aligned turns; standalone extractors must live in `scripts/audio/`, not ChimeraML.
