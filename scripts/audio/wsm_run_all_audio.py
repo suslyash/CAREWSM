@@ -169,7 +169,11 @@ def deep_outputs(waveform, duration, models, missing: set[str], args):
     if "trillsson4_1.npz" in missing:
         model, tf = models["trill"]
         feats = model(tf.expand_dims(tf.convert_to_tensor(waveform, dtype=tf.float32), 0))["embedding"]
-        output["trillsson4_1.npz"] = {"mean": tf.reduce_mean(feats, axis=0).numpy().astype("float32"), "std": tf.math.reduce_std(feats, axis=0).numpy().astype("float32"), "turn_ids": np.array([1], dtype=np.int64)}
+        output["trillsson4_1.npz"] = {
+            "mean": np.expand_dims(tf.reduce_mean(feats, axis=0).numpy(), 0).astype("float32"),
+            "std": np.expand_dims(tf.math.reduce_std(feats, axis=0).numpy(), 0).astype("float32"),
+            "turn_ids": np.array([1], dtype=np.int64),
+        }
     if {"emotionmsp_embeds.npz", "emotionmsp_trajectories.csv"} & missing:
         processor, model, torch = models["emotion"]
         with torch.no_grad(): embed, trajectory = model(processor(waveform, sampling_rate=16000, return_tensors="pt")["input_values"].to(args.device))
