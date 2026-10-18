@@ -263,7 +263,9 @@ def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]],
     from disvoice.articulation import Articulation
     from disvoice.phonation import Phonation
     from disvoice.prosody import Prosody
-    waveform, _ = librosa.load(str(row["audio_wav"]), sr=SAMPLE_RATE, mono=True)
+    waveform = row.get("waveform")
+    if waveform is None:
+        waveform, _ = librosa.load(str(row["audio_wav"]), sr=SAMPLE_RATE, mono=True)
     if models is None:
         smiles, extractors = build_descriptor_models()
     else:
