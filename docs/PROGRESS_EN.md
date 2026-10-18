@@ -12,7 +12,7 @@ The previous WSM evidence/task history is intentionally excluded from the active
 
 Stage 1 — corpus, feature, and legacy-code audit.
 
-Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B bounded DiariZen feasibility gate completed pending manager review**. No feature extraction or training has run.
+Status: **TASK-001A ACCEPTED (PR #3)**, **TASK-001B ACCEPTED (PR #5)**, **TASK-001C ACCEPTED (PR #9)** and **TASK-001D ACCEPTED (PR #12)**. Stage 2: **TASK-002A manager PASS, PR #15 merged**; **TASK-002B GPU DiariZen gate completed pending manager review**. No feature extraction or training has run.
 
 No CAREWSM scientific experiment has been run.
 
@@ -37,7 +37,11 @@ TASK-001A — read-only corpus/feature/repository audit; manager **PASS**. Evide
 
 ## Next task
 
-Manager review of TASK-002B results, followed by an explicit decision to retain, narrow-optimize, or drop DiariZen before any extraction authorization.
+Manager review of TASK-002B DiariZen GPU feasibility evidence: inference on exactly 3 WSM TRAIN clips completed according to implementer report; respondent/interviewer identity unverified, no feature extraction authorized. See `docs/TASK-002B_DIARIZEN_GATE_EN.md`.
+
+**Latest TASK-002B owner correction:** Ubuntu reboot resolved NVIDIA driver/NVML mismatch. Cancel attempted CPU `torch==2.11.0+cpu`/`torchaudio==2.11.0+cpu` installation; preserve/recover verified matching CUDA-enabled PyTorch and torchaudio in the existing `.venv`, confirm `torch.cuda.is_available() == True` before bounded DiariZen GPU inference. CPU wheels, CPU fallback and additional environments are prohibited; `pyproject.toml` stays unchanged. Actual DiariZen results still pending.
+
+**Latest TASK-002B workflow:** Owner will install dependencies and download weights personally. Codex is restricted to preparing an exact verified shell-command handoff and an **unexecuted** `scripts/audio/cache_diarizen_weights.py` helper plus bounded gate code/report. Await owner's GPU/CUDA dependencies and model-cache outputs before manager authorizes any DiariZen inference; no Codex installations/downloads/inference in preparation phase. Existing `.venv` only; no CPU-only Torch.
 
 ## TASK-001B outcome
 
@@ -72,17 +76,7 @@ XLS-R/TRILLsson contracts are documented in
 extraction, DiariZen, training, evaluation, tests, and corpus writes were not
 performed. Manager independently reviewed the code/report and accepted the preflight; merged PR: https://github.com/suslyash/CAREWSM/pull/15 ; merge SHA `5f97a73fb4bf6f52fb7b7320d794df6a8134b061`. Local external data roots were not independently accessed by the manager. The five samples are all depression/CONTROL and do not demonstrate task-balanced coverage.
 
-## TASK-002B outcome
 
-The bounded local-only DiariZen gate **completed pending manager review**.
-Three existing TRAIN recordings were selected across DEPRESSION, CONTROL, and
-PARKINSON strata. Ephemeral 16 kHz stereo checks found no evidence of
-respondent/interviewer channel separation; ephemeral mono 16 kHz inputs then
-ran successfully through DiariZen using local weights. Runtime was 1.429725–
-2.495638 seconds for 61.463965–100.063965 seconds of audio, with RTF
-0.023261–0.028673. The runs produced 21–24 segments and one detected speaker
-per recording; longest-speaker coverage was 0.587987–0.871842 and respondent/
-interviewer sanity remained unverified. Temporary artifacts were cleaned,
-offline download guards were active, and CARE/WSM data were unchanged.
-Evidence: `docs/TASK-002B_DIARIZEN_GATE_EN.md` and
-`scripts/audio/wsm_diarizen_gate.py`. No tests, extraction, or training ran.
+## TASK-002B bounded GPU outcome (pending manager review)
+
+Owner-authorized local CUDA DiariZen runtime setup required a separate Python 3.10 `.venv-diarizen` because upstream packages conflicted with the CAREWSM `.venv`. The owner accepted this specific exception; both environments and downloaded weights remain untracked. According to the implementer's reported run, exactly three TRAIN clips spanning DEPRESSION, CONTROL and PARKINSON were converted to temporary 16 kHz mono WAV and processed with locally cached DiariZen weights on GPU: inference-only RTF 0.023261–0.028673, 21–24 diarized segments and exactly one speaker detected in each. Respondent-vs-interviewer labels remain **unverified**; output is runtime feasibility, not turn-quality validation or across-corpus parity. The WSM/CARE files were reported unchanged, scratch WAV/RTTM files cleaned, no TEST access, tests, feature extraction or training. Manager reviewed Git source/report but could not independently rerun the local data or GPU inference.
