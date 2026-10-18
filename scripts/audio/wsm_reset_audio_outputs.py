@@ -26,7 +26,15 @@ def old_job_running(runtime: Path) -> list[str]:
             blockers.append("tmux session carewsm-audio-prod still exists")
     except OSError:
         pass
-    ignored_pids = {os.getpid(), os.getppid()}
+    ignored_pids = {os.getpid()}
+    ancestor = os.getpid()
+    while ancestor > 1:
+        try:
+            fields = (Path("/proc") / str(ancestor) / "stat").read_text(encoding="utf-8").split()
+            ancestor = int(fields[3])
+        except (FileNotFoundError, PermissionError, ValueError, IndexError):
+            break
+        ignored_pids.add(ancestor)
     for proc in Path("/proc").iterdir():
         if not proc.name.isdigit() or int(proc.name) in ignored_pids:
             continue
