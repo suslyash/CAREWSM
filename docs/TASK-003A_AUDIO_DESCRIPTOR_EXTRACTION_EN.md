@@ -66,6 +66,8 @@ python3 scripts/audio/validate_care_audio_parity.py \
 
 The validator found none of the seven target files at the corrected extracted destinations. The owner-installed environment contains `opensmile`, `disvoice`, `numpy`, `pandas`, `librosa`, `soundfile`, `torch`, `torchaudio`, `diarizen`, and `tqdm`. After the owner repaired the NumPy/Torch ABI (`numpy 1.26.4`, `torch 2.1.1+cu121`, `torchaudio 2.1.1+cu121`, CUDA available on an RTX 4080), the bounded smoke reached DiariZen successfully for all three selected records. DisVoice then blocked because the required `praat` executable is absent from `PATH`; no descriptor file was written and temporary audio artifacts were cleaned.
 
+The owner then restored the two official Praat scripts and the bounded smoke completed successfully through an Xvfb display. All three selected TRAIN records produced all seven requested CSV families (21 files total) at the manifest-derived extracted destinations. DiariZen reported one detected speaker per record; participant labeling remains provisional longest-speaker relabeling. The run used a temporary `praat --run` wrapper to avoid Praat singleton IPC in headless execution; the extractor now creates that wrapper automatically. CARE headers, metadata order, widths, and numeric-value semantics matched the reference contract. Existing CARE files remained read-only.
+
 After the owner provisions the missing dependencies and the destination contract is resolved, the intended bounded command is:
 
 ```bash

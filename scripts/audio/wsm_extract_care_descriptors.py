@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -185,6 +186,16 @@ def create_turns(row: dict, scratch: Path, args) -> tuple[list[tuple[float, floa
     return participant_turns([(mapping[speaker], start, end) for speaker, start, end in segments]), {"source": "local DiariZen inference", "policy": "provisional longest detected speaker = PARTICIPANT", "speaker_count": len(durations)}
 
 
+def configure_headless_praat(scratch: Path) -> None:
+    praat = shutil.which("praat")
+    if praat is None:
+        raise RuntimeError("Praat executable is unavailable")
+    wrapper = scratch / "praat"
+    wrapper.write_text("#!/bin/sh\nexec " + shlex.quote(praat) + " --run \"" + chr(36) + "@\"\n", encoding="utf-8")
+    wrapper.chmod(0o700)
+    os.environ["PATH"] = f"{scratch}{os.pathsep}{os.environ.get('PATH', '')}"
+
+
 def exact_frame(frame, expected, filename):
     import pandas as pd
     actual = list(frame.columns)
@@ -202,6 +213,8 @@ def exact_frame(frame, expected, filename):
 def extract_row(row: dict, turns, scratch: Path, expected: dict[str, list[str]]):
     import librosa
     import numpy as np
+    if not hasattr(np, "int"):
+        np.int = int
     import opensmile
     import pandas as pd
     import soundfile as sf
@@ -303,6 +316,7 @@ def main() -> int:
     result["runs"] = []
     with tempfile.TemporaryDirectory(prefix="carewsm-task003a-") as scratch_name:
         scratch = Path(scratch_name)
+        configure_headless_praat(scratch)
         for row in rows:
             started = time.perf_counter()
             try:
