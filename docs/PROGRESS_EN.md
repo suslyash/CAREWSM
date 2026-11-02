@@ -2,40 +2,72 @@
 
 ## Current state
 
-The project has restarted around an audio-only research programme.
+The project has been restarted as an audio-only research programme.
 
-Current repository `main` at manager bootstrap start:
+Owner-reported state:
 
-`08e6cb5fc3d5e6bb737e796c7c13feff6e165c76`
+- 11 intended audio feature families have been extracted;
+- some sample/feature extractions failed;
+- coverage has not yet been validated;
+- Mantis temporal window embeddings have not yet been frozen as a derived representation contract;
+- no current CAREWSM model result is accepted as project evidence.
 
-The owner reports that all intended 11 audio feature families have been extracted, but some samples/features failed and coverage has not yet been validated.
+## Current methodology
 
-No feature file is accepted as usable until TASK-001 validates it.
+Targets:
 
-No CAREWSM audio model result is currently accepted as project evidence.
+- Depression binary head;
+- Parkinson binary head;
+- missing labels masked.
+
+Architecture:
+
+- common/shared representation;
+- task-specific feature layer per disease;
+- disease-specific binary head.
+
+Metrics:
+
+- F1;
+- weighted F1;
+- UAR;
+- weighted average recall.
+
+Loss study:
+
+- BCE;
+- weighted BCE;
+- Equal;
+- PCGrad;
+- CAGrad;
+- STCH;
+- PAGB;
+- single-task reference models.
+
+Temporal representation:
+
+- frozen Mantis embeddings;
+- 1.0 s windows;
+- 0.5 s hop;
+- sequence retained per video/block.
+
+Research protocols:
+
+- CARE within-corpus;
+- WSM within-corpus;
+- CARE -> WSM;
+- WSM -> CARE;
+- CARE + WSM;
+- D-Vlog external Depression;
+- YouTubePD external Parkinson;
+- small labeled target adaptation.
 
 ## Current stage
 
-Stage 0 — documentation and operating contract.
+Stage 1 — feature integrity and coverage audit.
 
-## Next stage
+## Next task
 
-TASK-001 — fast feature extraction integrity/coverage audit and deterministic filtering metadata.
+TASK-001 — fast audit of real extracted feature artifacts and deterministic filtering metadata.
 
-## Scientific direction
-
-Main emphasis: temporal modelling over extracted acoustic features.
-
-Three research model families:
-
-- TSCMamba-inspired;
-- MPTSNet-inspired;
-- MD-Former-inspired.
-
-A pooled MLP is a sanity baseline.
-
-Feature search uses a staged funnel rather than exhaustive subset enumeration.
-
-Optuna is reserved for the final winning model/feature combination.
-
-Multimodality is not active.
+No training or Mantis cache generation is authorized until manager review of TASK-001.

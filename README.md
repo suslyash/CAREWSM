@@ -1,25 +1,40 @@
 # CAREWSM
 
-CAREWSM is an audio-first research project for joint Depression and Parkinson recognition using extracted acoustic representations from CARE and WSM.
+CAREWSM is an audio-first research project for joint Depression and Parkinson recognition across CARE and WSM.
 
-The current phase is intentionally **audio-only**. Multimodal modelling is out of scope until the audio programme is completed and reviewed.
+The current programme is intentionally **audio-only**. Multimodal modelling is deferred.
 
-## Immediate goals
+## Corpora
 
-1. Audit all extracted audio feature families and build deterministic availability/filtering metadata.
+CARE: `/media/maxim/Databases/CARE/`
+
+WSM: `/media/maxim/Databases/WSM_NEW/`
+
+Both corpora are expected to use fixed `train/dev/test` partitions and five CV folds inside TRAIN, grouped by participant/profile. Codex must verify the live metadata before the training stack is frozen.
+
+## Current research programme
+
+1. Audit the 11 extracted audio feature families and create deterministic validity/filtering metadata.
 2. Build a clean Chimera-ML audio stack under `src/audio/`.
-3. Benchmark every feature family and carefully selected combinations.
-4. Compare three strong recent temporal classification architectures.
-5. Select the best feature/model combination using TRAIN CV and DEV.
-6. Tune only the winning configuration with Optuna.
-7. Evaluate TEST only as report-only evidence after model/config selection.
+3. Build leak-free Mantis window embeddings for each usable feature block.
+4. Benchmark single feature families and structured combinations.
+5. Compare three recent temporal architectures.
+6. Compare multitask loss/balancing strategies and single-task baselines.
+7. Run within-corpus, direct-transfer, joint-training, external-test and small-target-adaptation experiments.
+8. Tune only the winning configuration with Optuna.
+9. Report TEST only after model/configuration selection.
 
-## Data roots
+## Audio methodology
 
-- CARE: `/media/maxim/Databases/CARE/`
-- WSM: `/media/maxim/Databases/WSM_NEW/`
+The intended classifier has:
 
-Do not delete or overwrite extracted features during auditing. Filtering is represented by deterministic manifests/masks.
+`shared/common feature representation -> task-specific feature layer -> binary head`
+
+for Depression and Parkinson independently.
+
+Missing disease labels are masked and are never treated as negative labels.
+
+Mantis is a frozen time-series representation layer, not the final disease classifier. For every video and usable feature block, the intended derived representation is a time-ordered sequence of Mantis embeddings from 1.0-second windows with 0.5-second hop. Exact family-specific window construction is frozen only after the feature audit.
 
 ## Active documentation
 
@@ -27,12 +42,13 @@ Read in order:
 
 1. `docs/README.md`
 2. `docs/PROJECT_REQUIREMENTS.md`
-3. `docs/EXPERIMENT_PROTOCOL.md`
-4. `docs/MODEL_SHORTLIST.md`
-5. `docs/PLAN.md`
-6. `docs/PROGRESS_EN.md`
-7. `docs/NEXT_TASK_EN.md`
-8. `docs/MANAGER_CONTRACT.md`
-9. `AGENTS.md`
+3. `docs/METHOD.md`
+4. `docs/EXPERIMENT_PROTOCOL.md`
+5. `docs/MODEL_SHORTLIST.md`
+6. `docs/PLAN.md`
+7. `docs/PROGRESS_EN.md`
+8. `docs/NEXT_TASK_EN.md`
+9. `docs/MANAGER_CONTRACT.md`
+10. `AGENTS.md`
 
-Codex implements one manager-authored task at a time on a task branch. The manager independently reviews the branch/evidence and owns PR creation and merge.
+Codex executes one manager-authored atomic task on `codex/<task>`, pushes normally, and stops. The manager independently reviews the branch and evidence, then owns PR creation/merge.

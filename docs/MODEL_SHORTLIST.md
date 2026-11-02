@@ -1,83 +1,105 @@
-# CAREWSM Recent Temporal Model Shortlist
+# CAREWSM Temporal Model Shortlist
 
-The audio programme starts with three complementary 2025 time-series classification architectures. They are chosen because the project contains heterogeneous temporal acoustic descriptors and the owner explicitly wants temporal modelling.
+The project uses a frozen Mantis-family time-series encoder as a **derived feature representation** where the audited feature block has a defensible temporal axis.
 
-These are architectural references. CAREWSM implementations must be clean Chimera-ML adaptations to the audited feature contract, not unverifiable copies.
+Mantis itself is not counted as one of the three downstream disease-classifier families.
 
-## 1. TSCMamba-inspired model
+The exact Mantis checkpoint/version/layer/pooling is frozen in a dedicated post-audit task. Do not silently switch between Mantis variants.
 
-Paper: Md Atik Ahamed, Qiang Cheng, **TSCMamba: Mamba Meets Multi-View Learning for Time Series Classification**, Information Fusion 120 (2025), 103079.
+## 1. TSCMamba-inspired classifier
 
-DOI: https://doi.org/10.1016/j.inffus.2025.103079
+Reference:
 
-Why it fits:
+Md Atik Ahamed, Qiang Cheng, **TSCMamba: Mamba Meets Multi-View Learning for Time Series Classification**, Information Fusion 120 (2025), 103079.
 
-- direct multivariate time-series classification;
-- combines temporal and spectral views;
-- state-space/Mamba sequence modelling is attractive for long acoustic trajectories;
-- reported strong performance across 30 benchmark datasets.
+DOI:
 
-CAREWSM adaptation:
+https://doi.org/10.1016/j.inffus.2025.103079
 
-- family-specific input projection;
-- masked variable-length temporal sequence;
-- temporal + spectral view where the feature semantics support it;
-- masked pooling / classification into two binary disease heads;
-- static feature tokens enter only through an explicit adapter.
+Role:
 
-## 2. MPTSNet-inspired model
-
-Paper: Y. Mu, M. Shahzad, X. X. Zhu, **MPTSNet: Integrating Multiscale Periodic Local Patterns and Global Dependencies for Multivariate Time Series Classification**, AAAI 2025.
-
-Paper: https://ojs.aaai.org/index.php/AAAI/article/view/34155
-
-Why it fits:
-
-- direct MTSC architecture;
-- Fourier analysis identifies dominant periods;
-- multiscale periodic blocks combine CNN local pattern extraction with attention for global dependencies;
-- reported to outperform 21 advanced baselines on UEA MTSC benchmarks.
+- sequence classifier for native temporal features and Mantis window embeddings;
+- temporal/state-space inductive bias;
+- spectral view used only where meaningful for the audited representation.
 
 CAREWSM adaptation:
 
-- use only for truly temporal families;
-- robust masked/padded implementation;
-- family projection before periodic blocks;
-- standardized pooled representation for feature-family fusion.
+- explicit masks;
+- variable-length handling;
+- common trunk;
+- separate Depression/Parkinson feature layers and heads.
 
-## 3. MD-Former-inspired model
+## 2. MPTSNet-inspired classifier
 
-Paper: Y. Du et al., **MD-Former: Multiscale Dual Branch Transformer for Multivariate Time Series Classification**, Sensors 25(5), 1487 (2025).
+Reference:
 
-DOI: https://doi.org/10.3390/s25051487
+Y. Mu, M. Shahzad, X. X. Zhu, **MPTSNet: Integrating Multiscale Periodic Local Patterns and Global Dependencies for Multivariate Time Series Classification**, AAAI 2025.
 
-Why it fits:
+Paper:
 
-- direct MTSC;
-- explicitly models multiscale temporal and cross-channel relations;
-- Transformer branch gives a different inductive bias from Mamba and periodic CNN/attention.
+https://ojs.aaai.org/index.php/AAAI/article/view/34155
+
+Role:
+
+- multiscale periodic/local pattern alternative;
+- complementary inductive bias to Mamba;
+- useful for temporal descriptors and Mantis window sequences.
 
 CAREWSM adaptation:
 
-- temporal branch models time;
-- channel/family branch is adapted carefully because CAREWSM channels are acoustic descriptors, not arbitrary sensor axes;
-- masks are mandatory;
-- static families use separate tokens rather than fake repeated timelines.
+- mask-safe padded batching;
+- no assumption that every feature family has identical sampling rate;
+- family projection before temporal blocks;
+- task-specific output branches.
+
+## 3. MD-Former-inspired classifier
+
+Reference:
+
+Y. Du et al., **MD-Former: Multiscale Dual Branch Transformer for Multivariate Time Series Classification**, Sensors 25(5), 1487 (2025).
+
+DOI:
+
+https://doi.org/10.3390/s25051487
+
+Role:
+
+- Transformer-based comparison;
+- multiscale temporal and cross-channel modelling;
+- prevents the study from becoming only Mamba variants.
+
+CAREWSM adaptation:
+
+- masks mandatory;
+- audited feature channels only;
+- no fake repeated timeline for static vectors;
+- task-specific output branches.
+
+## Mantis representation reference
+
+Mantis is an open-source foundation model family for time-series classification/representation learning. The 2026 ICML publication describes frozen feature extraction and fine-tuning; later Mantis-family work also studies intermediate-layer representations and aggregation.
+
+Official implementation:
+
+https://github.com/vfeofanov/mantis
+
+The project must pin the exact checkpoint/version before feature derivation.
 
 ## Reference baseline
 
-A small pooled MLP is retained only to answer:
+A small pooled MLP/reference model is allowed to answer:
 
-“Does the temporal model outperform a simple aggregate representation?”
+“Does temporal modelling outperform a simple aggregate representation?”
 
-It is not a fourth SOTA candidate.
+It is not a fourth SOTA model.
 
 ## Replacement rule
 
-Do not replace these three major model families during routine implementation.
+Replacing a major model family requires manager review and owner approval.
 
-A replacement requires manager review and owner approval, ideally based on one of:
+Valid reasons include:
 
-- model cannot be adapted faithfully to variable-length acoustic features;
+- incompatible with audited representations;
 - unacceptable compute/runtime;
-- a clearly stronger 2025–2026 architecture with available methodological details/code and a better fit to the audited feature contract.
+- implementation cannot be reproduced faithfully;
+- a clearly stronger 2025–2026 architecture has become reproducibly available and materially better fits the project.

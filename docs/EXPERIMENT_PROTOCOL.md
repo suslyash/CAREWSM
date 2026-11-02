@@ -2,131 +2,227 @@
 
 ## Selection hierarchy
 
-TRAIN CV is used for development and hyperparameter/feature selection.
+TRAIN CV drives development, feature/model comparison and hyperparameter search.
 
-DEV is used to select the final feature combination and model configuration.
+DEV selects the final configuration.
 
-TEST is report-only and must not influence any development decision.
+TEST is report-only after selection.
 
-## Metrics
+External D-Vlog/YouTubePD are also report-only unless the owner explicitly defines a different development protocol.
 
-Pending owner override, the default primary score is:
+## Required metrics
 
-`mean_macro_f1 = mean(Depression macro-F1, Parkinson macro-F1)`
+Per task:
 
-computed only over observed labels for each task.
+- F1;
+- weighted F1;
+- UAR;
+- weighted average recall.
 
-Secondary metrics:
+Every table also includes:
 
-- per-task macro-F1;
-- AUROC;
-- AUPRC;
-- balanced accuracy;
-- sensitivity/specificity;
-- per-corpus metrics for CARE and WSM;
-- coverage/retained sample count.
+- number of evaluated samples;
+- number of observed labels;
+- feature coverage/retention;
+- corpus/domain.
 
-Threshold tuning, if used, must be based on TRAIN-CV/DEV only.
+The manager may define a scalar selection score after TASK-001/Stage-2 confirms label distributions. Until then, do not silently optimize a metric not specified by the owner.
 
-## Efficient experiment funnel
+## Stage A — fast integrity audit
 
-The project must explore many features without brute-forcing all `2^11 - 1` subsets.
+No model training.
 
-### Phase A — data/feature audit
+Freeze:
 
-No training.
+- exact 11-family operational registry;
+- schemas;
+- timestamps/temporal semantics;
+- validity statuses;
+- per-sample availability manifest;
+- coverage and filtering rules.
 
-Freeze exact feature registry, availability and filtering behavior.
+## Stage B — data layer and Mantis temporalization contract
 
-### Phase B — infrastructure + smoke
+Implement the Chimera-ML DataModule and leak-free preprocessing.
 
-Implement the Chimera data layer, pooled MLP sanity baseline and the three research models.
+Then freeze:
 
-Run tiny smoke tests only.
+- per-family native representation loader;
+- which feature families support 1.0 s / 0.5 s windowization;
+- exact Mantis checkpoint/version;
+- selected layer;
+- pooling rule;
+- scaler/PCA rules;
+- artifact schema and cache identity.
 
-### Phase C — single-family screen
+Run only small derivation/smoke checks before manager review.
 
-For every valid feature family:
+## Stage C — reference baselines
 
-- pooled MLP reference;
+Within CARE and WSM separately:
+
+- single-feature native baselines;
+- single-feature Mantis baselines where valid;
+- pooled/simple reference classifier.
+
+Purpose: detect broken representations and establish whether Mantis temporalization adds signal.
+
+## Stage D — three-model single-feature screen
+
+For each promoted representation:
+
 - TSCMamba-inspired;
 - MPTSNet-inspired;
 - MD-Former-inspired.
 
-Use a cheap standardized budget first. Promote only functioning/reasonable candidates to full 5-fold CV.
+Use a standardized cheap screening budget.
 
-This identifies whether temporal modelling actually helps each family.
+Promote candidates based on TRAIN CV consistency and runtime/coverage, not TEST.
 
-### Phase D — structured combinations
+## Stage E — structured feature groups
 
-Do not enumerate all subsets.
-
-Evaluate scientifically meaningful groups discovered from the audit, for example:
+Build scientifically meaningful blocks from observed schemas, for example:
 
 - handcrafted temporal;
-- handcrafted aggregated/static;
-- deep speech representations;
-- emotion-related;
-- all temporal;
+- handcrafted aggregated;
+- deep speech;
+- emotion;
+- Mantis-derived temporal;
 - temporal + complementary static;
-- all valid families.
+- all high-coverage families.
 
-Exact group membership is defined from TASK-001 schemas, not assumed here.
+Exact membership is defined after TASK-001.
 
-### Phase E — greedy combination search
+Avoid exhaustive `2^11 - 1` subset enumeration.
 
-On the best one or two model families:
+## Stage F — greedy combination search
 
-1. start from the strongest single/group feature set;
-2. add one candidate family at a time;
-3. keep additions that improve CV materially and consistently;
-4. stop when no addition helps or the configured evaluation budget is exhausted.
+On the strongest one/two model families:
 
-Record every rejected addition.
+1. start from strongest single/group representation;
+2. add one candidate family/block at a time;
+3. retain additions with stable CV improvement;
+4. record rejected additions;
+5. stop when additions cease to help or budget is exhausted.
 
-### Phase F — final architecture comparison
+Then re-evaluate the best few combinations on all three research models.
 
-Re-run the best few feature combinations on all three research models with full CV and multiple seeds as budget allows.
+## Stage G — loss / multitask study
 
-DEV chooses the final model/configuration.
+For the best representative configurations compare:
 
-### Phase G — Optuna
+- unweighted BCE;
+- weighted BCE;
+- Equal 0.5/0.5;
+- PCGrad;
+- CAGrad;
+- STCH;
+- PAGB;
+- Depression-only;
+- Parkinson-only.
 
-Only the winning model + feature combination enters Optuna.
+Class weights use known TRAIN labels only.
 
-Optuna objective uses TRAIN CV, never TEST.
+Loss-method comparison must not be confounded by changing feature sets unless the experiment explicitly studies an interaction.
 
-Search space must be narrow and architecture-aware rather than a broad blind sweep.
+## Stage H — within-corpus finalization
 
-### Phase H — final reporting
+Finalize CARE and WSM baselines separately using full TRAIN CV and DEV.
 
-Evaluate the DEV-selected checkpoint/configuration on TEST once and persist the result.
+Persist:
+
+- best feature combination;
+- native vs Mantis path;
+- model;
+- loss method;
+- preprocessing;
+- seed results.
+
+## Stage I — direct transfer
+
+Run:
+
+- CARE -> WSM;
+- WSM -> CARE.
+
+Rules:
+
+- train/select entirely on source TRAIN/CV/DEV;
+- freeze model and preprocessing;
+- do not refit scaler/PCA on target;
+- do not tune thresholds on target;
+- target metrics are report-only evidence.
+
+## Stage J — joint training
+
+Train CARE + WSM jointly.
+
+Evaluate separately on:
+
+- CARE;
+- WSM;
+- D-Vlog when available;
+- YouTubePD when available.
+
+The split/participant integrity of each source corpus must remain intact.
+
+## Stage K — small-target adaptation
+
+Starting from source-trained models, adapt on a pre-declared small labeled subset of target TRAIN.
+
+Before execution freeze:
+
+- subset fractions;
+- participant-level sampling;
+- seeds;
+- whether preprocessing can update;
+- which layers can update.
+
+Never adapt on DEV/TEST.
+
+## Stage L — Optuna
+
+Only the winning model + feature combination + loss family enters the primary Optuna study.
+
+Optuna objective uses TRAIN CV only.
+
+Search space must be narrow and architecture-aware.
+
+TEST/external metrics are forbidden from trial selection.
+
+## Stage M — final reporting
+
+Run the DEV-selected configuration on TEST and external sets.
 
 Report:
 
-- feature coverage;
-- CV;
-- DEV;
-- TEST;
-- per-task;
-- per-corpus;
+- within-corpus results;
+- direct transfer;
+- joint training;
+- adaptation;
+- external tests;
+- per-task metrics;
+- per-corpus metrics;
+- coverage;
 - seed variability;
-- parameter count/runtime where practical.
+- model/runtime/parameter footprint where practical.
 
-## Reproducibility
+## MLflow / reproducibility
 
-Every experiment config must explicitly name:
+Every run must record:
 
-- feature families;
-- availability policy;
-- model;
+- Git commit;
+- resolved config;
+- split/fold;
 - seed;
-- fold;
-- learning rate;
-- regularization;
-- batch size;
-- max epochs;
-- early stopping;
-- primary monitor.
-
-Use MLflow through Chimera-ML for experiment tracking.
+- corpus/protocol;
+- feature families;
+- native/Mantis path;
+- Mantis checkpoint/layer/pooling if used;
+- availability policy;
+- scaler/PCA artifact identity;
+- model;
+- loss/balancing method;
+- metrics;
+- checkpoint;
+- MLflow run ID.
