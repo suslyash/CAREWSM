@@ -1,0 +1,55 @@
+{
+  "feature_families": [
+    "egemaps_func",
+    "egemaps_lld",
+    "disvoice_prosody_static",
+    "disvoice_prosody_dynamic",
+    "disvoice_phonation_static",
+    "disvoice_phonation_dynamic",
+    "disvoice_articulation_static",
+    "wav2vec_xlsr300m",
+    "trillsson4_1",
+    "emotionmsp_trajectories",
+    "emotionmsp_embeds"
+  ],
+  "manifest": {
+    "bytes": 2994550,
+    "path": "/media/maxim/Programs/Projects/CAREWSM/reports/feature_audit/sample_feature_availability.csv",
+    "rows": 11400,
+    "sha256": "505d5f61ed917de081f8cec111c0bb2704ea5eaef6570e98a9c3d291cc8c7d9f"
+  },
+  "rows": 11400,
+  "runtime_sec": 137.99,
+  "split_notes": [
+    "CARE: missing splits/videos.csv",
+    "WSM: train.csv contains rows with split != train"
+  ],
+  "statuses": {
+    "CARE|disvoice_articulation_static|INVALID_DTYPE": 11,
+    "CARE|disvoice_articulation_static|VALID": 2020,
+    "CARE|disvoice_phonation_dynamic|VALID": 2031,
+    "CARE|disvoice_phonation_static|INVALID_DTYPE": 93,
+    "CARE|disvoice_phonation_static|VALID": 1938,
+    "CARE|disvoice_prosody_dynamic|INVALID_DTYPE": 27,
+    "CARE|disvoice_prosody_dynamic|VALID": 2004,
+    "CARE|disvoice_prosody_static|INVALID_DTYPE": 1096,
+    "CARE|disvoice_prosody_static|VALID": 935,
+    "CARE|egemaps_func|VALID": 2031,
+    "CARE|egemaps_lld|VALID": 2031,
+    "CARE|emotionmsp_embeds|UNREADABLE": 2031,
+    "CARE|emotionmsp_trajectories|VALID": 2031,
+    "CARE|trillsson4_1|UNREADABLE": 2031,
+    "CARE|wav2vec_xlsr300m|UNREADABLE": 2031,
+    "WSM|disvoice_articulation_static|MISSING": 9369,
+    "WSM|disvoice_phonation_dynamic|MISSING": 9369,
+    "WSM|disvoice_phonation_static|MISSING": 9369,
+    "WSM|disvoice_prosody_dynamic|MISSING": 9369,
+    "WSM|disvoice_prosody_static|MISSING": 9369,
+    "WSM|egemaps_func|MISSING": 9369,
+    "WSM|egemaps_lld|MISSING": 9369,
+    "WSM|emotionmsp_embeds|MISSING": 9369,
+    "WSM|emotionmsp_trajectories|MISSING": 9369,
+    "WSM|trillsson4_1|MISSING": 9369,
+    "WSM|wav2vec_xlsr300m|MISSING": 9369
+  }
+}
