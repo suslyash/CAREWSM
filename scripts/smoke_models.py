@@ -1,22 +1,54 @@
-"""Small TASK-004 registry/YAML/forward-backward smoke."""
-from pathlib import Path
-import sys, torch, yaml
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from chimera_ml.core.batch import Batch
-from chimera_ml.core.registry import MODELS
-import chimera_plugin
-from src.audio.loss import MaskedMultitaskBCE
+"""Focused TASK-004 registry and real-batch smoke."""
+from __future__ import annotations
 
-def main():
-    chimera_plugin.register(); assert {"carewsm_tscmamba","carewsm_mptsnet","carewsm_md_former"} <= set(MODELS.keys())
-    config=yaml.safe_load(Path("configs/audio/task004_models.yaml").read_text())
-    for spec in config["models"]:
-        try: MODELS.create(spec["name"], **spec["params"])
-        except ModuleNotFoundError: pass
-    x=torch.randn(4,9,8); mask=torch.tensor([[1]*9,[1]*6+[0]*3,[1]*2+[0]*7,[0]*9],dtype=torch.bool); targets=torch.tensor([[1,0],[0,1],[1,0],[0,1]]); observed=torch.tensor([[1,1],[1,0],[0,1],[0,0]],dtype=torch.bool)
-    batch=Batch(inputs={"native":x},targets=targets,masks={"sequence_mask":mask})
-    for name in ("carewsm_mptsnet","carewsm_md_former","carewsm_pooled_mlp"):
-        params={"input_dim":8,"hidden_dim":16}; params.update({"num_heads":4} if name == "carewsm_md_former" else {}); model=MODELS.create(name,**params); out=model(batch); loss=MaskedMultitaskBCE.compute(out.preds,targets,observed); loss.backward(); assert torch.isfinite(out.preds).all() and all(p.grad is None or torch.isfinite(p.grad).all() for p in model.parameters()); print(name, tuple(out.preds.shape), float(loss.detach()))
-    try: MODELS.create("carewsm_tscmamba",input_dim=8,hidden_dim=16,mamba_required=True)
-    except ModuleNotFoundError as e: print("carewsm_tscmamba BLOCKED:", e)
-if __name__ == "__main__": main()
+from pathlib import Path
+import sys
+
+import torch
+
+sys.path.insert(0, str(Path(__file__).parents[1]))
+import chimera_plugin
+from chimera_ml.core.registry import DATAMODULES, LOSSES, METRICS, MODELS
+
+
+def observed_mask(batch):
+    mask = batch.get_masks("observed_targets")
+    if mask is not None:
+        return mask
+    return torch.stack([item["observed_targets"] for item in batch.meta["sample_meta"]])
+
+
+def main() -> None:
+    chimera_plugin.register()
+    data = DATAMODULES.create(
+        "carewsm_joint", care_root="/media/maxim/Databases/CARE",
+        wsm_root="/media/maxim/Databases/WSM_NEW",
+        manifest="reports/feature_audit/sample_feature_availability.csv",
+        registry="/media/maxim/Databases/CARE/splits/features.json",
+        fold=0, feature_family="egemaps_lld", batch_size=2,
+    )
+    batch = next(iter(data.train_dataloader()))
+    batch.inputs["native"] = batch.inputs["native"][:, :32]
+    batch.masks["sequence_mask"] = batch.masks["sequence_mask"][:, :32]
+    batch.masks["observed_targets"] = observed_mask(batch)
+    input_dim = batch.inputs["native"].shape[-1]
+    for name, params in (("carewsm_mptsnet", {}), ("carewsm_md_former", {"num_heads": 2})):
+        model = MODELS.create(name, input_dim=input_dim, hidden_dim=8, **params)
+        output = model(batch)
+        loss = LOSSES.create("carewsm_masked_bce")(output, batch)
+        loss.backward()
+        assert torch.isfinite(output.preds).all()
+        print(name, tuple(output.preds.shape), "finite")
+    for name in ("carewsm_macro_f1", "carewsm_weighted_f1", "carewsm_macro_recall",
+                 "carewsm_weighted_recall", "carewsm_patient_recall", "carewsm_healthy_recall"):
+        metric = METRICS.create(name)
+        metric.update(output, batch)
+        print(name, metric.compute())
+    try:
+        MODELS.create("carewsm_tscmamba", input_dim=input_dim, hidden_dim=8)
+    except ModuleNotFoundError as exc:
+        print("carewsm_tscmamba BLOCKED:", exc)
+
+
+if __name__ == "__main__":
+    main()

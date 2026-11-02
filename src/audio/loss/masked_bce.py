@@ -19,8 +19,12 @@ class MaskedMultitaskBCE(BaseLoss):
         observed = batch.get_masks("observed_targets")
         if observed is None:
             observed = batch.inputs.get("observed_targets")
+        if observed is None and batch.meta is not None:
+            observed = batch.meta.get("observed_targets")
+            if observed is None and "sample_meta" in batch.meta:
+                observed = torch.stack([item["observed_targets"] for item in batch.meta["sample_meta"]])
         if observed is None:
-            observed = batch.meta["observed_targets"]
+            raise ValueError("Batch does not contain observed-label masks")
         return self.compute(output.preds, batch.targets, observed)
 
     @staticmethod

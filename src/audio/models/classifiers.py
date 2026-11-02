@@ -104,11 +104,7 @@ class MPTSNetClassifier(SequenceClassifier):
     def __init__(self, input_dim: int, hidden_dim: int = 96,
                  dropout: float = 0.1) -> None:
         super().__init__(input_dim, hidden_dim, dropout)
-        self.period_projection = nn.Linear(hidden_dim, hidden_dim)
-        self.local_blocks = nn.ModuleList(
-            [nn.Conv1d(hidden_dim, hidden_dim, kernel_size=size, padding=size // 2)
-             for size in (3, 5, 7)]
-        )
+        self.periodic_block = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
         self.global_block = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
         self.fusion = nn.Linear(hidden_dim * 4, hidden_dim)
 
@@ -120,12 +116,15 @@ class MPTSNetClassifier(SequenceClassifier):
             period = int(power.argmax(dim=1).median().clamp_min(1).item())
         else:
             period = 1
-        periodic = torch.roll(valid, shifts=max(1, valid.shape[1] // period), dims=1)
-        local_views = [F.gelu(block(valid.transpose(1, 2)).transpose(1, 2))
-                       for block in self.local_blocks]
+        length = valid.shape[1]
+        pad = (-length) % period
+        folded = F.pad(valid, (0, 0, 0, pad)).reshape(
+            valid.shape[0], (length + pad) // period, period, valid.shape[2]
+        ).permute(0, 3, 1, 2)
+        periodic = F.gelu(self.periodic_block(folded))
+        periodic = periodic.permute(0, 2, 3, 1).reshape(valid.shape[0], -1, valid.shape[2])[:, :length]
         global_view, _ = self.global_block(valid)
-        local_view = torch.stack(local_views, dim=0).mean(dim=0)
-        return self.fusion(torch.cat((valid, periodic, local_view, global_view), dim=-1))
+        return self.fusion(torch.cat((valid, periodic, periodic, global_view), dim=-1))
 
 
 class MDFormerClassifier(SequenceClassifier):
@@ -151,7 +150,7 @@ class MDFormerClassifier(SequenceClassifier):
         safe_mask = mask.clone()
         safe_mask[:, 0] = True
         temporal = self.temporal_branch(values, src_key_padding_mask=~safe_mask)
-        channel_input = values.mean(dim=1, keepdim=False).unsqueeze(-1)
+        channel_input = _masked_mean(values, mask).unsqueeze(-1)
         channel = self.channel_branch(self.channel_projection(channel_input))
         channel = channel.mean(dim=1, keepdim=True).expand(-1, values.shape[1], -1)
         return self.fusion(torch.cat((temporal, channel), dim=-1))
