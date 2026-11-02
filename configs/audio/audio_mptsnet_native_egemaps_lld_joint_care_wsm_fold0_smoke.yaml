@@ -45,8 +45,8 @@ callbacks:
     params:
       log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
-      monitor: joint/loss
-      mode: min
+      monitor: joint/average_macro_f1
+      mode: max
       save_top_k: 1
       save_last: true
   - name: snapshot_callback
@@ -60,8 +60,8 @@ callbacks:
       filename: summary.txt
   - name: early_stopping_callback
     params:
-      monitor: joint/loss
-      mode: min
+      monitor: joint/average_macro_f1
+      mode: max
       patience: 1
       min_delta: 0.0
 logging:
@@ -70,7 +70,7 @@ logging:
       log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       log_file: train.log
       console_level: INFO
-      file_level: INFO
+      file_level: WARNING
   - name: mlflow_logger
     params:
       tracking_uri: sqlite:///logs/mlflow.db

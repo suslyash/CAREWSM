@@ -33,7 +33,7 @@ expected = {
     "trillsson4_1": ("trillsson4_1", 1024, True), "emotionmsp_trajectories": ("emotionmsp_trajectories", 3, True), "emotionmsp_embeds": ("emotionmsp_embeds", 1024, True),
 }
 models = {"mptsnet": "carewsm_mptsnet", "mdformer": "carewsm_md_former", "mlp": "carewsm_pooled_mlp"}
-callbacks = {"carewsm_val_checkpoint_callback", "snapshot_callback", "carewsm_summary_callback", "carewsm_val_early_stopping_callback"}
+callbacks = {"checkpoint_callback", "snapshot_callback", "carewsm_summary_callback", "early_stopping_callback"}
 for raw_path in sys.argv[1:]:
     path = Path(raw_path); match = re.fullmatch(r"(.+)/(mptsnet|mdformer|mlp)_fold([0-4])\.yaml", str(path))
     if match is None: raise SystemExit(f"Invalid config filename: {path}")
@@ -50,9 +50,9 @@ for raw_path in sys.argv[1:]:
     if config.get("train", {}).get("params", {}).get("device") != "cuda": raise SystemExit(f"{path}: device is not CUDA")
     callback_map = {item.get("name"): item.get("params", {}) for item in config.get("callbacks", [])}
     if set(callback_map) != callbacks: raise SystemExit(f"{path}: callback set mismatch")
-    for name in ("carewsm_val_checkpoint_callback", "carewsm_val_early_stopping_callback"):
+    for name in ("checkpoint_callback", "early_stopping_callback"):
         if callback_map[name].get("monitor") != "joint/average_macro_f1" or callback_map[name].get("mode") != "max": raise SystemExit(f"{path}: invalid VAL monitor")
-    if callback_map["carewsm_val_checkpoint_callback"].get("save_top_k") != 1: raise SystemExit(f"{path}: checkpoint selection is not best-only")
+    if callback_map["checkpoint_callback"].get("save_top_k") != 1: raise SystemExit(f"{path}: checkpoint selection is not best-only")
     if {item.get("name") for item in config.get("logging", [])} != {"console_file_logger", "mlflow_logger"}: raise SystemExit(f"{path}: logger set mismatch")
     label = "STATIC_INPUT / TEMPORAL_INTERPRETATION_LIMITED" if is_static else "SEQUENCE_INPUT"
     print(f"OK {path}: fold={fold_text} model={model} family={family} dim={dimension} {label}")

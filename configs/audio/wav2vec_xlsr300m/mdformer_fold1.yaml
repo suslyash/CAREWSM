@@ -1,5 +1,5 @@
 callbacks:
-- name: carewsm_val_checkpoint_callback
+- name: checkpoint_callback
   params:
     filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
     log_path: logs/audio/wav2vec_xlsr300m
@@ -18,7 +18,7 @@ callbacks:
 - name: carewsm_summary_callback
   params:
     filename: summary.txt
-- name: carewsm_val_early_stopping_callback
+- name: early_stopping_callback
   params:
     min_delta: 0.0
     mode: max
@@ -45,7 +45,7 @@ logging:
 - name: console_file_logger
   params:
     console_level: INFO
-    file_level: INFO
+    file_level: WARNING
     log_file: train.log
     log_path: logs/audio/wav2vec_xlsr300m
 - name: mlflow_logger
