@@ -286,7 +286,7 @@ class CarewsmSummaryCallback(BaseCallback):
             ("TRAIN", "train/average", "train", "train/care", "train/wsm"),
             ("VAL CARE", "CARE/care", "CARE", "CARE/care", None),
             ("VAL WSM", "WSM/wsm", "WSM", None, "WSM/wsm"),
-            ("VAL average", "average", "joint", "CARE/care", "WSM/wsm"),
+            ("VAL average", "joint/average", "joint", "CARE/care", "WSM/wsm"),
             ("TEST CARE", "test/CARE/care", "test/CARE", "test/CARE/care", None),
             ("TEST WSM", "test/WSM/wsm", "test/WSM", None, "test/WSM/wsm"),
             (

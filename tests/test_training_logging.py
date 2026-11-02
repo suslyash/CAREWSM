@@ -194,3 +194,51 @@ def test_best_epoch_is_selected_from_val_monitor_only():
     assert best is not None
     assert best["epoch"] == 1
     assert best["checkpoint"] == "epoch=1.pt"
+
+
+def test_summary_renders_all_metrics_for_every_section_and_task(tmp_path):
+    callback = CarewsmSummaryCallback()
+    callback._path = tmp_path / "summary.txt"
+    callback._metrics_path = tmp_path / "metrics_history.json"
+    logs = {"train/loss": 0.9, "joint/average_macro_f1": 0.8}
+    sections = {
+        "train/average": "train",
+        "CARE/care": "CARE",
+        "WSM/wsm": "WSM",
+        "joint/average": "joint",
+        "test/CARE/care": "test/CARE",
+        "test/WSM/wsm": "test/WSM",
+        "test/average": "test/average",
+    }
+    for metric_prefix, count_prefix in sections.items():
+        for task in ("depression", "parkinson"):
+            logs.update(_metric_block(metric_prefix + "/" + task, 4, 0.1))
+        logs[count_prefix + "/loss"] = 0.9
+    logs.update(_metric_block("train/care/depression", 2, 0.1))
+    logs.update(_metric_block("train/wsm/depression", 2, 0.1))
+    logs.update(_metric_block("CARE/care/depression", 2, 0.1))
+    logs.update(_metric_block("WSM/wsm/depression", 2, 0.1))
+    logs.update(_metric_block("joint/care/depression", 2, 0.1))
+    logs.update(_metric_block("joint/wsm/depression", 2, 0.1))
+    logs.update(_metric_block("test/CARE/care/depression", 2, 0.1))
+    logs.update(_metric_block("test/WSM/wsm/depression", 2, 0.1))
+
+    callback._rows = [{"epoch": 1, "checkpoint": "epoch=1.pt", "logs": logs}]
+    callback._write()
+    text = callback._path.read_text(encoding="utf-8")
+
+    for section in (
+        "TRAIN",
+        "VAL CARE",
+        "VAL WSM",
+        "VAL average",
+        "TEST CARE",
+        "TEST WSM",
+        "TEST average",
+    ):
+        rows = [line for line in text.splitlines() if f"| {section} |" in line]
+        assert len(rows) == 2
+        assert all(row.count("0.1000") >= 6 for row in rows)
+
+    assert "VAL average | depression" in text
+    assert "- | - | - | - | - | -" not in text
