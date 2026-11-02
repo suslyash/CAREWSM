@@ -1,1 +1,1 @@
-from .classification import binary_metrics
+from .classification import binary_metrics, corpus_average
