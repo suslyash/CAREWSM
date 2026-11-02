@@ -94,3 +94,7 @@ The TASK-006 experiment organization is prepared but no real training was run in
 ## TASK-007 audio feature matrix
 
 Static native schema audit confirmed all 11 registry audio families and dimensions. Explicit MPTSNet and MD-Former fold YAMLs are prepared under `configs/audio/<feature>/` for every confirmed family. The single Bash launcher discovers folders and existing fold files; no experiments were run.
+
+## TASK-008 audio preflight
+
+Added a read-only `--check` mode to the single Bash launcher. It validates all literal fold YAMLs, registry/model names, dimensions, fixed paths, CUDA device, callbacks and VAL-only monitoring, and labels native `T=1` families as `STATIC_INPUT / TEMPORAL_INTERPRETATION_LIMITED`. No training, MLflow runs or log cleanup were performed.
