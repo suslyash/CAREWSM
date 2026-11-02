@@ -45,5 +45,4 @@ class MaskedMultitaskBCE(BaseLoss):
 
 @LOSSES.register("carewsm_masked_bce")
 def carewsm_masked_bce(context: Any | None = None, **params: Any) -> MaskedMultitaskBCE:
-    del context
     return MaskedMultitaskBCE(**params)

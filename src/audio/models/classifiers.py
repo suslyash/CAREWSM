@@ -253,23 +253,19 @@ class PooledMLP(SequenceClassifier):
 
 @MODELS.register("carewsm_tscmamba")
 def carewsm_tscmamba(context: Any | None = None, **params: Any) -> TSCMambaClassifier:
-    del context
     return TSCMambaClassifier(**params)
 
 
 @MODELS.register("carewsm_mptsnet")
 def carewsm_mptsnet(context: Any | None = None, **params: Any) -> MPTSNetClassifier:
-    del context
     return MPTSNetClassifier(**params)
 
 
 @MODELS.register("carewsm_md_former")
 def carewsm_md_former(context: Any | None = None, **params: Any) -> MDFormerClassifier:
-    del context
     return MDFormerClassifier(**params)
 
 
 @MODELS.register("carewsm_pooled_mlp")
 def carewsm_pooled_mlp(context: Any | None = None, **params: Any) -> PooledMLP:
-    del context
     return PooledMLP(**params)

@@ -68,37 +68,31 @@ class BinaryMetric(BaseMetric):
 
 @METRICS.register("carewsm_macro_f1")
 def carewsm_macro_f1(context: Any | None = None, **params: Any) -> BinaryMetric:
-    del context
     return BinaryMetric("Macro F1", **params)
 
 
 @METRICS.register("carewsm_weighted_f1")
 def carewsm_weighted_f1(context: Any | None = None, **params: Any) -> BinaryMetric:
-    del context
     return BinaryMetric("Weighted F1", **params)
 
 
 @METRICS.register("carewsm_macro_recall")
 def carewsm_macro_recall(context: Any | None = None, **params: Any) -> BinaryMetric:
-    del context
     return BinaryMetric("Macro Recall", **params)
 
 
 @METRICS.register("carewsm_weighted_recall")
 def carewsm_weighted_recall(context: Any | None = None, **params: Any) -> BinaryMetric:
-    del context
     return BinaryMetric("Weighted Recall", **params)
 
 
 @METRICS.register("carewsm_patient_recall")
 def carewsm_patient_recall(context: Any | None = None, **params: Any) -> BinaryMetric:
-    del context
     return BinaryMetric("Patient Recall", **params)
 
 
 @METRICS.register("carewsm_healthy_recall")
 def carewsm_healthy_recall(context: Any | None = None, **params: Any) -> BinaryMetric:
-    del context
     return BinaryMetric("Healthy Recall", **params)
 
 
@@ -143,10 +137,23 @@ class MultitaskPRFMetric(BaseMetric):
             if mask.any():
                 result.update(self._compute_block(predictions[mask], targets[mask], observed[mask], corpus.lower()))
         result.update(self._compute_block(predictions, targets, observed, "joint"))
-        if all(f"{corpus.lower()}/depression/{name}" in result for corpus in ("CARE", "WSM") for name in self._metric_names):
-            for task, _ in self._tasks:
-                for name in self._metric_names:
-                    result[f"average/{task}/{name}"] = (result[f"care/{task}/{name}"] + result[f"wsm/{task}/{name}"]) / 2
+        for task, _ in self._tasks:
+            care_count = result.get(f"care/{task}/observed_count", 0.0)
+            wsm_count = result.get(f"wsm/{task}/observed_count", 0.0)
+            for name in self._metric_names:
+                average_key = f"average/{task}/{name}"
+                if care_count and wsm_count:
+                    result[average_key] = (
+                        result[f"care/{task}/{name}"] + result[f"wsm/{task}/{name}"]
+                    ) / 2
+                else:
+                    result[average_key] = float("nan")
+
+        task_macro_f1 = [result.get(f"average/{task}/macro_f1", float("nan")) for task, _ in self._tasks]
+        if all(value == value for value in task_macro_f1):
+            result["joint/average_macro_f1"] = sum(task_macro_f1) / len(task_macro_f1)
+        else:
+            result["joint/average_macro_f1"] = float("nan")
         return result
 
     def _compute_block(self, predictions: torch.Tensor, targets: torch.Tensor,
@@ -175,5 +182,4 @@ class MultitaskPRFMetric(BaseMetric):
 
 @METRICS.register("carewsm_multitask_prf")
 def carewsm_multitask_prf(context: Any | None = None, **params: Any) -> MultitaskPRFMetric:
-    del context, params
     return MultitaskPRFMetric()

@@ -48,5 +48,4 @@ class CarewsmSummaryCallback(BaseCallback):
 
 @CALLBACKS.register("carewsm_summary_callback")
 def carewsm_summary_callback(context: Any | None = None, filename: str = "summary.txt", **params: Any) -> CarewsmSummaryCallback:
-    del context, params
     return CarewsmSummaryCallback(filename=filename)
