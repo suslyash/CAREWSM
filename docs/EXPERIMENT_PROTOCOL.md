@@ -1,23 +1,35 @@
 # CAREWSM Audio Experiment Protocol
 
-## Selection hierarchy
+## Primary protocol: joint CARE + WSM from the start
 
-TRAIN CV drives development, feature/model comparison and hyperparameter search.
+All main model/feature experiments use joint CARE+WSM training.
 
-DEV is used for configuration selection.
+For CV fold `k`:
 
-For **every CV fold and every evaluated configuration**, the fold checkpoint is also evaluated on both fixed TEST sets:
+- `TRAIN_k = CARE fold_k_train ∪ WSM fold_k_train`;
+- `VAL_k = CARE fold_k_val ∪ WSM fold_k_val`.
 
-- CARE TEST;
-- WSM TEST.
+The two corpora keep their own sample/profile identities and fixed partition membership; only the authorized fold training/validation portions are concatenated.
 
-TEST metrics are always logged, but they are never a development/selection signal.
+Missing Depression/Parkinson labels remain masked.
 
-External D-Vlog/YouTubePD are deferred until the final external-evaluation stage and are report-only unless the owner explicitly defines another protocol.
+Preprocessing, PCA/scalers and `pos_weight` are fitted from `TRAIN_k` only.
 
-## Required metric table
+The fixed DEV split is not silently added to TRAIN/VAL. Its final role is deferred until the main fold pipeline is stable.
 
-For each Configuration × Task × Fold, log three blocks: CARE, WSM and Average.
+## Model selection
+
+Checkpoint selection, early stopping, feature promotion, model comparison, loss-method comparison and Optuna decisions use **validation only**.
+
+TEST may be evaluated and logged after every fold, but TEST is never a selection signal.
+
+## Validation reporting table
+
+For each Configuration × Task × Fold, log three validation blocks:
+
+- CARE validation;
+- WSM validation;
+- Average.
 
 Each block contains:
 
@@ -36,17 +48,28 @@ Definitions:
 - Weighted Recall = support-weighted class recall;
 - Average metric = arithmetic mean of CARE and WSM values for that metric.
 
-The Average block is not computed by pooling predictions across corpora.
+Do not pool predictions across corpora to obtain Average.
 
-Every table also includes:
+The validation table is the scientific decision table.
 
-- number of evaluated samples;
-- number of observed labels;
-- feature coverage/retention;
-- corpus/domain;
-- fold identifier.
+## TEST reporting table
 
-The manager may define a scalar TRAIN-CV/DEV selection score after TASK-001/Stage-2 confirms label distributions. TEST metrics must never be used for that choice.
+For the fold-selected checkpoint, evaluate both fixed TEST sets:
+
+- CARE TEST;
+- WSM TEST.
+
+Log the same six metrics and the same metric-wise CARE/WSM Average.
+
+TEST values are statistics/evidence only. They must not determine:
+
+- next feature combination;
+- architecture;
+- loss method;
+- checkpoint rule;
+- threshold tuning;
+- Optuna trial selection;
+- retry/continuation of an ablation.
 
 ## Stage A — fast integrity audit
 
@@ -54,54 +77,62 @@ No model training.
 
 Freeze:
 
-- exact 11-family operational registry;
+- exact operational feature registry;
 - schemas;
-- timestamps/temporal semantics;
+- temporal semantics;
 - validity statuses;
 - per-sample availability manifest;
-- coverage and filtering rules.
+- pairwise/complete-case coverage;
+- joint-fold compatibility.
 
-## Stage B — data layer and Mantis temporalization contract
+## Stage B — joint Chimera-ML data layer
 
-Implement the Chimera-ML DataModule and leak-free preprocessing.
+Implement a single fold-aware DataModule that:
 
-Then freeze:
+- loads CARE and WSM together;
+- constructs joint TRAIN/VAL for the requested fold;
+- exposes corpus identity for separate metric reporting;
+- masks unavailable task labels;
+- filters only by features required by the active experiment;
+- keeps CARE/WSM TEST loaders separate;
+- fits no preprocessing outside TRAIN.
 
-- per-family native representation loader;
-- which feature families support 1.0 s / 0.5 s windowization;
+## Stage C — Mantis temporalization contract
+
+Freeze:
+
+- which feature blocks have a defensible 1.0 s / 0.5 s temporalization;
 - exact Mantis checkpoint/version;
 - selected layer;
-- pooling rule;
-- scaler/PCA rules;
-- artifact schema and cache identity.
+- pooling;
+- validity/confidence semantics;
+- scaler/PCA contract;
+- cache schema/fingerprint.
 
-Run only small derivation/smoke checks before manager review.
+Mantis remains frozen.
 
-## Stage C — reference baselines
+## Stage D — joint single-feature screening
 
-Within CARE and WSM separately:
+For every usable feature family/representation, train jointly on CARE+WSM.
 
-- single-feature native baselines;
-- single-feature Mantis baselines where valid;
-- pooled/simple reference classifier.
+Compare:
 
-Purpose: detect broken representations and establish whether Mantis temporalization adds signal.
-
-## Stage D — three-model single-feature screen
-
-For each promoted representation:
-
+- native representation where meaningful;
+- Mantis representation where meaningful;
+- pooled reference classifier;
 - TSCMamba-inspired;
 - MPTSNet-inspired;
 - MD-Former-inspired.
 
-Use a standardized cheap screening budget.
+Use a standardized cheap budget first.
 
-Promote candidates based on TRAIN CV consistency and runtime/coverage, not TEST.
+Promote/reject candidates from validation only.
+
+For every fold/configuration also persist TEST statistics on CARE and WSM.
 
 ## Stage E — structured feature groups
 
-Build scientifically meaningful blocks from observed schemas, for example:
+Still under joint CARE+WSM training, evaluate scientifically meaningful groups derived from TASK-001:
 
 - handcrafted temporal;
 - handcrafted aggregated;
@@ -111,25 +142,25 @@ Build scientifically meaningful blocks from observed schemas, for example:
 - temporal + complementary static;
 - all high-coverage families.
 
-Exact membership is defined after TASK-001.
+Avoid exhaustive `2^11 - 1` enumeration.
 
-Avoid exhaustive `2^11 - 1` subset enumeration.
-
-## Stage F — greedy combination search
+## Stage F — greedy feature combination search
 
 On the strongest one/two model families:
 
-1. start from strongest single/group representation;
+1. start from the strongest validation feature set;
 2. add one candidate family/block at a time;
-3. retain additions with stable CV improvement;
+3. keep additions with stable validation improvement;
 4. record rejected additions;
-5. stop when additions cease to help or budget is exhausted.
+5. stop when additions cease to help or the budget is exhausted.
 
-Then re-evaluate the best few combinations on all three research models.
+TEST never controls this search.
 
-## Stage G — loss / multitask study
+Re-compare the best few feature combinations on all three research models.
 
-For the best representative configurations compare:
+## Stage G — multitask loss study
+
+On strong joint configurations compare:
 
 - unweighted BCE;
 - weighted BCE;
@@ -141,100 +172,44 @@ For the best representative configurations compare:
 - Depression-only;
 - Parkinson-only.
 
-Class weights use known TRAIN labels only.
+Use the same fold/data/features/model budget whenever possible.
 
-Loss-method comparison must not be confounded by changing feature sets unless the experiment explicitly studies an interaction.
+Selection comes from validation.
 
-## Stage H — within-corpus finalization
+## Stage H — Optuna
 
-Finalize CARE and WSM baselines separately using TRAIN CV and DEV for decisions.
+Only the winning joint model + feature combination + loss family enters the primary Optuna study.
 
-For every fold checkpoint, evaluate and persist the full required TEST table on **both CARE and WSM**.
+Optuna objective uses validation from the five joint folds.
 
-Persist:
+No TEST/external metric enters trial selection.
 
-- best feature combination;
-- native vs Mantis path;
-- model;
-- loss method;
-- preprocessing;
-- fold-wise CARE TEST metrics;
-- fold-wise WSM TEST metrics;
-- fold-wise Average metrics;
-- seed results.
+## Stage I — final joint model evidence
 
-Do not use fold-level TEST results to promote/reject configurations.
-
-## Stage I — direct transfer
-
-Run:
-
-- CARE -> WSM;
-- WSM -> CARE.
-
-Rules:
-
-- train/select entirely on source TRAIN/CV/DEV;
-- freeze model and preprocessing;
-- do not refit scaler/PCA on target;
-- do not tune thresholds on target;
-- target metrics are report-only evidence.
-
-## Stage J — joint training
-
-Train CARE + WSM jointly.
-
-Evaluate separately on:
-
-- CARE;
-- WSM;
-- D-Vlog when available;
-- YouTubePD when available.
-
-The split/participant integrity of each source corpus must remain intact.
-
-## Stage K — small-target adaptation
-
-Starting from source-trained models, adapt on a pre-declared small labeled subset of target TRAIN.
-
-Before execution freeze:
-
-- subset fractions;
-- participant-level sampling;
-- seeds;
-- whether preprocessing can update;
-- which layers can update.
-
-Never adapt on DEV/TEST.
-
-## Stage L — Optuna
-
-Only the winning model + feature combination + loss family enters the primary Optuna study.
-
-Optuna objective uses TRAIN CV only.
-
-Search space must be narrow and architecture-aware.
-
-TEST/external metrics are forbidden from trial selection.
-
-## Stage M — final reporting
-
-Consolidate the already logged fold-level CARE/WSM TEST results for the DEV-selected configuration and run the deferred external evaluations.
+Consolidate the selected joint configuration across folds.
 
 Report:
 
-- within-corpus results;
-- direct transfer;
-- joint training;
-- adaptation;
-- external tests;
-- per-task/per-fold CARE metrics;
-- per-task/per-fold WSM metrics;
-- per-task/per-fold Average metrics;
+- fold-wise validation table;
+- fold-wise CARE TEST table;
+- fold-wise WSM TEST table;
+- fold-wise metric-wise Average;
 - aggregate fold statistics;
-- coverage;
+- per-task results;
+- feature coverage;
 - seed variability;
-- model/runtime/parameter footprint where practical.
+- runtime/parameter footprint where practical.
+
+## Deferred secondary studies
+
+Only after the primary joint CARE+WSM model is established:
+
+1. CARE-only / WSM-only ablations;
+2. direct transfer CARE -> WSM and WSM -> CARE;
+3. external D-Vlog and YouTubePD evaluation;
+4. small-target adaptation.
+
+These are not part of the initial model-selection loop.
 
 ## MLflow / reproducibility
 
@@ -242,9 +217,9 @@ Every run must record:
 
 - Git commit;
 - resolved config;
-- split/fold;
+- fold;
 - seed;
-- corpus/protocol;
+- joint CARE+WSM protocol;
 - feature families;
 - native/Mantis path;
 - Mantis checkpoint/layer/pooling if used;
@@ -252,6 +227,8 @@ Every run must record:
 - scaler/PCA artifact identity;
 - model;
 - loss/balancing method;
-- metrics;
+- validation metrics;
+- CARE TEST metrics;
+- WSM TEST metrics;
 - checkpoint;
 - MLflow run ID.

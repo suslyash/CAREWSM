@@ -55,16 +55,20 @@ Temporal representation:
 - 0.5 s hop;
 - sequence retained per video/block.
 
-Research protocols:
+Primary research protocol:
 
-- CARE within-corpus;
-- WSM within-corpus;
-- CARE -> WSM;
-- WSM -> CARE;
-- CARE + WSM;
-- D-Vlog external Depression;
-- YouTubePD external Parkinson;
-- small labeled target adaptation.
+- CARE + WSM are mixed from the first training experiment;
+- fold-k TRAIN = CARE fold-k TRAIN + WSM fold-k TRAIN;
+- fold-k VAL = CARE fold-k VAL + WSM fold-k VAL;
+- model/feature/loss selection uses validation only;
+- every selected fold checkpoint logs CARE TEST and WSM TEST statistics.
+
+Deferred until the primary joint model is complete:
+
+- CARE-only / WSM-only ablations;
+- direct transfer;
+- D-Vlog / YouTubePD;
+- small-target adaptation.
 
 ## Current stage
 

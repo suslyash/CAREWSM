@@ -47,26 +47,31 @@ The exact Mantis-family checkpoint, layer and pooling strategy must be pinned be
 
 For static/turn-level families that do not naturally support 1-second windows, do not repeat vectors over fake time. TASK-002 must define a scientifically defensible mapping or mark that family as native-only.
 
-## 3. Normalization / PCA
+## 3. Joint fold construction and normalization / PCA
 
-Any scaler/PCA is a learned transformation and therefore follows split boundaries.
+The primary fold contract is joint from the beginning.
 
-For fold k:
+For fold `k`:
 
-- fit on fold-k TRAIN only;
-- transform fold-k VAL;
-- transform DEV/TEST only with the fitted object when that fold/config is evaluated.
+- `TRAIN_k = CARE_train_k ∪ WSM_train_k`;
+- `VAL_k = CARE_val_k ∪ WSM_val_k`.
 
-For final source-corpus training:
+Any scaler/PCA is a learned transformation and is fitted only on `TRAIN_k`.
 
-- fit preprocessing on authorized source TRAIN data only;
-- target corpus data cannot refit preprocessing during direct transfer.
+The fitted preprocessing transforms:
 
-Joint training may fit preprocessing on the joint authorized training set.
+- CARE validation;
+- WSM validation;
+- CARE TEST;
+- WSM TEST.
 
-Adaptation may refit only if the adaptation protocol explicitly permits it.
+No validation/TEST sample may influence preprocessing fit.
+
+Class weights are also computed from known labels in `TRAIN_k` only.
 
 Persist preprocessing state and fingerprint it.
+
+The fixed DEV split is not automatically merged into TRAIN or VAL; a later manager task must define any final-use role explicitly.
 
 ## 4. Classifier
 
@@ -123,9 +128,9 @@ Also train single-task Depression-only and Parkinson-only models for reference.
 
 These comparisons must use the same data/features/model budget whenever possible.
 
-## 8. Metrics
+## 8. Validation and TEST metrics
 
-For each task and fold compute:
+For each task and fold compute the following on both validation and TEST:
 
 - Macro F1;
 - Weighted F1;
@@ -134,7 +139,7 @@ For each task and fold compute:
 - Patient Recall;
 - Healthy Recall.
 
-Compute these separately on CARE TEST and WSM TEST for every fold/configuration.
+Compute them separately for CARE and WSM portions.
 
 Then compute the `Average` block metric-wise as:
 
@@ -147,6 +152,8 @@ Patient Recall is positive-class recall. Healthy Recall is negative-class recall
 Metrics use only examples with the relevant target observed.
 
 Coverage, evaluated sample count and observed-label count are always logged beside metrics.
+
+Validation metrics determine checkpoint/configuration quality. TEST metrics are recorded only as statistics.
 
 ## 9. Model families
 

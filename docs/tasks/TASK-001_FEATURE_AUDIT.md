@@ -96,6 +96,13 @@ For CARE and WSM independently verify:
 
 Report observed deviations explicitly.
 
+Also verify that fold identifiers `0..4` can be paired across CARE and WSM so the later primary protocol can construct:
+
+- `joint_train_k = CARE fold_k_train + WSM fold_k_train`;
+- `joint_val_k = CARE fold_k_val + WSM fold_k_val`.
+
+Report row/profile counts for each corpus side of every joint fold, but do not create training manifests yet.
+
 Do not regenerate any split.
 
 ## B. Discover the exact audio feature registry
@@ -273,7 +280,8 @@ Include:
 12. runtime;
 13. exact commands;
 14. limitations;
-15. recommendation for TASK-002 data-layer/windowization contract.
+15. joint-fold compatibility summary;
+16. recommendation for TASK-002 data-layer/windowization contract.
 
 Update only:
 

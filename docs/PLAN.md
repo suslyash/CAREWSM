@@ -7,16 +7,18 @@
 - audio-only scope;
 - manager/Codex workflow;
 - fixed split discipline;
+- joint CARE+WSM primary training protocol;
 - two-head masked target contract;
 - Mantis temporalization requirement;
 - three-model shortlist;
-- cross-corpus programme.
+- validation-only model selection;
+- fold-wise CARE/WSM TEST statistics.
 
 ## Stage 1 — feature integrity and coverage audit
 
 **Status: NEXT**
 
-Codex audits the actual 11 owner-reported extracted audio feature families.
+Codex audits the actual extracted audio feature families.
 
 Outputs:
 
@@ -27,21 +29,25 @@ Outputs:
 - per-sample availability manifest;
 - per-feature and pairwise coverage;
 - complete-case retention;
-- split/fold/label sanity.
+- split/fold/label sanity;
+- confirmation that fold `k` can be combined safely across CARE and WSM.
 
 No training or Mantis derivation.
 
-## Stage 2 — Chimera-ML data layer
+## Stage 2 — joint Chimera-ML data layer
 
 Implement:
 
 - canonical CARE/WSM sample identity;
-- split/fold loading;
+- joint fold construction `CARE_train_k + WSM_train_k`;
+- joint validation construction `CARE_val_k + WSM_val_k`;
+- separate CARE/WSM validation views for metrics;
+- separate CARE/WSM TEST loaders;
 - two target values + observed masks;
 - per-feature availability;
 - native temporal/static loaders;
-- normalization fit on training data only;
-- unit tests preventing leakage.
+- TRAIN-only normalization/PCA/class weights;
+- leakage tests.
 
 All active code under `src/audio/data` and `src/audio/features`.
 
@@ -58,7 +64,7 @@ Freeze:
 - scaler/PCA contract;
 - cache schema/fingerprint.
 
-Build derived sequences without modifying source extracted features.
+Build derived sequences without modifying source features.
 
 ## Stage 4 — model/loss infrastructure
 
@@ -74,31 +80,33 @@ Implement:
 - masked BCE;
 - weighted BCE;
 - Equal/PCGrad/CAGrad/STCH/PAGB hooks;
-- required metrics/callbacks.
+- validation and TEST metrics/callbacks.
 
-## Stage 5 — within-corpus feature screening
+## Stage 5 — joint single-feature screening
 
-CARE and WSM training protocols are studied separately.
+Train every experiment on CARE+WSM jointly.
 
 Evaluate:
 
 - every usable single family;
 - native representation;
 - Mantis representation where valid;
-- simple baseline;
-- three research models under standardized budget.
+- reference baseline;
+- three research models.
 
-For every fold/configuration, log the required six TEST metrics on **both CARE and WSM**, plus their metric-wise arithmetic Average. TEST numbers do not control promotion.
+Select/promote using validation only.
 
-## Stage 6 — feature combinations
+For each fold, also log CARE TEST and WSM TEST statistics.
+
+## Stage 6 — joint feature combinations
 
 Evaluate structured groups, then greedy forward additions.
 
 Avoid exhaustive 2047-subset search.
 
-Re-compare best few combinations across all three models.
+Selection uses validation only.
 
-## Stage 7 — multitask loss/balancing study
+## Stage 7 — joint multitask loss/balancing study
 
 Compare:
 
@@ -108,62 +116,37 @@ Compare:
 - STCH;
 - PAGB;
 - single-task models;
-- unweighted vs weighted BCE where appropriate.
+- unweighted vs weighted BCE.
 
-Use matched feature/model settings.
+Use matched joint-fold settings.
 
-## Stage 8 — within-corpus final models
+## Stage 8 — Optuna
 
-Finalize CARE and WSM separately using TRAIN CV + DEV.
+Tune only the best joint model/feature/loss configuration.
 
-No TEST-driven changes.
+Objective: joint-fold validation only.
 
-## Stage 9 — cross-corpus direct transfer
-
-- CARE -> WSM;
-- WSM -> CARE.
-
-No target refitting/tuning.
-
-## Stage 10 — joint CARE + WSM training
-
-Train jointly; evaluate separately on each corpus.
-
-## Stage 11 — external tests
-
-- D-Vlog for Depression;
-- YouTubePD for Parkinson.
-
-Requires verified dataset roots/protocols.
-
-## Stage 12 — small-target adaptation
-
-Use only a pre-declared labeled fraction of target TRAIN.
-
-Freeze fractions, participant sampling and update policy before running.
-
-## Stage 13 — Optuna
-
-Tune only the winning model/feature/loss configuration.
-
-TRAIN CV objective only.
-
-## Stage 14 — final evidence
+## Stage 9 — final joint CARE+WSM evidence
 
 Report:
 
-- within-corpus;
-- direct transfer;
-- joint training;
-- adaptation;
-- external tests;
-- per-task/per-fold CARE TEST table;
-- per-task/per-fold WSM TEST table;
+- validation results used for selection;
+- fold-wise CARE TEST statistics;
+- fold-wise WSM TEST statistics;
 - metric-wise CARE/WSM Average;
 - fold aggregate statistics;
 - coverage;
 - seeds;
 - runtime/parameters;
-- exact reproducibility metadata.
+- reproducibility metadata.
+
+## Stage 10 — deferred secondary studies
+
+Only after the primary joint model is complete:
+
+- CARE-only / WSM-only ablations;
+- CARE -> WSM / WSM -> CARE direct transfer;
+- D-Vlog / YouTubePD external tests;
+- small-target adaptation.
 
 Multimodality remains out of scope.

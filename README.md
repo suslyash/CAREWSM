@@ -17,12 +17,13 @@ Both corpora are expected to use fixed `train/dev/test` partitions and five CV f
 1. Audit the 11 extracted audio feature families and create deterministic validity/filtering metadata.
 2. Build a clean Chimera-ML audio stack under `src/audio/`.
 3. Build leak-free Mantis window embeddings for each usable feature block.
-4. Benchmark single feature families and structured combinations.
-5. Compare three recent temporal architectures.
-6. Compare multitask loss/balancing strategies and single-task baselines.
-7. Run within-corpus, direct-transfer, joint-training, external-test and small-target-adaptation experiments.
-8. Tune only the winning configuration with Optuna.
-9. For every CV fold/configuration, evaluate TEST on both CARE and WSM and log the full required metric table; TEST numbers are evidence only and must not influence configuration selection.
+4. Train from the start on the **joint CARE + WSM training set** for every CV fold.
+5. Benchmark single feature families and structured combinations under the same joint protocol.
+6. Compare three recent temporal architectures.
+7. Compare multitask loss/balancing strategies and single-task baselines.
+8. Tune only the winning joint configuration with Optuna.
+9. For every CV fold/configuration, log validation metrics for model selection and evaluate TEST on both CARE and WSM only for statistics; TEST numbers must not influence configuration selection.
+10. Defer direct-transfer, external-test and target-adaptation studies until the main joint CARE+WSM audio model is established.
 
 ## Audio methodology
 
@@ -33,6 +34,8 @@ The intended classifier has:
 for Depression and Parkinson independently.
 
 Missing disease labels are masked and are never treated as negative labels.
+
+The primary training protocol mixes CARE and WSM immediately. For fold `k`, the training set is the union of CARE fold-`k` TRAIN and WSM fold-`k` TRAIN; the validation set is the corresponding union of CARE and WSM fold-`k` VAL.
 
 Mantis is a frozen time-series representation layer, not the final disease classifier. For every video and usable feature block, the intended derived representation is a time-ordered sequence of Mantis embeddings from 1.0-second windows with 0.5-second hop. Exact family-specific window construction is frozen only after the feature audit.
 
