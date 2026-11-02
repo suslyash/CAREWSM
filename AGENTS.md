@@ -94,6 +94,19 @@ Repository launch wrappers may live under `scripts/`, but dataset/model/loss/met
 
 Keep code small, explicit, typed where useful, and free of old WSM experiment assumptions.
 
+## Mandatory code style and Chimera registration
+
+Follow `suslyash/WSM` (`src/chimera_plugin.py`, model/data/loss/metric/callback modules) as the style and registration reference while keeping CAREWSM-specific logic independent.
+
+- Every **new** Chimera-ML model, DataModule, loss, metric, callback, optimizer or other registry component **must be registered using an explicit decorator** on a named, readable factory function, e.g. `@MODELS.register("carewsm_name")`, `@DATAMODULES.register(...)`, `@LOSSES.register(...)`, `@METRICS.register(...)`, `@CALLBACKS.register(...)`.
+- Factories must expose a clear signature such as `def component_name(context: Any | None = None, **params: Any) -> Component:` and return the concrete component. **Do not** register via assignment expressions, `REGISTRY.register(name)(factory)`, dynamically generated factory closures or hidden registration helpers.
+- The plugin entry point (`src/chimera_plugin.py`) imports registration modules in a clear, explicit list, as in WSM; registration lives with each component, not in scattered plugin conditionals. Avoid duplicate-registration side effects.
+- Every registered component that is part of an experiment must be declared under the corresponding Chimera YAML section (`data:`, `model:`, `loss:`, `metrics:`, `callbacks:`, `logging:` as applicable). Validate config-driven registry resolution, not just direct Python calls.
+- **Readable, formatted Python is a merge gate**: PEP 8/Ruff-compatible formatting; conventional imports; 4-space indentation; proper blank lines between imports, classes and functions; meaningful names and type hints; expanded multi-line calculations. No semicolon-chained statements, one-line control-flow blocks, dense single-line functions or obfuscated architecture/metric implementations.
+- Preserve each research architecture's genuine distinctive mechanisms; never replace them with superficially named generic layers. State deviations from the authors' implementations explicitly.
+- Before handoff, format touched Python files and check registration/config instantiation plus one representative real-data batch where feasible. A formatter and compiler passing do not replace source-code readability review.
+- Applies to **all future tasks and the current TASK-004 correction**. Manager review may reject noncompliant code without requesting extra experiments.
+
 ## Feature integrity
 
 A feature artifact is not valid merely because it exists.
