@@ -10,6 +10,7 @@ Usage:
   scripts/run_audio_experiments.sh --check --all
   scripts/run_audio_experiments.sh --feature egemaps
   scripts/run_audio_experiments.sh --feature egemaps --model mptsnet
+  scripts/run_audio_experiments.sh --feature egemaps_func --model mlp
   scripts/run_audio_experiments.sh --all
 
 No arguments print this help and launch nothing.
@@ -31,14 +32,16 @@ expected = {
     "disvoice_articulation_static": ("disvoice_articulation_static", 488, True), "wav2vec_xlsr300m": ("wav2vec_xlsr300m", 1024, True),
     "trillsson4_1": ("trillsson4_1", 1024, True), "emotionmsp_trajectories": ("emotionmsp_trajectories", 3, True), "emotionmsp_embeds": ("emotionmsp_embeds", 1024, True),
 }
-models = {"mptsnet": "carewsm_mptsnet", "mdformer": "carewsm_md_former"}
+models = {"mptsnet": "carewsm_mptsnet", "mdformer": "carewsm_md_former", "mlp": "carewsm_pooled_mlp"}
 callbacks = {"carewsm_val_checkpoint_callback", "snapshot_callback", "carewsm_summary_callback", "carewsm_val_early_stopping_callback"}
 for raw_path in sys.argv[1:]:
-    path = Path(raw_path); match = re.fullmatch(r"(.+)/(mptsnet|mdformer)_fold([0-4])\.yaml", str(path))
+    path = Path(raw_path); match = re.fullmatch(r"(.+)/(mptsnet|mdformer|mlp)_fold([0-4])\.yaml", str(path))
     if match is None: raise SystemExit(f"Invalid config filename: {path}")
     folder, model, fold_text = match.groups(); feature = Path(folder).name
     if feature not in expected: raise SystemExit(f"Unknown feature folder: {feature}")
     family, dimension, is_static = expected[feature]
+    allowed = {"mdformer", "mlp"} if is_static else {"mptsnet", "mdformer"}
+    if model not in allowed: raise SystemExit(f"{path}: model {model} is not allowed for {feature}")
     with path.open(encoding="utf-8") as handle: config = yaml.safe_load(handle)
     data = config["data"]["params"]; model_config = config["model"]
     if data.get("fold") != int(fold_text) or data.get("feature_family") != family: raise SystemExit(f"{path}: fold/family mismatch")
@@ -71,6 +74,13 @@ run_feature() {
   local model="${2:-}"
   local directory="configs/audio/${feature}"
   [[ -d "$directory" ]] || { printf 'Unknown feature folder: %s\n' "$feature" >&2; return 2; }
+  if [[ -n "$model" ]]; then
+    if [[ "$feature" == "egemaps" || "$feature" == *dynamic ]]; then
+      [[ "$model" == "mptsnet" || "$model" == "mdformer" ]] || { printf 'Model %s is not allowed for temporal feature %s\n' "$model" "$feature" >&2; return 2; }
+    else
+      [[ "$model" == "mlp" || "$model" == "mdformer" ]] || { printf 'Model %s is not allowed for static feature %s\n' "$model" "$feature" >&2; return 2; }
+    fi
+  fi
   local configs=()
   local fold config
   if [[ -n "$model" ]]; then
@@ -114,6 +124,13 @@ fi
 if "$check_only"; then
   [[ "$all_features" == true || -n "$feature" ]] || { usage >&2; exit 2; }
   [[ -z "$feature" || -d "configs/audio/${feature}" ]] || { printf 'Unknown feature folder: %s\n' "$feature" >&2; exit 2; }
+  if [[ -n "$model" ]]; then
+    if [[ "$feature" == "egemaps" || "$feature" == *dynamic ]]; then
+      [[ "$model" == "mptsnet" || "$model" == "mdformer" ]] || { printf 'Model %s is not allowed for temporal feature %s\n' "$model" "$feature" >&2; exit 2; }
+    else
+      [[ "$model" == "mlp" || "$model" == "mdformer" ]] || { printf 'Model %s is not allowed for static feature %s\n' "$model" "$feature" >&2; exit 2; }
+    fi
+  fi
   configs=()
   if "$all_features"; then
     [[ -z "$feature" && -z "$model" ]] || { usage >&2; exit 2; }

@@ -98,3 +98,7 @@ Static native schema audit confirmed all 11 registry audio families and dimensio
 ## TASK-008 audio preflight
 
 Added a read-only `--check` mode to the single Bash launcher. It validates all literal fold YAMLs, registry/model names, dimensions, fixed paths, CUDA device, callbacks and VAL-only monitoring, and labels native `T=1` families as `STATIC_INPUT / TEMPORAL_INTERPRETATION_LIMITED`. No training, MLflow runs or log cleanup were performed.
+
+## TASK-010 MLP matrix
+
+The literal matrix now contains MLP only for the eight native `T=1` feature families, with five folds each. Static MPTSNet YAMLs were removed; static MD-Former remains comparative. The three temporal families retain only MPTSNet and MD-Former. The single Bash launcher and read-only preflight enforce these pairings. No experiments were run.
