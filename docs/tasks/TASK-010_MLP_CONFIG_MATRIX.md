@@ -1,19 +1,22 @@
-# TASK-010 — Explicit MLP baseline configs for all audio families
+# TASK-010 — MLP only on non-temporal (T=1) audio features
 
-## Goal
-Add the existing registered `carewsm_pooled_mlp` baseline to the owner-controlled audio experiment matrix. Exactly **55 new literal YAML files**: `configs/audio/<feature>/mlp_fold0.yaml` through `mlp_fold4.yaml` for each of the 11 established feature folders. No training.
+## Goal and exact model matrix
+Correct the previous TASK-010 scope. **MLP is only for native static / turn-level features with T=1**. Do not add MLP configs for temporal families. The desired experiment matrix is:
 
-## Required implementation
-- Inspect `AGENTS.md`, the TASK-007/008 matrix and existing `configs/audio/<feature>/mptsnet_fold*.yaml`; verify the current registered `carewsm_pooled_mlp` model factory/constructor and `input_dim`. Do not invent feature families or dimensions.
-- Add exactly five explicit MLP YAML files for each existing feature folder. Each must state numeric fold 0–4, correct registry feature family and verified input dimension, model `carewsm_pooled_mlp`, fixed seed 5, existing CARE+WSM joint loaders, masking, real full train/VAL folds, normal `logs/audio/<feature>/` base path, MLflow, summary, checkpoint, snapshot, early stopping with **VAL-only** `joint/average_macro_f1`, `mode: max`. Keep established optimizer, epochs and sequence handling unless scientifically justified otherwise.
-- **ONE Bash launcher** `scripts/run_audio_experiments.sh`: retain `--list`, `--check`, `--feature`, `--model`, `--all`, and no-argument help. Ensure `--feature NAME --model mlp` selects exactly five static YAML files. Update hardcoded preflight model registry mapping/expected model counts, and verify all **165** configs. `--all` must continue to select all existing actual YAML files without editing/generating them. Do not introduce a Python launcher, extra Bash launchers, dynamic fold substitution, or seed sweeps.
-- For documentation and science, MLP is a **pooled baseline** on both T=1 and temporal features, not a substitute for temporal architectures. Make the interpretation explicit; maintain static/sequence labels and never claim MLP evaluates temporal dynamics.
-- Use existing project code; make no MLP architecture changes unless a genuine runtime incompatibility is evident and can be corrected minimally. Keep PEP8/readable formatting. Never silently ignore YAML parameters.
+- **Temporal (T>1)**: `egemaps` (registry `egemaps_lld`), `disvoice_prosody_dynamic`, `disvoice_phonation_dynamic` — **MPTSNet and MD-Former only**, each on five folds. Retain their 30 existing YAMLs unchanged.
+- **Static (T=1)**: `egemaps_func`, `disvoice_prosody_static`, `disvoice_phonation_static`, `disvoice_articulation_static`, `wav2vec_xlsr300m`, `trillsson4_1`, `emotionmsp_trajectories`, `emotionmsp_embeds` — **MLP as primary baseline, MD-Former optionally for comparison**, each on folds 0–4. Keep the 40 existing MD-Former YAMLs.
+- **Remove the existing 40 MPTSNet YAMLs on static T=1 features** from the launchable configuration matrix; they have no valid temporal/periodicity interpretation. Instead add precisely **40 new literal MLP YAMLs** to those eight folders, `mlp_fold0.yaml` … `mlp_fold4.yaml`. End state **110 YAMLs**, not 165. Do not run MPTSNet on T=1.
+- MD-Former on T=1 is only a static-feature comparison; **never** present its result as evidence of temporal modeling.
 
-## Verification
-- Static YAML parse and config validation; matrix check for all 11 families × 3 models × folds 0–4; `bash -n`; `scripts/run_audio_experiments.sh --check --all`; `--check --feature egemaps_func --model mlp`; `git diff --check`.
-- **Never launch training, smoke, MLflow runs, TEST inference, or cleanup**. No generated numerical results. Do not alter canonical splits.
-- Update `scripts/runs/README.md`, `docs/evidence/TASK-010_MLP_CONFIG_MATRIX_EN.md`, and `docs/PROGRESS_EN.md`.
+## Implementation
+1. Inspect `AGENTS.md`, TASK-007/008 evidence and actual `carewsm_pooled_mlp` registration and feature dimensions. Use only proven registry names and dimensions.
+2. Each MLP YAML is explicit: numeric fold 0–4, correct feature family and `input_dim`, `carewsm_pooled_mlp`, fixed seed 5, full canonical CARE+WSM TRAIN/VAL, observed-label masking, existing optimizer/trainer defaults, `logs/audio/<feature>/`, console/file + MLflow loggers, snapshot and summary, VAL-only checkpoint/early stopping on `joint/average_macro_f1` with `mode: max`.
+3. Preserve the **single Bash launcher** `scripts/run_audio_experiments.sh`; no Python launcher or dynamic YAML generation. `--list`, `--check`, `--feature`, `--model`, `--all` must reflect exactly the allowed matrix. `--feature egemaps_func --model mlp` selects five explicit configs; `--all` only 110 allowed configs. Explicit unsupported pairs (`egemaps --model mlp`, `egemaps_func --model mptsnet`) must be rejected with a clear error, not silently ignored.
+4. Update any hardcoded read-only preflight model mapping and check exactly 11 folders × 2 eligible models × five folds. Clearly label static `T=1`, temporal `T>1`; no claim that MLP models time.
+5. Make only necessary changes. Do not change existing MD-Former and temporal configurations, model internals or canonical splits unless there is a verified blocker.
 
-## Handoff
-Work on `codex/task-010-mlp-configs`; commit + normal push, no PR/merge; report eight-heading handoff.
+## Verification / handoff
+- YAML parse/config validation, precise 110-file/family-model-fold matrix check, Bash `-n`, preflight `--check --all`, `--check --feature egemaps_func --model mlp`; verify that forbidden model-feature combinations reject. `git diff --check`.
+- **No training, smoke, MLflow run, TEST, preprocessing or log deletion**. Owner manually runs experiments.
+- Update `scripts/runs/README.md`, `docs/evidence/TASK-010_MLP_CONFIG_MATRIX_EN.md`, `docs/PROGRESS_EN.md`.
+- Implement on `codex/task-010-mlp-configs`, commit + normal push; no PR/merge; eight-heading handoff and stop.
