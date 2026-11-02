@@ -72,6 +72,22 @@ Create deterministic sample × feature-family validity metadata. A run requiring
 
 Every experiment must report retained sample counts/coverage.
 
+## Primary joint training protocol
+
+The main CAREWSM programme trains on CARE and WSM together from the first modelling experiment.
+
+For CV fold `k`:
+
+- training data = CARE `fold_k_train` ∪ WSM `fold_k_train`;
+- validation data = CARE `fold_k_val` ∪ WSM `fold_k_val`;
+- preprocessing, PCA/scalers and task class weights are fitted only on this joint training portion;
+- checkpoint/model/feature/loss selection uses validation evidence only;
+- the selected fold checkpoint is evaluated on CARE TEST and WSM TEST for statistics.
+
+CARE-only and WSM-only training are not the primary baseline path. They may be added later only as explicit ablations.
+
+The fixed DEV split remains a development resource, but its exact role is deferred until the fold-based joint pipeline is implemented; it must never be silently mixed into TRAIN.
+
 ## Classifier structure
 
 The intended structure is:
@@ -118,9 +134,9 @@ Compare multitask optimization/balancing methods:
 
 Also compare separate single-task models.
 
-## Required metrics and fold-level TEST table
+## Required validation and fold-level TEST tables
 
-For each task, fold, and configuration report:
+For each task, fold, and configuration report the same six metrics on **validation** and on **TEST**:
 
 - Macro F1;
 - Weighted F1;
@@ -129,7 +145,9 @@ For each task, fold, and configuration report:
 - Patient Recall;
 - Healthy Recall.
 
-Every CV fold must be evaluated on both fixed TEST sets:
+For validation, report the CARE portion, WSM portion and metric-wise Average whenever both corpora have evaluable labels.
+
+Every CV fold must also be evaluated on both fixed TEST sets:
 
 - CARE TEST;
 - WSM TEST.
@@ -148,7 +166,11 @@ For binary classification:
 
 All metrics are computed only on rows where the corresponding disease label is observed.
 
-The intended reporting table has one row per Configuration × Task × Fold and three six-metric blocks: CARE, WSM, Average.
+The intended reporting format has one row per Configuration × Task × Fold and three six-metric blocks: CARE, WSM, Average.
+
+The **validation table is the selection table**.
+
+The **TEST table is statistics only** and must never drive model/feature/loss/hyperparameter decisions.
 
 ## Mantis temporalization
 
@@ -181,30 +203,16 @@ Exact checkpoint/layer/pooling and family-specific window construction are froze
 
 ## Cross-corpus programme
 
-Required experiment families:
+The **primary** programme is joint CARE + WSM training from the outset.
 
-1. **Within corpus**
-   - CARE alone;
-   - WSM alone.
+Deferred secondary studies, to be run only after the main joint model is established:
 
-2. **Direct transfer**
-   - CARE -> WSM;
-   - WSM -> CARE;
-   - no fitting/tuning on the target corpus.
+1. CARE-only / WSM-only ablations;
+2. direct transfer CARE -> WSM and WSM -> CARE;
+3. external D-Vlog / YouTubePD evaluation;
+4. small-target adaptation.
 
-3. **External test**
-   - Depression models on D-Vlog;
-   - Parkinson models on YouTubePD.
-
-4. **Joint training**
-   - CARE + WSM;
-   - evaluate separately on each corpus and on external sets.
-
-5. **Adaptation**
-   - fine-tune/adapt using a small labeled subset of target TRAIN;
-   - adaptation fractions/protocol must be frozen before running the study.
-
-External dataset locations and their fixed evaluation protocol must be supplied/verified before those tasks begin.
+These secondary protocols must not complicate or delay the primary joint feature/model search.
 
 ## Engineering
 

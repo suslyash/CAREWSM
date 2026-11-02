@@ -185,19 +185,38 @@ Also log an `Average` block computed as the simple arithmetic mean of the corres
 
 Report sample counts and observed-label counts beside metrics.
 
-## Evaluation discipline
+## Primary joint-fold training protocol
 
-- TRAIN folds: development and hyperparameter selection.
-- DEV: model/configuration selection.
-- For every CV fold/configuration, TEST evaluation on **both CARE and WSM** is mandatory for logging/reporting.
-- TEST results may be visible and persisted, but must not drive feature selection, model selection, threshold tuning, Optuna, reruns, ablation continuation or loss-method choice.
-- Selection decisions must be justified from TRAIN-CV/DEV evidence, never from TEST numbers.
+CARE and WSM are mixed from the beginning.
 
-For direct transfer, preprocessing is fitted on source TRAIN only and is not refitted on target data.
+For fold `k`:
 
-For adaptation, only the explicitly authorized labeled subset of target TRAIN may be used.
+- `joint_train_k = CARE fold_k_train + WSM fold_k_train`;
+- `joint_val_k = CARE fold_k_val + WSM fold_k_val`;
+- scaler/PCA/class weights are fitted only from `joint_train_k`;
+- checkpoint selection and early stopping use validation only;
+- the selected fold checkpoint is then evaluated on fixed CARE TEST and fixed WSM TEST.
 
-External D-Vlog/YouTubePD results are report-only unless the owner explicitly defines a separate development protocol.
+Do not train separate CARE-only or WSM-only models as the main screening protocol unless a manager task explicitly requests an ablation.
+
+## Validation and TEST discipline
+
+For every evaluated configuration/fold, log the six required metrics on validation and on TEST.
+
+Validation is the source of model-selection evidence.
+
+TEST is statistics/evidence only:
+
+- never choose features/models/losses/thresholds from TEST;
+- never choose Optuna trials from TEST;
+- never continue/reject an ablation because TEST improved or worsened;
+- never refit preprocessing from TEST.
+
+When useful, validation metrics should also be reported separately for CARE and WSM portions plus the same arithmetic Average used in the TEST table.
+
+The fixed DEV split may be used only when a later manager task defines its exact role; do not substitute DEV for the fold validation set implicitly.
+
+Direct-transfer, adaptation and external D-Vlog/YouTubePD studies are deferred until the primary joint CARE+WSM programme is established.
 
 ## Experiment integrity
 
