@@ -1,7 +1,7 @@
 """Deterministic, dependency-light audit of extracted audio feature artifacts."""
 from __future__ import annotations
 
-import argparse, csv, hashlib, json, math, os, time
+import argparse, csv, hashlib, json, math, os, time, ast, zipfile, re
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -14,48 +14,65 @@ def _finite(value):
     try: return math.isfinite(float(value))
     except (TypeError, ValueError): return False
 
+def _npy_header(data):
+    if not data.startswith(b"\x93NUMPY"): raise ValueError("not npy")
+    major=data[6]; header_len=int.from_bytes(data[8:10], "little") if major==1 else int.from_bytes(data[8:12], "little")
+    header=data[10:10+header_len] if major==1 else data[12:12+header_len]
+    return ast.literal_eval(header.decode("latin1").strip())
+
 def validate_artifact(path: Path, spec: dict) -> tuple[str, str]:
     if not path.exists(): return "MISSING", "file does not exist"
     if path.stat().st_size == 0: return "ZERO_BYTE", "zero-byte file"
     try:
         if spec["format"] == "csv":
             with path.open(newline="", encoding="utf-8-sig") as f:
-                r = csv.DictReader(f); cols = r.fieldnames or []
-                required = list(spec.get("metadata", []))
+                r=csv.DictReader(f); cols=r.fieldnames or []; required=list(spec.get("metadata", []))
                 if not set(required).issubset(cols): return "SCHEMA_MISMATCH", "missing metadata columns"
-                rows = list(r)
+                rows=list(r)
             if not rows: return "EMPTY", "no data rows"
-            numeric = [c for c in cols if c not in required]
+            numeric=[c for c in cols if c not in required]
             if not numeric: return "SCHEMA_MISMATCH", "no feature columns"
             for row in rows:
                 for c in numeric:
-                    if row.get(c, "") == "": return "INVALID_DTYPE", "blank/non-numeric feature value"
-                    if not _finite(row[c]): return "NONFINITE", "non-finite numeric value"
-            times = [float(row["frame_start_sec"]) for row in rows if row.get("frame_start_sec", "") != ""]
-            if times and any(b < a for a, b in zip(times, times[1:])): return "INVALID_SHAPE", "timestamps are not monotonic"
+                    if row.get(c,"")=="": return "INVALID_DTYPE", "blank/non-numeric feature value"
+                    try: value=float(row[c])
+                    except (TypeError, ValueError): return "INVALID_DTYPE", "non-numeric feature value"
+                    if not math.isfinite(value): return "NONFINITE", "non-finite numeric value"
+            for field in ("frame_start_sec","turn_start_sec"):
+                if field in cols:
+                    vals=[float(x[field]) for x in rows if x.get(field,"")!=""]
+                    if any(b<a for a,b in zip(vals,vals[1:])): return "INVALID_SHAPE", "timestamps are not monotonic"
             return "VALID", f"rows={len(rows)} cols={len(cols)}"
-        import numpy as np
-        with np.load(path, allow_pickle=False) as z:
-            keys = set(z.files); required = set(spec.get("metadata", []))
-            if not required.issubset(keys): return "SCHEMA_MISMATCH", "missing npz keys"
-            arrays = [z[k] for k in z.files if k not in required]
-            if not arrays: return "EMPTY", "no embedding arrays"
-            if any(a.size == 0 for a in arrays): return "EMPTY", "empty array"
-            if any(not np.issubdtype(a.dtype, np.number) for a in arrays): return "INVALID_DTYPE", "non-numeric array"
-            if any(not np.isfinite(a).all() for a in arrays): return "NONFINITE", "non-finite array"
-            if any(a.ndim < 1 for a in arrays): return "INVALID_SHAPE", "scalar array"
-            return "VALID", "keys=" + ",".join(sorted(keys))
-    except (OSError, ValueError, EOFError, UnicodeError, Exception) as e:
+        with zipfile.ZipFile(path) as z:
+            names=[n for n in z.namelist() if n.endswith('.npy')]
+            if not names: return "EMPTY", "no npy members"
+            required={k+'.npy' for k in spec.get('metadata', [])}
+            if not required.issubset(set(names)): return "SCHEMA_MISMATCH", "missing npz keys"
+            details=[]
+            for name in names:
+                h=_npy_header(z.read(name)[:512]); shape=h.get('shape',()); descr=h.get('descr','')
+                if not shape or any(int(x)==0 for x in shape): return "EMPTY", f"empty array: {name}"
+                if not isinstance(descr,str) or (descr[-2:-1] if len(descr)>1 else descr) not in 'biufc': return "INVALID_DTYPE", f"non-numeric array: {name}"
+                details.append(f"{name}:{shape}:{descr}")
+            return "VALID", ";".join(details)
+    except (OSError, ValueError, EOFError, UnicodeError, zipfile.BadZipFile, KeyError) as e:
         return "UNREADABLE", type(e).__name__
 
 def _feature_specs(registry):
     return {k: v for k, v in registry["sources"].items() if v.get("modality") == "audio"}
 
 def _artifact(root: Path, row: dict, filename: str) -> Path:
-    rel = row.get("video_dir", "")
-    parts = Path(rel).parts
-    if parts and parts[0] in (root.name, "CARE", "WSM_NEW"): rel = Path(*parts[1:])
-    return root / rel / filename
+    # Split video_dir values use legacy storage paths; extracted is authoritative.
+    label=row.get("label_id", "") or row.get("stratum", "")
+    subgroup=row.get("subgroup", "")
+    profile=row.get("profile_id", "")
+    video=row.get("video_id", "")
+    profile_dir=profile if profile.startswith("PROFILE_") else "PROFILE_"+profile
+    candidate=root/"extracted"/label/subgroup/profile_dir/(video if video.startswith("VIDEO_") else "VIDEO_"+video)
+    if candidate.exists(): return candidate/filename
+    rel=row.get("video_dir", ""); parts=Path(rel).parts
+    if parts and parts[0] in (root.name,"CARE","WSM_NEW"): rel=Path(*parts[1:])
+    return root/rel/filename
 
 def audit(corpus_roots: dict[str, Path], registry_path: Path, out: Path) -> dict:
     started = time.monotonic(); registry = json.loads(registry_path.read_text()); specs = _feature_specs(registry)
@@ -88,7 +105,38 @@ def audit(corpus_roots: dict[str, Path], registry_path: Path, out: Path) -> dict
     with mp.open("w",newline="",encoding="utf-8") as f:
         w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(manifest)
     digest=hashlib.sha256(mp.read_bytes()).hexdigest()
-    report={"runtime_sec":round(time.monotonic()-started,3),"rows":len(manifest),"feature_families":list(specs),"statuses":{f"{a}|{b}|{c}":n for (a,b,c),n in sorted(statuses.items())},"manifest":{"path":str(mp.resolve()),"sha256":digest,"bytes":mp.stat().st_size,"rows":len(manifest)},"split_notes":split_notes}
+    valid_cols=[n+"_valid" for n in specs]
+    pairwise={}
+    for i,a in enumerate(specs):
+        for b in list(specs)[i:]:
+            pairwise[a+"__"+b]=sum(bool(r[a+"_valid"] and r[b+"_valid"]) for r in manifest)
+    complete_case=sum(all(r[c] for c in valid_cols) for r in manifest)
+    label_coverage={}
+    for corpus in corpus_roots:
+        subset=[r for r in manifest if r["corpus"]==corpus]
+        label_coverage[corpus]={t:{"observed":sum(r[t+"_observed"] for r in subset),"positive":sum(r[t]=="1" for r in subset if r[t+"_observed"]),"negative":sum(r[t]=="0" for r in subset if r[t+"_observed"])} for t in ("depression","parkinson")}
+    split_contract={}
+    for corpus,root in corpus_roots.items():
+        split_contract[corpus]={}; seen={}
+        for n in ("train","dev","test"):
+            rows=rows_by.get(n,[]); ids=[r.get("sample_id","") for r in rows]; profiles={r.get("profile_id","") for r in rows}
+            seen[n]=set(ids); split_contract[corpus][n]={"rows":len(rows),"profiles":len(profiles),"duplicate_sample_ids":len(ids)-len(set(ids)),"declared_split_mismatch":sum(r.get("split")!=n for r in rows)}
+        for a in ("train","dev","test"):
+            for b in ("train","dev","test"):
+                if a<b: split_contract[corpus][a+"_vs_"+b+"_sample_overlap"]=len(seen[a]&seen[b])
+        folds={}
+        for k in range(5):
+            tr=_read_csv(root/"splits"/"folds"/f"fold_{k}_train.csv") if (root/"splits"/"folds"/f"fold_{k}_train.csv").exists() else []
+            va=_read_csv(root/"splits"/"folds"/f"fold_{k}_val.csv") if (root/"splits"/"folds"/f"fold_{k}_val.csv").exists() else []
+            folds[str(k)]={"train_rows":len(tr),"val_rows":len(va),"train_profiles":len({x.get("profile_id","") for x in tr}),"val_profiles":len({x.get("profile_id","") for x in va}),"sample_overlap":len({x.get("sample_id","") for x in tr}&{x.get("sample_id","") for x in va})}
+        split_contract[corpus]["folds"]=folds
+    joint={}
+    for k in range(5):
+        joint[str(k)]={}
+        for corpus in corpus_roots:
+            f=split_contract[corpus]["folds"][str(k)]; joint[str(k)][corpus]={"train_rows":f["train_rows"],"val_rows":f["val_rows"],"train_profiles":f["train_profiles"],"val_profiles":f["val_profiles"]}
+        joint[str(k)]["train_rows_total"]=sum(joint[str(k)][c]["train_rows"] for c in corpus_roots); joint[str(k)]["val_rows_total"]=sum(joint[str(k)][c]["val_rows"] for c in corpus_roots)
+    report={"runtime_sec":round(time.monotonic()-started,3),"rows":len(manifest),"feature_families":list(specs),"statuses":{f"{a}|{b}|{c}":n for (a,b,c),n in sorted(statuses.items())},"manifest":{"path":str(mp.resolve()),"sha256":digest,"bytes":mp.stat().st_size,"rows":len(manifest)},"split_notes":split_notes,"split_contract":split_contract,"joint_fold_compatibility":joint,"pairwise_joint_valid":pairwise,"complete_case_all_families":complete_case,"complete_case_percent":100*complete_case/len(manifest) if manifest else 0,"label_coverage":label_coverage}
     (out/"audit_summary.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
     return report
 

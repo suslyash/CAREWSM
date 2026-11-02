@@ -2,11 +2,11 @@
 
 ## Executive result
 
-The live CARE registry contains 19 sources: 11 audio, 5 video and 3 text. The operational audio registry is the 11 names below. The deterministic audit inspected 11,400 split rows (CARE 2,031; WSM 9,369) and wrote one row per sample/family status. No source artifact or canonical split was modified.
+The corrected audit inspected 11,676 manifest rows in 472.43s. WSM artifacts are resolved through `extracted/<label>/<subgroup>/PROFILE_<id>/VIDEO_<id>`; the legacy CSV `video_dir` is retained only as evidence. CARE NPZ files pass dependency-light NPY header validation.
 
-## Operational audio registry and temporal evidence
+## Registry and temporal semantics
 
-| family | artifact | level | temporal/Mantis classification |
+| family | artifact | level | provisional Mantis classification |
 |---|---|---|---|
 | egemaps_func | egemaps_func.csv | turn | MANTIS_WINDOWABLE_FROM_TIMESTAMPS |
 | egemaps_lld | egemaps_lld.csv | frame_in_turn | MANTIS_WINDOWABLE_NATIVE |
@@ -20,33 +20,102 @@ The live CARE registry contains 19 sources: 11 audio, 5 video and 3 text. The op
 | emotionmsp_trajectories | emotionmsp_trajectories.csv | turn | MANTIS_WINDOWABLE_FROM_TIMESTAMPS |
 | emotionmsp_embeds | emotionmsp_embeds.npz | turn_embedding | NATIVE_ONLY_NO_DEFENSIBLE_1S_AXIS |
 
-CSV timestamp metadata are `turn_start_sec`/`turn_end_sec`; frame/segment sources additionally expose `frame_start_sec`/`frame_end_sec`. NPZ sources expose turn IDs but no timing fields. Valid-observation/confidence fields are not present in the 11 audio schemas.
+## Split/fold/profile contract
 
-## Split/fold/label sanity
+CARE has no `splits/videos.csv`. Both datasets have duplicate sample-free train/dev/test files at the file level, but their embedded split values expose a critical inconsistency: `train.csv` contains 936 rows declared as `dev` in both corpora, and those 936 rows overlap the corresponding `dev.csv`. No train/test overlap was observed. Five fold train/val files exist for both corpora and have zero train/val sample overlap.
 
-CARE has train/dev/test CSVs but no `splits/videos.csv`; its split rows expose `sample_id`, `profile_id`, `video_dir`, `split`, `cv_fold`, and `label_id`. WSM has `videos.csv` and train/dev/test CSVs, but `train.csv` contains rows whose embedded `split` value is `dev`; this is recorded, not normalized. WSM `videos.csv` exposes `y_depression` and `y_parkinson`, with empty values representing unavailable labels. Five fold train/val files exist for both corpora. The audit does not regenerate or pair manifests.
+| corpus | split | rows | profiles | declared mismatch |
+|---|---|---:|---:|---:|
+| CARE | train | 7069 | 638 | 936 |
+| CARE | dev | 936 | 100 | 0 |
+| CARE | test | 1364 | 101 | 0 |
+| WSM | train | 7069 | 638 | 936 |
+| WSM | dev | 936 | 100 | 0 |
+| WSM | test | 1364 | 101 | 0 |
 
-## Coverage and failures
+Joint fold totals:
 
-| corpus | rows | notable statuses |
-|---|---:|---|
-| CARE | 2,031 | eGeMAPS and emotion trajectories valid for all; DisVoice static/dynamic have INVALID_DTYPE failures; three NPZ families are UNREADABLE under the required NPZ schema |
-| WSM | 9,369 | all 11 families MISSING under the split `video_dir` mapping |
+| fold | train rows | val rows |
+|---:|---:|---:|
+| 0 | 7001 | 1781 |
+| 1 | 7029 | 1753 |
+| 2 | 7048 | 1734 |
+| 3 | 7022 | 1760 |
+| 4 | 7028 | 1754 |
 
-Exact counts, per-family status counts, and deterministic manifest metadata are in `reports/feature_audit/audit_summary.json`. Pairwise and complete-case coverage is represented by the per-family boolean columns and can be calculated without re-opening artifacts; no complete-case promotion is made by this audit because WSM has no valid mapped artifact rows.
+## Status and coverage
+
+The manifest contains one status and boolean validity column per family. Selected status counts:
+
+| corpus | family | VALID | MISSING | EMPTY | INVALID_DTYPE |
+|---|---|---:|---:|---:|---:|
+| CARE | egemaps_func | 2307 | 0 | 0 | 0 |
+| CARE | egemaps_lld | 2307 | 0 | 0 | 0 |
+| CARE | disvoice_prosody_static | 1054 | 0 | 0 | 1253 |
+| CARE | disvoice_prosody_dynamic | 2278 | 0 | 0 | 29 |
+| CARE | disvoice_phonation_static | 2203 | 0 | 0 | 104 |
+| CARE | disvoice_phonation_dynamic | 2307 | 0 | 0 | 0 |
+| CARE | disvoice_articulation_static | 2295 | 0 | 0 | 12 |
+| CARE | wav2vec_xlsr300m | 2307 | 0 | 0 | 0 |
+| CARE | trillsson4_1 | 2307 | 0 | 0 | 0 |
+| CARE | emotionmsp_trajectories | 2307 | 0 | 0 | 0 |
+| CARE | emotionmsp_embeds | 2307 | 0 | 0 | 0 |
+| WSM | egemaps_func | 9361 | 6 | 0 | 2 |
+| WSM | egemaps_lld | 9361 | 6 | 0 | 2 |
+| WSM | disvoice_prosody_static | 7691 | 6 | 0 | 1672 |
+| WSM | disvoice_prosody_dynamic | 9276 | 6 | 0 | 87 |
+| WSM | disvoice_phonation_static | 9267 | 6 | 0 | 96 |
+| WSM | disvoice_phonation_dynamic | 9268 | 6 | 95 | 0 |
+| WSM | disvoice_articulation_static | 9311 | 6 | 0 | 52 |
+| WSM | wav2vec_xlsr300m | 9363 | 6 | 0 | 0 |
+| WSM | trillsson4_1 | 9363 | 6 | 0 | 0 |
+| WSM | emotionmsp_trajectories | 9363 | 6 | 0 | 0 |
+| WSM | emotionmsp_embeds | 9363 | 6 | 0 | 0 |
+
+Global complete-case across all 11 families: **8,650/11,676 (74.08%)**.
+
+Pairwise joint-valid counts are recorded in `audit_summary.json` under `pairwise_joint_valid`; diagonal entries are single-family valid counts. This includes the required pairwise matrix without pooling or deleting samples.
+
+## Observed label coverage
+
+```json
+{
+  "CARE": {
+    "depression": {
+      "negative": 1703,
+      "observed": 2307,
+      "positive": 604
+    },
+    "parkinson": {
+      "negative": 2074,
+      "observed": 2307,
+      "positive": 233
+    }
+  },
+  "WSM": {
+    "depression": {
+      "negative": 3335,
+      "observed": 5735,
+      "positive": 2400
+    },
+    "parkinson": {
+      "negative": 2233,
+      "observed": 3634,
+      "positive": 1401
+    }
+  }
+}
+```
 
 ## Manifest and reproducibility
 
 - path: `/media/maxim/Programs/Projects/CAREWSM/reports/feature_audit/sample_feature_availability.csv`
-- rows: 11,400; bytes: 2,994,550
-- SHA256: `505d5f61ed917de081f8cec111c0bb2704ea5eaef6570e98a9c3d291cc8c7d9f`
-- runtime: 137.99 s
+- rows: 11,676; bytes: 2,731,277
+- SHA256: `00fd495ceecb488e1064b91bba40afaeae2a397a6900d5dd093926841f53cbe6`
 - command: `python3 -m src.audio.data.feature_audit --out reports/feature_audit`
 
-## Tests and limitations
+## Tests, limitations and recommendation
 
-Reusable validation functions and focused synthetic tests cover missing, empty, valid, schema-mismatch, non-finite and invalid-dtype CSV artifacts. The environment has no `pytest` executable/module, so the focused test command could not run. NPZ artifacts were opened with `allow_pickle=False`; unreadable NPZ statuses are preserved. WSM path mapping and the split anomaly require manager review before TASK-002.
+Focused synthetic tests cover valid, missing, corrupt/unreadable, empty, wrong schema/shape, invalid dtype, NaN/Inf and timestamp order. The project venv runs pytest. WSM has six missing rows per family under the corrected mapping; this is real artifact absence, not a path-mapping failure. The split inconsistency and absent CARE videos registry remain explicit manager-review findings.
 
-## Recommendation for TASK-002
-
-First reconcile WSM split `video_dir`/feature-directory semantics and the CARE missing `videos.csv` contract. Then freeze a data-layer identity mapping. Only timestamp-bearing families should proceed to native 1-second/0.5-second windowization; turn/static and turn-embedding families remain native-only until a later approved mapping.
+TASK-002 should consume the corrected extracted-path mapping and preserve the split/fold contract findings. Only timestamp-bearing families are candidates for defensible 1.0-second/0.5-second windowization; turn/static embeddings remain native-only pending an approved mapping.

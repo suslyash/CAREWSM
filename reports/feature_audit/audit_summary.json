@@ -1,4 +1,6 @@
 {
+  "complete_case_all_families": 8650,
+  "complete_case_percent": 74.08359027064063,
   "feature_families": [
     "egemaps_func",
     "egemaps_lld",
@@ -12,44 +14,361 @@
     "emotionmsp_trajectories",
     "emotionmsp_embeds"
   ],
-  "manifest": {
-    "bytes": 2994550,
-    "path": "/media/maxim/Programs/Projects/CAREWSM/reports/feature_audit/sample_feature_availability.csv",
-    "rows": 11400,
-    "sha256": "505d5f61ed917de081f8cec111c0bb2704ea5eaef6570e98a9c3d291cc8c7d9f"
+  "joint_fold_compatibility": {
+    "0": {
+      "CARE": {
+        "train_profiles": 191,
+        "train_rows": 1361,
+        "val_profiles": 49,
+        "val_rows": 352
+      },
+      "WSM": {
+        "train_profiles": 511,
+        "train_rows": 5640,
+        "val_profiles": 127,
+        "val_rows": 1429
+      },
+      "train_rows_total": 7001,
+      "val_rows_total": 1781
+    },
+    "1": {
+      "CARE": {
+        "train_profiles": 197,
+        "train_rows": 1368,
+        "val_profiles": 43,
+        "val_rows": 345
+      },
+      "WSM": {
+        "train_profiles": 511,
+        "train_rows": 5661,
+        "val_profiles": 127,
+        "val_rows": 1408
+      },
+      "train_rows_total": 7029,
+      "val_rows_total": 1753
+    },
+    "2": {
+      "CARE": {
+        "train_profiles": 190,
+        "train_rows": 1378,
+        "val_profiles": 50,
+        "val_rows": 335
+      },
+      "WSM": {
+        "train_profiles": 509,
+        "train_rows": 5670,
+        "val_profiles": 129,
+        "val_rows": 1399
+      },
+      "train_rows_total": 7048,
+      "val_rows_total": 1734
+    },
+    "3": {
+      "CARE": {
+        "train_profiles": 190,
+        "train_rows": 1382,
+        "val_profiles": 50,
+        "val_rows": 331
+      },
+      "WSM": {
+        "train_profiles": 512,
+        "train_rows": 5640,
+        "val_profiles": 126,
+        "val_rows": 1429
+      },
+      "train_rows_total": 7022,
+      "val_rows_total": 1760
+    },
+    "4": {
+      "CARE": {
+        "train_profiles": 192,
+        "train_rows": 1363,
+        "val_profiles": 48,
+        "val_rows": 350
+      },
+      "WSM": {
+        "train_profiles": 509,
+        "train_rows": 5665,
+        "val_profiles": 129,
+        "val_rows": 1404
+      },
+      "train_rows_total": 7028,
+      "val_rows_total": 1754
+    }
   },
-  "rows": 11400,
-  "runtime_sec": 137.99,
+  "label_coverage": {
+    "CARE": {
+      "depression": {
+        "negative": 1703,
+        "observed": 2307,
+        "positive": 604
+      },
+      "parkinson": {
+        "negative": 2074,
+        "observed": 2307,
+        "positive": 233
+      }
+    },
+    "WSM": {
+      "depression": {
+        "negative": 3335,
+        "observed": 5735,
+        "positive": 2400
+      },
+      "parkinson": {
+        "negative": 2233,
+        "observed": 3634,
+        "positive": 1401
+      }
+    }
+  },
+  "manifest": {
+    "bytes": 2731277,
+    "path": "/media/maxim/Programs/Projects/CAREWSM/reports/feature_audit/sample_feature_availability.csv",
+    "rows": 11676,
+    "sha256": "00fd495ceecb488e1064b91bba40afaeae2a397a6900d5dd093926841f53cbe6"
+  },
+  "pairwise_joint_valid": {
+    "disvoice_articulation_static__disvoice_articulation_static": 11606,
+    "disvoice_articulation_static__emotionmsp_embeds": 11606,
+    "disvoice_articulation_static__emotionmsp_trajectories": 11606,
+    "disvoice_articulation_static__trillsson4_1": 11606,
+    "disvoice_articulation_static__wav2vec_xlsr300m": 11606,
+    "disvoice_phonation_dynamic__disvoice_articulation_static": 11562,
+    "disvoice_phonation_dynamic__disvoice_phonation_dynamic": 11575,
+    "disvoice_phonation_dynamic__emotionmsp_embeds": 11575,
+    "disvoice_phonation_dynamic__emotionmsp_trajectories": 11575,
+    "disvoice_phonation_dynamic__trillsson4_1": 11575,
+    "disvoice_phonation_dynamic__wav2vec_xlsr300m": 11575,
+    "disvoice_phonation_static__disvoice_articulation_static": 11460,
+    "disvoice_phonation_static__disvoice_phonation_dynamic": 11470,
+    "disvoice_phonation_static__disvoice_phonation_static": 11470,
+    "disvoice_phonation_static__emotionmsp_embeds": 11470,
+    "disvoice_phonation_static__emotionmsp_trajectories": 11470,
+    "disvoice_phonation_static__trillsson4_1": 11470,
+    "disvoice_phonation_static__wav2vec_xlsr300m": 11470,
+    "disvoice_prosody_dynamic__disvoice_articulation_static": 11541,
+    "disvoice_prosody_dynamic__disvoice_phonation_dynamic": 11545,
+    "disvoice_prosody_dynamic__disvoice_phonation_static": 11469,
+    "disvoice_prosody_dynamic__disvoice_prosody_dynamic": 11554,
+    "disvoice_prosody_dynamic__emotionmsp_embeds": 11554,
+    "disvoice_prosody_dynamic__emotionmsp_trajectories": 11554,
+    "disvoice_prosody_dynamic__trillsson4_1": 11554,
+    "disvoice_prosody_dynamic__wav2vec_xlsr300m": 11554,
+    "disvoice_prosody_static__disvoice_articulation_static": 8693,
+    "disvoice_prosody_static__disvoice_phonation_dynamic": 8660,
+    "disvoice_prosody_static__disvoice_phonation_static": 8652,
+    "disvoice_prosody_static__disvoice_prosody_dynamic": 8657,
+    "disvoice_prosody_static__disvoice_prosody_static": 8745,
+    "disvoice_prosody_static__emotionmsp_embeds": 8745,
+    "disvoice_prosody_static__emotionmsp_trajectories": 8745,
+    "disvoice_prosody_static__trillsson4_1": 8745,
+    "disvoice_prosody_static__wav2vec_xlsr300m": 8745,
+    "egemaps_func__disvoice_articulation_static": 11606,
+    "egemaps_func__disvoice_phonation_dynamic": 11575,
+    "egemaps_func__disvoice_phonation_static": 11470,
+    "egemaps_func__disvoice_prosody_dynamic": 11554,
+    "egemaps_func__disvoice_prosody_static": 8743,
+    "egemaps_func__egemaps_func": 11668,
+    "egemaps_func__egemaps_lld": 11668,
+    "egemaps_func__emotionmsp_embeds": 11668,
+    "egemaps_func__emotionmsp_trajectories": 11668,
+    "egemaps_func__trillsson4_1": 11668,
+    "egemaps_func__wav2vec_xlsr300m": 11668,
+    "egemaps_lld__disvoice_articulation_static": 11606,
+    "egemaps_lld__disvoice_phonation_dynamic": 11575,
+    "egemaps_lld__disvoice_phonation_static": 11470,
+    "egemaps_lld__disvoice_prosody_dynamic": 11554,
+    "egemaps_lld__disvoice_prosody_static": 8743,
+    "egemaps_lld__egemaps_lld": 11668,
+    "egemaps_lld__emotionmsp_embeds": 11668,
+    "egemaps_lld__emotionmsp_trajectories": 11668,
+    "egemaps_lld__trillsson4_1": 11668,
+    "egemaps_lld__wav2vec_xlsr300m": 11668,
+    "emotionmsp_embeds__emotionmsp_embeds": 11670,
+    "emotionmsp_trajectories__emotionmsp_embeds": 11670,
+    "emotionmsp_trajectories__emotionmsp_trajectories": 11670,
+    "trillsson4_1__emotionmsp_embeds": 11670,
+    "trillsson4_1__emotionmsp_trajectories": 11670,
+    "trillsson4_1__trillsson4_1": 11670,
+    "wav2vec_xlsr300m__emotionmsp_embeds": 11670,
+    "wav2vec_xlsr300m__emotionmsp_trajectories": 11670,
+    "wav2vec_xlsr300m__trillsson4_1": 11670,
+    "wav2vec_xlsr300m__wav2vec_xlsr300m": 11670
+  },
+  "rows": 11676,
+  "runtime_sec": 472.427,
+  "split_contract": {
+    "CARE": {
+      "dev": {
+        "declared_split_mismatch": 0,
+        "duplicate_sample_ids": 0,
+        "profiles": 100,
+        "rows": 936
+      },
+      "dev_vs_test_sample_overlap": 0,
+      "dev_vs_train_sample_overlap": 936,
+      "folds": {
+        "0": {
+          "sample_overlap": 0,
+          "train_profiles": 191,
+          "train_rows": 1361,
+          "val_profiles": 49,
+          "val_rows": 352
+        },
+        "1": {
+          "sample_overlap": 0,
+          "train_profiles": 197,
+          "train_rows": 1368,
+          "val_profiles": 43,
+          "val_rows": 345
+        },
+        "2": {
+          "sample_overlap": 0,
+          "train_profiles": 190,
+          "train_rows": 1378,
+          "val_profiles": 50,
+          "val_rows": 335
+        },
+        "3": {
+          "sample_overlap": 0,
+          "train_profiles": 190,
+          "train_rows": 1382,
+          "val_profiles": 50,
+          "val_rows": 331
+        },
+        "4": {
+          "sample_overlap": 0,
+          "train_profiles": 192,
+          "train_rows": 1363,
+          "val_profiles": 48,
+          "val_rows": 350
+        }
+      },
+      "test": {
+        "declared_split_mismatch": 0,
+        "duplicate_sample_ids": 0,
+        "profiles": 101,
+        "rows": 1364
+      },
+      "test_vs_train_sample_overlap": 0,
+      "train": {
+        "declared_split_mismatch": 936,
+        "duplicate_sample_ids": 0,
+        "profiles": 638,
+        "rows": 7069
+      }
+    },
+    "WSM": {
+      "dev": {
+        "declared_split_mismatch": 0,
+        "duplicate_sample_ids": 0,
+        "profiles": 100,
+        "rows": 936
+      },
+      "dev_vs_test_sample_overlap": 0,
+      "dev_vs_train_sample_overlap": 936,
+      "folds": {
+        "0": {
+          "sample_overlap": 0,
+          "train_profiles": 511,
+          "train_rows": 5640,
+          "val_profiles": 127,
+          "val_rows": 1429
+        },
+        "1": {
+          "sample_overlap": 0,
+          "train_profiles": 511,
+          "train_rows": 5661,
+          "val_profiles": 127,
+          "val_rows": 1408
+        },
+        "2": {
+          "sample_overlap": 0,
+          "train_profiles": 509,
+          "train_rows": 5670,
+          "val_profiles": 129,
+          "val_rows": 1399
+        },
+        "3": {
+          "sample_overlap": 0,
+          "train_profiles": 512,
+          "train_rows": 5640,
+          "val_profiles": 126,
+          "val_rows": 1429
+        },
+        "4": {
+          "sample_overlap": 0,
+          "train_profiles": 509,
+          "train_rows": 5665,
+          "val_profiles": 129,
+          "val_rows": 1404
+        }
+      },
+      "test": {
+        "declared_split_mismatch": 0,
+        "duplicate_sample_ids": 0,
+        "profiles": 101,
+        "rows": 1364
+      },
+      "test_vs_train_sample_overlap": 0,
+      "train": {
+        "declared_split_mismatch": 936,
+        "duplicate_sample_ids": 0,
+        "profiles": 638,
+        "rows": 7069
+      }
+    }
+  },
   "split_notes": [
     "CARE: missing splits/videos.csv",
+    "CARE: train.csv contains rows with split != train",
     "WSM: train.csv contains rows with split != train"
   ],
   "statuses": {
-    "CARE|disvoice_articulation_static|INVALID_DTYPE": 11,
-    "CARE|disvoice_articulation_static|VALID": 2020,
-    "CARE|disvoice_phonation_dynamic|VALID": 2031,
-    "CARE|disvoice_phonation_static|INVALID_DTYPE": 93,
-    "CARE|disvoice_phonation_static|VALID": 1938,
-    "CARE|disvoice_prosody_dynamic|INVALID_DTYPE": 27,
-    "CARE|disvoice_prosody_dynamic|VALID": 2004,
-    "CARE|disvoice_prosody_static|INVALID_DTYPE": 1096,
-    "CARE|disvoice_prosody_static|VALID": 935,
-    "CARE|egemaps_func|VALID": 2031,
-    "CARE|egemaps_lld|VALID": 2031,
-    "CARE|emotionmsp_embeds|UNREADABLE": 2031,
-    "CARE|emotionmsp_trajectories|VALID": 2031,
-    "CARE|trillsson4_1|UNREADABLE": 2031,
-    "CARE|wav2vec_xlsr300m|UNREADABLE": 2031,
-    "WSM|disvoice_articulation_static|MISSING": 9369,
-    "WSM|disvoice_phonation_dynamic|MISSING": 9369,
-    "WSM|disvoice_phonation_static|MISSING": 9369,
-    "WSM|disvoice_prosody_dynamic|MISSING": 9369,
-    "WSM|disvoice_prosody_static|MISSING": 9369,
-    "WSM|egemaps_func|MISSING": 9369,
-    "WSM|egemaps_lld|MISSING": 9369,
-    "WSM|emotionmsp_embeds|MISSING": 9369,
-    "WSM|emotionmsp_trajectories|MISSING": 9369,
-    "WSM|trillsson4_1|MISSING": 9369,
-    "WSM|wav2vec_xlsr300m|MISSING": 9369
+    "CARE|disvoice_articulation_static|INVALID_DTYPE": 12,
+    "CARE|disvoice_articulation_static|VALID": 2295,
+    "CARE|disvoice_phonation_dynamic|VALID": 2307,
+    "CARE|disvoice_phonation_static|INVALID_DTYPE": 104,
+    "CARE|disvoice_phonation_static|VALID": 2203,
+    "CARE|disvoice_prosody_dynamic|INVALID_DTYPE": 29,
+    "CARE|disvoice_prosody_dynamic|VALID": 2278,
+    "CARE|disvoice_prosody_static|INVALID_DTYPE": 1253,
+    "CARE|disvoice_prosody_static|VALID": 1054,
+    "CARE|egemaps_func|VALID": 2307,
+    "CARE|egemaps_lld|VALID": 2307,
+    "CARE|emotionmsp_embeds|VALID": 2307,
+    "CARE|emotionmsp_trajectories|VALID": 2307,
+    "CARE|trillsson4_1|VALID": 2307,
+    "CARE|wav2vec_xlsr300m|VALID": 2307,
+    "WSM|disvoice_articulation_static|INVALID_DTYPE": 52,
+    "WSM|disvoice_articulation_static|MISSING": 6,
+    "WSM|disvoice_articulation_static|VALID": 9311,
+    "WSM|disvoice_phonation_dynamic|EMPTY": 95,
+    "WSM|disvoice_phonation_dynamic|MISSING": 6,
+    "WSM|disvoice_phonation_dynamic|VALID": 9268,
+    "WSM|disvoice_phonation_static|INVALID_DTYPE": 96,
+    "WSM|disvoice_phonation_static|MISSING": 6,
+    "WSM|disvoice_phonation_static|VALID": 9267,
+    "WSM|disvoice_prosody_dynamic|INVALID_DTYPE": 87,
+    "WSM|disvoice_prosody_dynamic|MISSING": 6,
+    "WSM|disvoice_prosody_dynamic|VALID": 9276,
+    "WSM|disvoice_prosody_static|INVALID_DTYPE": 1672,
+    "WSM|disvoice_prosody_static|MISSING": 6,
+    "WSM|disvoice_prosody_static|VALID": 7691,
+    "WSM|egemaps_func|INVALID_DTYPE": 2,
+    "WSM|egemaps_func|MISSING": 6,
+    "WSM|egemaps_func|VALID": 9361,
+    "WSM|egemaps_lld|INVALID_DTYPE": 2,
+    "WSM|egemaps_lld|MISSING": 6,
+    "WSM|egemaps_lld|VALID": 9361,
+    "WSM|emotionmsp_embeds|MISSING": 6,
+    "WSM|emotionmsp_embeds|VALID": 9363,
+    "WSM|emotionmsp_trajectories|MISSING": 6,
+    "WSM|emotionmsp_trajectories|VALID": 9363,
+    "WSM|trillsson4_1|MISSING": 6,
+    "WSM|trillsson4_1|VALID": 9363,
+    "WSM|wav2vec_xlsr300m|MISSING": 6,
+    "WSM|wav2vec_xlsr300m|VALID": 9363
   }
 }
