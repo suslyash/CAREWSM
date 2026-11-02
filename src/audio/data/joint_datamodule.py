@@ -128,6 +128,8 @@ class JointDataModule:
         train = sum((self._fold(c, fold, "train") for c in self.roots), [])
         val = sum((self._fold(c, fold, "val") for c in self.roots), [])
         self._assert_isolated(train, val, "TRAIN", "VAL")
+        test = sum(([self._samples[(c, sid)] for sid in sorted(self._source[c]["test"])] for c in self.roots), [])
+        self._assert_isolated(train + val, test, "TRAIN/VAL", "TEST")
         return {"train": self._view(f"fold_{fold}_train", train, fold, selected),
                 "val": self._view(f"fold_{fold}_val", val, fold, selected),
                 "care_val": self._view(f"fold_{fold}_care_val", [x for x in val if x.corpus == "CARE"], fold, selected),
@@ -153,9 +155,12 @@ class JointDataModule:
             except (KeyError, ValueError) as e: raise DataContractError(f"invalid CSV schema: {path}") from e
             return NativeFeature(values, {c: np.asarray([float(r[c]) for r in rows], dtype=np.float32) for c in metadata}, family, path)
         with np.load(path, allow_pickle=False) as z:
-            arrays = [np.asarray(z[k]) for k in z.files if k not in set(spec.get("metadata", []))]
-            if not arrays: raise DataContractError(f"no numeric arrays: {path}")
-            values = arrays[0] if arrays[0].ndim == 2 else arrays[0].reshape(len(arrays[0]), -1)
+            keys = spec.get("embedding_keys", [])
+            key = "embed" if family == "emotionmsp_embeds" else (keys[0] if keys else None)
+            if key is None or key not in z.files: raise DataContractError(f"required NPZ key {key!r} missing: {path}")
+            values = np.asarray(z[key])
+            if values.ndim == 1: values = values.reshape(1, -1)
+            if values.ndim != 2: raise DataContractError(f"NPZ key {key!r} must be 2-D: {path}")
             metadata = {k: np.asarray(z[k]) for k in z.files if k in set(spec.get("metadata", []))}
         return NativeFeature(values.astype(np.float32), metadata, family, path)
 

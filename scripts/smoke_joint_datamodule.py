@@ -13,6 +13,8 @@ def main() -> None:
     both = dm.fold(0, ("egemaps_func", "wav2vec_xlsr300m"))
     print("two_family", len(both["train"]), len(both["val"]), len(both["care_test"]), len(both["wsm_test"]))
     sample = next(iter(dm.fold(0)["train"])); feature = dm.load_native(sample, "egemaps_func")
+    embedding = dm.load_native(sample, "emotionmsp_embeds")
     print("representative", sample.key, feature.values.shape, sorted(feature.metadata), feature.values.dtype)
+    print("npz_embed", embedding.values.shape, embedding.values.dtype)
 
 if __name__ == "__main__": main()
