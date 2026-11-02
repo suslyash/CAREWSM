@@ -11,8 +11,7 @@ Status: PREPARED; no real training was run in this revision by explicit owner in
 
 ## Launchers
 
-- `scripts/runs/run_audio_mptsnet_native_egemaps_lld.sh`
-- `scripts/runs/run_audio_mdformer_native_egemaps_lld.sh`
+- `scripts/run_audio_experiments.py` with explicit `--list`, `--series`, and `--all` modes
 
 Each launcher uses `set -euo pipefail`, runs folds 0–4 sequentially through `.venv/bin/chimera-ml train`, and stops on the first failed fold. It does not sweep seeds, architectures, features or hyperparameters.
 
@@ -26,7 +25,7 @@ The existing joint CARE+WSM DataModule reads canonical fold TRAIN/VAL rows for e
 
 ## Artifacts and logs
 
-The intended final run directory is `logs/audio_<architecture>_<representation>_<feature>_fold<k>/`, containing `train.log`, `summary.txt`, resolved YAML, checkpoint and snapshot. `scripts/collect_summary.py --root logs --output all_summary.txt` collects completed runs. `scripts/clean_audio_logs.sh` is a separate dry-run-by-default cleaner; it was not run.
+The intended final run directory is `logs/audio_<architecture>_<representation>_<feature>_fold<k>/`, created directly by the project Chimera plugin path hook, containing `train.log`, `summary.txt`, resolved YAML, checkpoint and snapshot. `scripts/collect_summary.py --root logs --output all_summary.txt` collects completed runs. `scripts/clean_audio_logs.sh` is a separate dry-run-by-default cleaner; it was not run.
 
 ## Static verification
 

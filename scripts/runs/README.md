@@ -1,24 +1,16 @@
-# CAREWSM audio series launchers
+# CAREWSM audio series launcher
 
-These launchers are prepared for owner-run experiments. They do not run automatically during repository checks.
-
-## Commands
+Use the single explicit launcher:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 bash scripts/runs/run_audio_mptsnet_native_egemaps_lld.sh
-CUDA_VISIBLE_DEVICES=0 bash scripts/runs/run_audio_mdformer_native_egemaps_lld.sh
+.venv/bin/python scripts/run_audio_experiments.py --list
+CUDA_VISIBLE_DEVICES=0 .venv/bin/python scripts/run_audio_experiments.py --series mptsnet_native_egemaps_lld
+CUDA_VISIBLE_DEVICES=0 .venv/bin/python scripts/run_audio_experiments.py --series mdformer_native_egemaps_lld
+CUDA_VISIBLE_DEVICES=0 .venv/bin/python scripts/run_audio_experiments.py --all
 ```
 
-Each launcher runs folds 0–4 sequentially from one fixed-seed YAML series. A non-zero Chimera exit stops the launcher because `set -euo pipefail` is enabled. Stop a running fold with `Ctrl-C`; rerun the launcher only after deciding whether to preserve or manually archive its existing run directory. No automatic cleanup is performed.
+With no arguments the script prints help and launches nothing. It has one automatic loop per selected series, over folds 0–4 only. The seed remains the single fixed seed in the series YAML; there is no seed sweep. Each fold invokes the official Chimera-ML CLI and a non-zero exit stops the script.
 
-Each completed fold is flattened to:
+Before launching, the script refuses to overwrite `logs/audio_<architecture>_<representation>_<feature>_fold<k>/`. The project Chimera plugin configures the standard console/file logger, checkpoint and snapshot callbacks to use that directory directly; no `find`, `mv`, rename, or post-hoc flattening is used. MLflow run identity remains the experiment/run identity for the same fold.
 
-`logs/audio_<architecture>_<representation>_<feature>_fold<k>/`
-
-The directory contains the console/file `train.log`, `summary.txt`, resolved YAML snapshot, VAL-selected checkpoint, and code snapshot. MLflow uses the configured local tracking database and receives a separate run for each fold.
-
-`python3 scripts/collect_summary.py --root logs --output all_summary.txt` collects completed summaries without modifying source logs.
-
-`bash scripts/clean_audio_logs.sh` is a dry-run by default; pass `--apply` only after reviewing its printed directories. It was not run as part of static preparation.
-
-TEST evaluation is intentionally not part of epoch training or checkpoint selection. It must be implemented/run separately against a selected fixed checkpoint.
+Each run contains `train.log`, `summary.txt`, resolved YAML, checkpoint(s), and snapshot artifacts. Collect completed summaries with `python3 scripts/collect_summary.py --root logs --output all_summary.txt`. TEST is not part of training or checkpoint selection.
