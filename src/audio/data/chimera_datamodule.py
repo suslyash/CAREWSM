@@ -10,9 +10,9 @@ from audio.features.representations import native_representation, pooled_native_
 
 class NativeDataset(Dataset):
     def __init__(self, dm: JointDataModule, rows: tuple[Sample, ...], family: str,
-                 max_samples: int | None = None, max_sequence_length: int | None = None):
+                 max_sequence_length: int | None = None):
         self.dm = dm
-        self.rows = rows[:max_samples] if max_samples is not None else rows
+        self.rows = rows
         self.family = family
         self.max_sequence_length = max_sequence_length
     def __len__(self) -> int:
@@ -37,19 +37,19 @@ class CarewsmJointDataModule(DataModule):
     def __init__(self, care_root: str, wsm_root: str, manifest: str, registry: str,
                  fold: int = 0, feature_family: str = "egemaps_lld", batch_size: int = 32,
                  num_workers: int = 0, shuffle_train: bool = False,
-                 max_train_samples: int | None = None, max_val_samples: int | None = None):
+                 max_sequence_length: int | None = None):
         self.fold_index, self.feature_family = int(fold), feature_family
         self.joint = JointDataModule(care_root, wsm_root, manifest, registry)
         views = self.joint.fold(self.fold_index, [feature_family])
-        max_sequence_length = 256 if max_train_samples is not None or max_val_samples is not None else None
-        ds = lambda key, limit=None: NativeDataset(self.joint, views[key].rows, feature_family, limit, max_sequence_length)
-        super().__init__(train_dataset=ds("train", max_train_samples),
-                         val_dataset={"joint": ds("val", max_val_samples), "CARE": ds("care_val", max_val_samples), "WSM": ds("wsm_val", max_val_samples)},
+        ds = lambda key: NativeDataset(self.joint, views[key].rows, feature_family, max_sequence_length)
+        super().__init__(train_dataset=ds("train"),
+                         val_dataset={"joint": ds("val"), "CARE": ds("care_val"), "WSM": ds("wsm_val")},
                          test_dataset={"CARE": ds("care_test"), "WSM": ds("wsm_test")},
                          batch_size=batch_size, num_workers=num_workers, pin_memory=False,
                          shuffle_train=shuffle_train)
         self.views = views
     def describe_context(self, context: Any) -> None:
+        context.set("data.module", self)
         context.set("data.fold", self.fold_index)
         context.set("data.feature_family", self.feature_family)
         for key in ("train", "val", "care_test", "wsm_test"):
@@ -59,5 +59,4 @@ class CarewsmJointDataModule(DataModule):
 @DATAMODULES.register("carewsm_joint")
 def carewsm_joint(context: Any | None = None, **params: Any) -> CarewsmJointDataModule:
     """Build the joint CARE+WSM DataModule from YAML parameters."""
-    del context
     return CarewsmJointDataModule(**params)

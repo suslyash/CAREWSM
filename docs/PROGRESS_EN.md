@@ -86,3 +86,7 @@ TASK-003 dual representation adapters are implemented on `codex/task-003-dual-re
 TASK-001 — fast audit of real extracted feature artifacts and deterministic filtering metadata.
 
 No training or Mantis cache generation is authorized until manager review of TASK-001.
+
+## TASK-006 preparation
+
+The TASK-006 experiment organization is prepared but no real training was run in this revision. Native eGeMAPS LLD fold-specific YAMLs and one explicit universal launcher with five-fold execution are available for MPTSNet and MD-Former. Each fold uses full canonical TRAIN/VAL rows, a fixed seed, contiguous full-trajectory bin pooling to 256 steps (no first-N truncation), VAL-only aggregate Macro F1 checkpoint/early-stopping monitor, and standard Chimera logging/callbacks. TEST is intentionally deferred to a separate fixed-checkpoint evaluation mode.

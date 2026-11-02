@@ -15,7 +15,7 @@ def collect(root: Path, output: Path) -> int:
         runs.append((run_dir, configs[0], summary))
     with output.open("w", encoding="utf-8") as handle:
         for run_dir, config, summary in runs:
-            handle.write(f"EXPERIMENT: {run_dir.parent.parent.parent.name}\n")
+            handle.write(f"EXPERIMENT: {run_dir.name}\n")
             handle.write(f"RUN: {run_dir}\nCONFIG: {config}\n")
             handle.write(config.read_text(encoding="utf-8").rstrip() + "\nRESULTS:\n")
             handle.write(summary.read_text(encoding="utf-8").rstrip() + "\n\n")
