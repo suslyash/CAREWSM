@@ -1,7 +1,7 @@
 """Deterministic, dependency-light audit of extracted audio feature artifacts."""
 from __future__ import annotations
 
-import argparse, csv, hashlib, json, math, os, time, ast, zipfile, re
+import argparse, csv, hashlib, json, math, os, time, ast, zipfile, re, struct
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -18,7 +18,7 @@ def _npy_header(data):
     if not data.startswith(b"\x93NUMPY"): raise ValueError("not npy")
     major=data[6]; header_len=int.from_bytes(data[8:10], "little") if major==1 else int.from_bytes(data[8:12], "little")
     header=data[10:10+header_len] if major==1 else data[12:12+header_len]
-    return ast.literal_eval(header.decode("latin1").strip())
+    return ast.literal_eval(header.decode("latin1").strip()), (10+header_len if major==1 else 12+header_len)
 
 def validate_artifact(path: Path, spec: dict) -> tuple[str, str]:
     if not path.exists(): return "MISSING", "file does not exist"
@@ -50,9 +50,19 @@ def validate_artifact(path: Path, spec: dict) -> tuple[str, str]:
             if not required.issubset(set(names)): return "SCHEMA_MISMATCH", "missing npz keys"
             details=[]
             for name in names:
-                h=_npy_header(z.read(name)[:512]); shape=h.get('shape',()); descr=h.get('descr','')
+                raw=z.read(name); h,offset=_npy_header(raw[:512]); shape=h.get('shape',()); descr=h.get('descr','')
                 if not shape or any(int(x)==0 for x in shape): return "EMPTY", f"empty array: {name}"
-                if not isinstance(descr,str) or (descr[-2:-1] if len(descr)>1 else descr) not in 'biufc': return "INVALID_DTYPE", f"non-numeric array: {name}"
+                kind=(descr[-2:-1] if len(descr)>1 else descr)
+                if kind not in 'biufc': return "INVALID_DTYPE", f"non-numeric array: {name}"
+                if kind in 'fc':
+                    count=1
+                    for dim in shape: count*=int(dim)
+                    size=int(re.search(r'(\d+)$',descr).group(1))
+                    endian='>' if descr.startswith('>') else '<'
+                    fmt=endian+('f' if kind=='f' and size==4 else 'd' if kind=='f' else 'e')
+                    try: values=struct.unpack(fmt[0]+fmt[1:]*count,raw[offset:offset+size*count])
+                    except (struct.error,TypeError): return "INVALID_SHAPE", f"data length mismatch: {name}"
+                    if any(not math.isfinite(v) for v in values): return "NONFINITE", f"non-finite value: {name}"
                 details.append(f"{name}:{shape}:{descr}")
             return "VALID", ";".join(details)
     except (OSError, ValueError, EOFError, UnicodeError, zipfile.BadZipFile, KeyError) as e:
@@ -76,10 +86,11 @@ def _artifact(root: Path, row: dict, filename: str) -> Path:
 
 def audit(corpus_roots: dict[str, Path], registry_path: Path, out: Path) -> dict:
     started = time.monotonic(); registry = json.loads(registry_path.read_text()); specs = _feature_specs(registry)
-    manifest=[]; statuses=Counter(); coverage=Counter(); split_notes=[]; profile_splits={}
+    manifest=[]; statuses=Counter(); coverage=Counter(); split_notes=[]; profile_splits={}; split_rows_by={}
     for corpus, root in corpus_roots.items():
         split_dir=root/"splits"; files={n: split_dir/f"{n}.csv" for n in ("videos","train","dev","test")}
         rows_by={n: (_read_csv(p) if p.exists() else []) for n,p in files.items()}
+        split_rows_by[corpus]=rows_by
         if not files["videos"].exists(): split_notes.append(f"{corpus}: missing splits/videos.csv")
         all_rows=[]
         for n in ("train","dev","test"):
@@ -119,17 +130,26 @@ def audit(corpus_roots: dict[str, Path], registry_path: Path, out: Path) -> dict
     for corpus,root in corpus_roots.items():
         split_contract[corpus]={}; seen={}
         for n in ("train","dev","test"):
-            rows=rows_by.get(n,[]); ids=[r.get("sample_id","") for r in rows]; profiles={r.get("profile_id","") for r in rows}
+            rows=split_rows_by[corpus].get(n,[]); ids=[r.get("sample_id","") for r in rows]; profiles={r.get("profile_id","") for r in rows}
             seen[n]=set(ids); split_contract[corpus][n]={"rows":len(rows),"profiles":len(profiles),"duplicate_sample_ids":len(ids)-len(set(ids)),"declared_split_mismatch":sum(r.get("split")!=n for r in rows)}
         for a in ("train","dev","test"):
             for b in ("train","dev","test"):
-                if a<b: split_contract[corpus][a+"_vs_"+b+"_sample_overlap"]=len(seen[a]&seen[b])
+                if a<b:
+                    split_contract[corpus][a+"_vs_"+b+"_sample_overlap"]=len(seen[a]&seen[b])
+                    split_contract[corpus][a+"_vs_"+b+"_profile_overlap"]=len({r.get("profile_id","") for r in split_rows_by[corpus].get(a,[])} & {r.get("profile_id","") for r in split_rows_by[corpus].get(b,[])})
         folds={}
         for k in range(5):
             tr=_read_csv(root/"splits"/"folds"/f"fold_{k}_train.csv") if (root/"splits"/"folds"/f"fold_{k}_train.csv").exists() else []
             va=_read_csv(root/"splits"/"folds"/f"fold_{k}_val.csv") if (root/"splits"/"folds"/f"fold_{k}_val.csv").exists() else []
-            folds[str(k)]={"train_rows":len(tr),"val_rows":len(va),"train_profiles":len({x.get("profile_id","") for x in tr}),"val_profiles":len({x.get("profile_id","") for x in va}),"sample_overlap":len({x.get("sample_id","") for x in tr}&{x.get("sample_id","") for x in va})}
+            tr_ids={x.get("sample_id","") for x in tr}; va_ids={x.get("sample_id","") for x in va}; tr_profiles={x.get("profile_id","") for x in tr}; va_profiles={x.get("profile_id","") for x in va}
+            folds[str(k)]={"train_rows":len(tr),"val_rows":len(va),"train_profiles":len(tr_profiles),"val_profiles":len(va_profiles),"sample_overlap":len(tr_ids&va_ids),"profile_overlap":len(tr_profiles&va_profiles),"train_sample_ids":sorted(tr_ids),"val_sample_ids":sorted(va_ids),"train_profiles_set":sorted(tr_profiles),"val_profiles_set":sorted(va_profiles)}
         split_contract[corpus]["folds"]=folds
+        for a in range(5):
+            for b in range(a+1,5):
+                fa,fb=folds[str(a)],folds[str(b)]
+                split_contract[corpus][f"fold_{a}_vs_{b}"]={"val_sample_overlap":len(set(fa["val_sample_ids"])&set(fb["val_sample_ids"])),"val_profile_overlap":len(set(fa["val_profiles_set"])&set(fb["val_profiles_set"])),"train_sample_overlap":len(set(fa["train_sample_ids"])&set(fb["train_sample_ids"]))}
+        for f in folds.values():
+            for key in ("train_sample_ids","val_sample_ids","train_profiles_set","val_profiles_set"): f.pop(key,None)
     joint={}
     for k in range(5):
         joint[str(k)]={}

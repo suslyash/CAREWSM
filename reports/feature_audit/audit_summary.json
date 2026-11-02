@@ -197,19 +197,72 @@
     "wav2vec_xlsr300m__wav2vec_xlsr300m": 11670
   },
   "rows": 11676,
-  "runtime_sec": 472.427,
+  "runtime_sec": 480.368,
   "split_contract": {
     "CARE": {
       "dev": {
         "declared_split_mismatch": 0,
         "duplicate_sample_ids": 0,
-        "profiles": 100,
-        "rows": 936
+        "profiles": 43,
+        "rows": 276
       },
+      "dev_vs_test_profile_overlap": 0,
       "dev_vs_test_sample_overlap": 0,
-      "dev_vs_train_sample_overlap": 936,
+      "dev_vs_train_profile_overlap": 43,
+      "dev_vs_train_sample_overlap": 276,
+      "fold_0_vs_1": {
+        "train_sample_overlap": 1016,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_0_vs_2": {
+        "train_sample_overlap": 1026,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_0_vs_3": {
+        "train_sample_overlap": 1030,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_0_vs_4": {
+        "train_sample_overlap": 1011,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_1_vs_2": {
+        "train_sample_overlap": 1033,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_1_vs_3": {
+        "train_sample_overlap": 1037,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_1_vs_4": {
+        "train_sample_overlap": 1018,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_2_vs_3": {
+        "train_sample_overlap": 1047,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_2_vs_4": {
+        "train_sample_overlap": 1028,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_3_vs_4": {
+        "train_sample_overlap": 1032,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
       "folds": {
         "0": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 191,
           "train_rows": 1361,
@@ -217,6 +270,7 @@
           "val_rows": 352
         },
         "1": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 197,
           "train_rows": 1368,
@@ -224,6 +278,7 @@
           "val_rows": 345
         },
         "2": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 190,
           "train_rows": 1378,
@@ -231,6 +286,7 @@
           "val_rows": 335
         },
         "3": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 190,
           "train_rows": 1382,
@@ -238,6 +294,7 @@
           "val_rows": 331
         },
         "4": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 192,
           "train_rows": 1363,
@@ -248,15 +305,16 @@
       "test": {
         "declared_split_mismatch": 0,
         "duplicate_sample_ids": 0,
-        "profiles": 101,
-        "rows": 1364
+        "profiles": 41,
+        "rows": 318
       },
+      "test_vs_train_profile_overlap": 0,
       "test_vs_train_sample_overlap": 0,
       "train": {
-        "declared_split_mismatch": 936,
+        "declared_split_mismatch": 276,
         "duplicate_sample_ids": 0,
-        "profiles": 638,
-        "rows": 7069
+        "profiles": 240,
+        "rows": 1713
       }
     },
     "WSM": {
@@ -266,10 +324,63 @@
         "profiles": 100,
         "rows": 936
       },
+      "dev_vs_test_profile_overlap": 0,
       "dev_vs_test_sample_overlap": 0,
+      "dev_vs_train_profile_overlap": 100,
       "dev_vs_train_sample_overlap": 936,
+      "fold_0_vs_1": {
+        "train_sample_overlap": 4232,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_0_vs_2": {
+        "train_sample_overlap": 4241,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_0_vs_3": {
+        "train_sample_overlap": 4211,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_0_vs_4": {
+        "train_sample_overlap": 4236,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_1_vs_2": {
+        "train_sample_overlap": 4262,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_1_vs_3": {
+        "train_sample_overlap": 4232,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_1_vs_4": {
+        "train_sample_overlap": 4257,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_2_vs_3": {
+        "train_sample_overlap": 4241,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_2_vs_4": {
+        "train_sample_overlap": 4266,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
+      "fold_3_vs_4": {
+        "train_sample_overlap": 4236,
+        "val_profile_overlap": 0,
+        "val_sample_overlap": 0
+      },
       "folds": {
         "0": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 511,
           "train_rows": 5640,
@@ -277,6 +388,7 @@
           "val_rows": 1429
         },
         "1": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 511,
           "train_rows": 5661,
@@ -284,6 +396,7 @@
           "val_rows": 1408
         },
         "2": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 509,
           "train_rows": 5670,
@@ -291,6 +404,7 @@
           "val_rows": 1399
         },
         "3": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 512,
           "train_rows": 5640,
@@ -298,6 +412,7 @@
           "val_rows": 1429
         },
         "4": {
+          "profile_overlap": 0,
           "sample_overlap": 0,
           "train_profiles": 509,
           "train_rows": 5665,
@@ -311,6 +426,7 @@
         "profiles": 101,
         "rows": 1364
       },
+      "test_vs_train_profile_overlap": 0,
       "test_vs_train_sample_overlap": 0,
       "train": {
         "declared_split_mismatch": 936,

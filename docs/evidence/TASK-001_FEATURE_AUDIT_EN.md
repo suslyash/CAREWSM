@@ -2,7 +2,7 @@
 
 ## Executive result
 
-The corrected audit inspected 11,676 manifest rows in 472.43s. WSM artifacts are resolved through `extracted/<label>/<subgroup>/PROFILE_<id>/VIDEO_<id>`; the legacy CSV `video_dir` is retained only as evidence. CARE NPZ files pass dependency-light NPY header validation.
+The corrected audit inspected 11,676 manifest rows in 480.37s. WSM artifacts are resolved through `extracted/<label>/<subgroup>/PROFILE_<id>/VIDEO_<id>`; the legacy CSV `video_dir` is retained only as evidence. CARE and WSM NPZ files pass dependency-light NPY header and actual numeric-value validation; NaN/Inf values are classified as NONFINITE.
 
 ## Registry and temporal semantics
 
@@ -22,13 +22,13 @@ The corrected audit inspected 11,676 manifest rows in 472.43s. WSM artifacts are
 
 ## Split/fold/profile contract
 
-CARE has no `splits/videos.csv`. Both datasets have duplicate sample-free train/dev/test files at the file level, but their embedded split values expose a critical inconsistency: `train.csv` contains 936 rows declared as `dev` in both corpora, and those 936 rows overlap the corresponding `dev.csv`. No train/test overlap was observed. Five fold train/val files exist for both corpora and have zero train/val sample overlap.
+CARE has no `splits/videos.csv`. The split checks are computed independently per corpus. CARE has 276 train/dev sample overlaps and 43 train/dev profile overlaps; WSM has 936 train/dev sample overlaps and 100 train/dev profile overlaps. Neither corpus has train/test or dev/test sample/profile overlap. Five fold train/val files exist for both corpora and have zero train/val sample/profile overlap; pairwise fold validation overlaps are recorded in JSON.
 
 | corpus | split | rows | profiles | declared mismatch |
 |---|---|---:|---:|---:|
-| CARE | train | 7069 | 638 | 936 |
-| CARE | dev | 936 | 100 | 0 |
-| CARE | test | 1364 | 101 | 0 |
+| CARE | train | 1713 | 240 | 276 |
+| CARE | dev | 276 | 43 | 0 |
+| CARE | test | 318 | 41 | 0 |
 | WSM | train | 7069 | 638 | 936 |
 | WSM | dev | 936 | 100 | 0 |
 | WSM | test | 1364 | 101 | 0 |

@@ -1,6 +1,8 @@
 import sys
 sys.path.insert(0, "src")
 import csv
+import struct
+import zipfile
 from pathlib import Path
 from audio.data.feature_audit import validate_artifact, audit
 
@@ -37,3 +39,26 @@ def test_manifest_status_aggregation(tmp_path):
     reg=tmp_path/"features.json"; reg.write_text('{"sources":{"f":{"modality":"audio","file":"f.csv","format":"csv","metadata":["turn_id"]}}}')
     out=tmp_path/"out"; result=audit({"DATA":root},reg,out)
     assert result["rows"]==1 and result["statuses"]["DATA|f|VALID"]==1
+
+
+def test_npz_nonfinite_values_are_rejected(tmp_path):
+    raw=b"\x93NUMPY\x01\x00"; header=b"{'descr': '<f4', 'fortran_order': False, 'shape': (2,), }"; header += b" "*((16-(10+len(header))%16)%16); header += b"\n"
+    q=tmp_path/"nan.npz"
+    with zipfile.ZipFile(q,"w") as z: z.writestr("embed.npy",raw+struct.pack("<H",len(header))+header+struct.pack("<ff",1.0,float("nan")))
+    assert validate_artifact(q,{"format":"npz","metadata":[]})[0]=="NONFINITE"
+
+def test_split_contract_is_scoped_per_corpus(tmp_path):
+    reg=tmp_path/"features.json"; reg.write_text('{"sources":{}}')
+    roots={}
+    for name, sample, profile in (("A","a","pa"),("B","b","pb")):
+        root=tmp_path/name; (root/"splits"/"folds").mkdir(parents=True)
+        head="sample_id,profile_id,split,cv_fold\n"; (root/"splits"/"train.csv").write_text(head+f"{sample},{profile},train,0\n")
+        (root/"splits"/"dev.csv").write_text(head); (root/"splits"/"test.csv").write_text(head)
+        for k in range(5):
+            (root/"splits"/"folds"/f"fold_{k}_train.csv").write_text(head if k else head+f"{sample},{profile},train,0\n")
+            (root/"splits"/"folds"/f"fold_{k}_val.csv").write_text(head)
+        roots[name]=root
+    result=audit(roots,reg,tmp_path/"out")
+    assert result["split_contract"]["A"]["train"]["rows"]==1
+    assert result["split_contract"]["B"]["train"]["rows"]==1
+    assert result["split_contract"]["A"]["train"]["profiles"]==1
