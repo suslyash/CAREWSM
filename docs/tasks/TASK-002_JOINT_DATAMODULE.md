@@ -39,6 +39,17 @@ Start from latest `origin/main`; create `codex/task-002-joint-datamodule`. Norma
 - Add `docs/evidence/TASK-002_JOINT_DATAMODULE_EN.md` with commands, real counts, limitations, split integrity, fingerprints, and representative shapes. Update only `docs/PROGRESS_EN.md` among management docs. Do not rewrite methodology.
 - `git diff --check`, focused tests and clean worktree; normal commit + push. Handoff with the eight headings prescribed by `AGENTS.md`.
 
+
+## WSM callback / logger references for subsequent training integration
+Reference repository: https://github.com/suslyash/WSM (main). Consult `configs/wsm_mm_pd_dep_v1/audio/00_frozen_baseline.yaml` for actual Chimera-ML configuration syntax:
+- `logging: console_file_logger` (console + file, `log_path`, `log_file`, `console_level`, `file_level`);
+- `logging: mlflow_logger` (`tracking_uri: sqlite:///logs/mlflow.db`); `run-mlflow.sh` shows the MLflow UI command;
+- `callbacks: checkpoint_callback` (monitor, mode, save_top_k, save_last, filename_template);
+- `callbacks: snapshot_callback` (code/config snapshot);
+- `callbacks: early_stopping_callback` (monitor, mode, patience, min_delta);
+- `callbacks: wsm_summary_callback`, locally defined in WSM `src/common/callbacks/wsm_summary_callback.py`, writes epoch numeric metrics to a semicolon-delimited summary TXT and registers itself as `wsm_summary_callback`.
+The first five are *used by configuration* rather than locally defined in WSM. Do not assert their implementations are in this repository. No logger/callback implementation or training execution belongs to TASK-002; only keep the future integration contract documented. When training is later authorized, monitor VAL-only metrics for checkpoint and early stopping; TEST must not influence model selection.
+
 ## Explicitly prohibited
 Changing canonical splits/artifacts, Mantis derivation, feature re-extraction, classifier implementation, training, Optuna, loss studies, transfer/adaptation, external evaluations, TEST-driven choices, beginning TASK-003, or creating/merging PRs.
 
