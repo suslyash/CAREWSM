@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-from src.audio.data.joint_datamodule import JointDataModule, NativeFeature, Sample
+from audio.data.joint_datamodule import JointDataModule, NativeFeature, Sample
 
 
 @dataclass(frozen=True)

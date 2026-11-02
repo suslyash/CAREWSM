@@ -1,9 +1,8 @@
 seed: 5
 experiment_info:
   params:
-    experiment_name: carewsm-task005-native-fold0-smoke
-    run_name: mptsnet-egemaps-lld
-    include_time: false
+    experiment_name: audio-mptsnet-native-egemaps_lld-joint-care-wsm-fold0-smoke
+    run_name: smoke-seed5
 data:
   name: carewsm_joint
   params:
@@ -40,34 +39,11 @@ train:
     log_every_steps: 1
     collect_cache: true
 metrics:
-  - name: carewsm_macro_f1
-    params: {task: 0}
-  - name: carewsm_weighted_f1
-    params: {task: 0}
-  - name: carewsm_macro_recall
-    params: {task: 0}
-  - name: carewsm_weighted_recall
-    params: {task: 0}
-  - name: carewsm_patient_recall
-    params: {task: 0}
-  - name: carewsm_healthy_recall
-    params: {task: 0}
-  - name: carewsm_macro_f1
-    params: {task: 1}
-  - name: carewsm_weighted_f1
-    params: {task: 1}
-  - name: carewsm_macro_recall
-    params: {task: 1}
-  - name: carewsm_weighted_recall
-    params: {task: 1}
-  - name: carewsm_patient_recall
-    params: {task: 1}
-  - name: carewsm_healthy_recall
-    params: {task: 1}
+  - name: carewsm_multitask_prf
 callbacks:
   - name: checkpoint_callback
     params:
-      log_path: logs/task005
+      log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
       monitor: joint/loss
       mode: min
@@ -75,10 +51,13 @@ callbacks:
       save_last: true
   - name: snapshot_callback
     params:
-      log_path: logs/task005
+      log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       include: [src, configs]
       save_code_zip: true
       save_config: true
+  - name: carewsm_summary_callback
+    params:
+      filename: summary.txt
   - name: early_stopping_callback
     params:
       monitor: joint/loss
@@ -88,7 +67,10 @@ callbacks:
 logging:
   - name: console_file_logger
     params:
-      log_path: logs/task005
+      log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       log_file: train.log
       console_level: INFO
       file_level: INFO
+  - name: mlflow_logger
+    params:
+      tracking_uri: sqlite:///logs/mlflow.db

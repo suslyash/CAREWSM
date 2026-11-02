@@ -5,8 +5,8 @@ import torch
 from torch.utils.data import Dataset
 from chimera_ml.data.datamodule import DataModule
 from chimera_ml.core.registry import DATAMODULES
-from src.audio.data.joint_datamodule import JointDataModule, Sample
-from src.audio.features.representations import native_representation, pooled_native_representation
+from audio.data.joint_datamodule import JointDataModule, Sample
+from audio.features.representations import native_representation, pooled_native_representation
 
 class NativeDataset(Dataset):
     def __init__(self, dm: JointDataModule, rows: tuple[Sample, ...], family: str,

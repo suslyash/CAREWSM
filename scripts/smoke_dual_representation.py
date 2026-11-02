@@ -1,8 +1,8 @@
 """Tiny real-data TASK-003 smoke; no training and no Mantis cache generation."""
 from pathlib import Path
 import json
-from src.audio.data.joint_datamodule import JointDataModule
-from src.audio.features.representations import mantis_windows, native_representation, official_mantis_probe
+from audio.data.joint_datamodule import JointDataModule
+from audio.features.representations import mantis_windows, native_representation, official_mantis_probe
 
 CARE = Path("/media/maxim/Databases/CARE")
 WSM = Path("/media/maxim/Databases/WSM_NEW")
