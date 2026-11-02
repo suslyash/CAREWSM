@@ -1,0 +1,16 @@
+models:
+  - name: carewsm_tscmamba
+    params: {input_dim: 8, hidden_dim: 16, mamba_required: true}
+  - name: carewsm_mptsnet
+    params: {input_dim: 8, hidden_dim: 16}
+  - name: carewsm_md_former
+    params: {input_dim: 8, hidden_dim: 16, num_heads: 4}
+loss:
+  name: carewsm_masked_bce
+metrics:
+  - carewsm_macro_f1
+  - carewsm_weighted_f1
+  - carewsm_macro_recall
+  - carewsm_weighted_recall
+  - carewsm_patient_recall
+  - carewsm_healthy_recall
