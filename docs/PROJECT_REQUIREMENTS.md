@@ -118,16 +118,37 @@ Compare multitask optimization/balancing methods:
 
 Also compare separate single-task models.
 
-## Required metrics
+## Required metrics and fold-level TEST table
 
-Base metrics:
+For each task, fold, and configuration report:
 
-- F1;
-- weighted F1;
-- UAR;
-- weighted average recall.
+- Macro F1;
+- Weighted F1;
+- Macro Recall;
+- Weighted Recall;
+- Patient Recall;
+- Healthy Recall.
 
-Metrics must be reported per task and according to the experiment's corpus/transfer protocol.
+Every CV fold must be evaluated on both fixed TEST sets:
+
+- CARE TEST;
+- WSM TEST.
+
+For every metric also report:
+
+`Average = (CARE metric + WSM metric) / 2`.
+
+This Average is a simple corpus-level arithmetic mean, not a metric recomputed from pooled CARE+WSM predictions.
+
+For binary classification:
+
+- Patient Recall = recall of the positive/patient class;
+- Healthy Recall = recall of the negative/healthy class;
+- Macro Recall = arithmetic mean of the two class recalls (UAR).
+
+All metrics are computed only on rows where the corresponding disease label is observed.
+
+The intended reporting table has one row per Configuration × Task × Fold and three six-metric blocks: CARE, WSM, Average.
 
 ## Mantis temporalization
 

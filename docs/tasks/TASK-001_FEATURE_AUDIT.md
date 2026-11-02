@@ -32,7 +32,7 @@ Read:
 2. `AGENTS.md`
 3. all active `docs/*.md`
 4. this task
-5. extraction scripts/registries/loaders needed to determine feature outputs
+5. extraction scripts/registries/loaders needed to determine feature outputs, including the now-tracked `care_scripts/audio_descriptors/*.py`, `care_scripts/turn_utils.py`, and relevant run wrappers
 
 Inspect `git status --short` before editing.
 

@@ -78,7 +78,7 @@ Implement:
 
 ## Stage 5 — within-corpus feature screening
 
-CARE and WSM separately.
+CARE and WSM training protocols are studied separately.
 
 Evaluate:
 
@@ -87,6 +87,8 @@ Evaluate:
 - Mantis representation where valid;
 - simple baseline;
 - three research models under standardized budget.
+
+For every fold/configuration, log the required six TEST metrics on **both CARE and WSM**, plus their metric-wise arithmetic Average. TEST numbers do not control promotion.
 
 ## Stage 6 — feature combinations
 
@@ -155,7 +157,10 @@ Report:
 - joint training;
 - adaptation;
 - external tests;
-- required metrics;
+- per-task/per-fold CARE TEST table;
+- per-task/per-fold WSM TEST table;
+- metric-wise CARE/WSM Average;
+- fold aggregate statistics;
 - coverage;
 - seeds;
 - runtime/parameters;

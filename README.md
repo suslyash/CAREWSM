@@ -22,7 +22,7 @@ Both corpora are expected to use fixed `train/dev/test` partitions and five CV f
 6. Compare multitask loss/balancing strategies and single-task baselines.
 7. Run within-corpus, direct-transfer, joint-training, external-test and small-target-adaptation experiments.
 8. Tune only the winning configuration with Optuna.
-9. Report TEST only after model/configuration selection.
+9. For every CV fold/configuration, evaluate TEST on both CARE and WSM and log the full required metric table; TEST numbers are evidence only and must not influence configuration selection.
 
 ## Audio methodology
 
