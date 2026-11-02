@@ -1,0 +1,94 @@
+seed: 5
+experiment_info:
+  params:
+    experiment_name: carewsm-task005-native-fold0-smoke
+    run_name: mptsnet-egemaps-lld
+    include_time: false
+data:
+  name: carewsm_joint
+  params:
+    care_root: /media/maxim/Databases/CARE
+    wsm_root: /media/maxim/Databases/WSM_NEW
+    manifest: reports/feature_audit/sample_feature_availability.csv
+    registry: /media/maxim/Databases/CARE/splits/features.json
+    fold: 0
+    feature_family: egemaps_lld
+    batch_size: 8
+    num_workers: 0
+    shuffle_train: false
+    max_train_samples: 8
+    max_val_samples: 8
+model:
+  name: carewsm_mptsnet
+  params:
+    input_dim: 25
+    hidden_dim: 16
+    dropout: 0.1
+loss:
+  name: carewsm_masked_bce
+optimizer:
+  name: adamw_optimizer
+  params:
+    lr: 0.0001
+    weight_decay: 0.0
+train:
+  params:
+    epochs: 1
+    device: cpu
+    mixed_precision: false
+    grad_clip_norm: 1.0
+    log_every_steps: 1
+    collect_cache: true
+metrics:
+  - name: carewsm_macro_f1
+    params: {task: 0}
+  - name: carewsm_weighted_f1
+    params: {task: 0}
+  - name: carewsm_macro_recall
+    params: {task: 0}
+  - name: carewsm_weighted_recall
+    params: {task: 0}
+  - name: carewsm_patient_recall
+    params: {task: 0}
+  - name: carewsm_healthy_recall
+    params: {task: 0}
+  - name: carewsm_macro_f1
+    params: {task: 1}
+  - name: carewsm_weighted_f1
+    params: {task: 1}
+  - name: carewsm_macro_recall
+    params: {task: 1}
+  - name: carewsm_weighted_recall
+    params: {task: 1}
+  - name: carewsm_patient_recall
+    params: {task: 1}
+  - name: carewsm_healthy_recall
+    params: {task: 1}
+callbacks:
+  - name: checkpoint_callback
+    params:
+      log_path: logs/task005
+      filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
+      monitor: joint/loss
+      mode: min
+      save_top_k: 1
+      save_last: true
+  - name: snapshot_callback
+    params:
+      log_path: logs/task005
+      include: [src, configs]
+      save_code_zip: true
+      save_config: true
+  - name: early_stopping_callback
+    params:
+      monitor: joint/loss
+      mode: min
+      patience: 1
+      min_delta: 0.0
+logging:
+  - name: console_file_logger
+    params:
+      log_path: logs/task005
+      log_file: train.log
+      console_level: INFO
+      file_level: INFO
