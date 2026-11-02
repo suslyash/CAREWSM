@@ -1,21 +1,25 @@
 # CAREWSM
 
-CAREWSM is a fresh research programme for multitask, multilabel recognition of Depression and Parkinson's disease using the CARE and WSM corpora, progressing from unimodal audio to multimodal modelling.
+CAREWSM is an audio-first research project for joint Depression and Parkinson recognition using extracted acoustic representations from CARE and WSM.
 
-The repository started as a one-commit copy of the completed WSM codebase. Previous WSM experiments, claims, task history, and evidence are **not CAREWSM evidence**. Copied implementation is temporarily retained only for an explicit reuse audit.
+The current phase is intentionally **audio-only**. Multimodal modelling is out of scope until the audio programme is completed and reviewed.
+
+## Immediate goals
+
+1. Audit all extracted audio feature families and build deterministic availability/filtering metadata.
+2. Build a clean Chimera-ML audio stack under `src/audio/`.
+3. Benchmark every feature family and carefully selected combinations.
+4. Compare three strong recent temporal classification architectures.
+5. Select the best feature/model combination using TRAIN CV and DEV.
+6. Tune only the winning configuration with Optuna.
+7. Evaluate TEST only as report-only evidence after model/config selection.
 
 ## Data roots
 
 - CARE: `/media/maxim/Databases/CARE/`
 - WSM: `/media/maxim/Databases/WSM_NEW/`
 
-Owner-provided contract to verify during the first audit:
-
-- fixed `train/dev/test` splits in both corpora;
-- five CV folds inside `train`;
-- participant/profile grouping prevents overlap between partitions;
-- CARE is the reference for feature names, storage layout, shapes/dtypes, and loader semantics;
-- WSM must be brought to compatible extracted-feature coverage before the Chimera ML modelling programme.
+Do not delete or overwrite extracted features during auditing. Filtering is represented by deterministic manifests/masks.
 
 ## Active documentation
 
@@ -23,14 +27,12 @@ Read in order:
 
 1. `docs/README.md`
 2. `docs/PROJECT_REQUIREMENTS.md`
-3. `docs/PLAN.md`
-4. `docs/PROGRESS_EN.md`
-5. `docs/NEXT_TASK_EN.md`
-6. `docs/MANAGER_CONTRACT.md`
-7. `AGENTS.md`
+3. `docs/EXPERIMENT_PROTOCOL.md`
+4. `docs/MODEL_SHORTLIST.md`
+5. `docs/PLAN.md`
+6. `docs/PROGRESS_EN.md`
+7. `docs/NEXT_TASK_EN.md`
+8. `docs/MANAGER_CONTRACT.md`
+9. `AGENTS.md`
 
-## Manager / Codex workflow
-
-The manager defines one atomic task and provides a complete Markdown prompt. Codex implements that task on `codex/<task>`, pushes normally, and stops. The manager independently reviews the branch/evidence, opens and merges the PR after PASS, or issues a corrective task after FAIL.
-
-No copied WSM model, DataModule, config, metric, callback, or result is considered active CAREWSM methodology until it passes the new audit.
+Codex implements one manager-authored task at a time on a task branch. The manager independently reviews the branch/evidence and owns PR creation and merge.
