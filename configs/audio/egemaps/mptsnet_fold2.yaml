@@ -58,9 +58,9 @@ metrics:
 model:
   name: carewsm_mptsnet
   params:
-    dropout: 0.1
-    hidden_dim: 16
     input_dim: 25
+    hidden_dim: 16
+    dropout: 0.1
 optimizer:
   name: adamw_optimizer
   params:

@@ -90,3 +90,7 @@ No training or Mantis cache generation is authorized until manager review of TAS
 ## TASK-006 preparation
 
 The TASK-006 experiment organization is prepared but no real training was run in this revision. Native eGeMAPS LLD fold-specific YAMLs and one explicit universal launcher with five-fold execution are available for MPTSNet and MD-Former. Each fold uses full canonical TRAIN/VAL rows, a fixed seed, contiguous full-trajectory bin pooling to 256 steps (no first-N truncation), VAL-only aggregate Macro F1 checkpoint/early-stopping monitor, and standard Chimera logging/callbacks. TEST is intentionally deferred to a separate fixed-checkpoint evaluation mode.
+
+## TASK-007 audio feature matrix
+
+Static native schema audit confirmed all 11 registry audio families and dimensions. Explicit MPTSNet and MD-Former fold YAMLs are prepared under `configs/audio/<feature>/` for every confirmed family. The single Bash launcher discovers folders and existing fold files; no experiments were run.
