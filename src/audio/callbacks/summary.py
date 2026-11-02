@@ -92,12 +92,6 @@ class CarewsmSummaryCallback(BaseCallback):
         test_logs = self._evaluate_test(trainer, epoch)
         combined = dict(logs)
         combined.update(test_logs)
-        combined = {
-            key: value
-            for key, value in combined.items()
-            if not ("/average/" in key and key.endswith("/observed_count"))
-            and not (key.startswith("average/") and key.endswith("/observed_count"))
-        }
         checkpoint = self._checkpoint_for_epoch(trainer, epoch)
 
         record = {
@@ -289,10 +283,10 @@ class CarewsmSummaryCallback(BaseCallback):
     @staticmethod
     def _table_splits() -> list[tuple[str, str, str, str | None, str | None]]:
         return [
-            ("TRAIN", "train/joint", "train", "train/care", "train/wsm"),
+            ("TRAIN", "train/average", "train", "train/care", "train/wsm"),
             ("VAL CARE", "CARE/care", "CARE", "CARE/care", None),
             ("VAL WSM", "WSM/wsm", "WSM", None, "WSM/wsm"),
-            ("VAL average", "joint/average", "joint", "joint/care", "joint/wsm"),
+            ("VAL average", "average", "joint", "CARE/care", "WSM/wsm"),
             ("TEST CARE", "test/CARE/care", "test/CARE", "test/CARE/care", None),
             ("TEST WSM", "test/WSM/wsm", "test/WSM", None, "test/WSM/wsm"),
             (

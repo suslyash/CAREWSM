@@ -3,7 +3,10 @@ from types import SimpleNamespace
 
 sys.path.insert(0, "src")
 
+import torch
+
 from audio.callbacks.summary import CarewsmSummaryCallback
+from audio.metrics.classification import MultitaskPRFMetric
 
 
 _METRICS = (
@@ -67,10 +70,13 @@ def test_per_epoch_test_restores_logger_and_does_not_touch_val_callbacks():
     early = SimpleNamespace(
         monitor="joint/average_macro_f1", best=0.9, bad_epochs=0, stop_training=False
     )
+    mlflow_calls = []
     trainer = SimpleNamespace(
         config=SimpleNamespace(device="cpu"),
         logger=logger,
-        mlflow_logger=SimpleNamespace(log_metrics=lambda values, step: None),
+        mlflow_logger=SimpleNamespace(
+            log_metrics=lambda values, step: mlflow_calls.append(values)
+        ),
         callbacks=[selection, early],
         train_val_state={"marker": [1, 2, 3]},
         _test_loaders={"CARE": object(), "WSM": object()},
@@ -104,3 +110,87 @@ def test_per_epoch_test_restores_logger_and_does_not_touch_val_callbacks():
     assert vars(early) == early_before
     assert result["test/average/depression/macro_f1"] == 0.2
     assert "test/average/depression/observed_count" not in result
+    assert mlflow_calls
+    assert not any(
+        key.endswith("/observed_count") and "/average/" in key
+        for key in mlflow_calls[0]
+    )
+
+
+class _MetricBatch:
+    def __init__(self, targets, observed, corpora):
+        self.targets = targets
+        self.meta = {"sample_meta": [{"corpus": corpus} for corpus in corpora]}
+        self._observed = observed
+
+    def get_masks(self, name):
+        assert name == "observed_targets"
+        return self._observed
+
+
+def test_multitask_metric_has_real_counts_and_no_average_support():
+    metric = MultitaskPRFMetric()
+    targets = torch.tensor([[1, 0], [0, 1], [1, 0], [0, 0]])
+    predictions = torch.tensor([[2.0, -2.0], [-2.0, 2.0], [-2.0, -2.0], [2.0, -2.0]])
+    observed = torch.tensor([[1, 1], [1, 0], [1, 1], [0, 0]])
+    batch = _MetricBatch(targets, observed, ["CARE", "CARE", "WSM", "WSM"])
+    metric.update(SimpleNamespace(preds=predictions), batch)
+
+    result = metric.compute()
+
+    assert result["care/depression/observed_count"] == 2.0
+    assert result["wsm/depression/observed_count"] == 1.0
+    assert result["care/parkinson/observed_count"] == 1.0
+    assert result["wsm/parkinson/observed_count"] == 1.0
+    assert result["average/depression/macro_f1"] == 0.5
+    assert "average/depression/observed_count" not in result
+    assert "average/parkinson/observed_count" not in result
+    assert not any(key.startswith("joint/") for key in result)
+
+
+def test_multitask_metric_handles_missing_corpus_and_task_labels():
+    metric = MultitaskPRFMetric()
+    targets = torch.tensor([[1, 0], [0, 1]])
+    predictions = torch.tensor([[2.0, -2.0], [-2.0, 2.0]])
+    observed = torch.tensor([[1, 0], [1, 0]])
+    metric.update(
+        SimpleNamespace(preds=predictions),
+        _MetricBatch(targets, observed, ["CARE", "CARE"]),
+    )
+
+    result = metric.compute()
+
+    assert result["care/depression/observed_count"] == 2.0
+    assert result["care/parkinson/observed_count"] == 0.0
+    assert result["wsm/depression/observed_count"] == 0.0
+    assert result["wsm/parkinson/observed_count"] == 0.0
+    assert result["average_macro_f1"] == float("-inf")
+    assert not any(key.endswith("/observed_count") and "average" in key for key in result)
+
+
+def test_best_epoch_is_selected_from_val_monitor_only():
+    callback = CarewsmSummaryCallback()
+    callback._rows = [
+        {
+            "epoch": 1,
+            "checkpoint": "epoch=1.pt",
+            "logs": {
+                "joint/average_macro_f1": 0.8,
+                "test/average/depression/macro_f1": 0.2,
+            },
+        },
+        {
+            "epoch": 2,
+            "checkpoint": "epoch=2.pt",
+            "logs": {
+                "joint/average_macro_f1": 0.7,
+                "test/average/depression/macro_f1": 0.9,
+            },
+        },
+    ]
+
+    best = callback._best_row()
+
+    assert best is not None
+    assert best["epoch"] == 1
+    assert best["checkpoint"] == "epoch=1.pt"

@@ -137,11 +137,12 @@ def corpus_average(
     care: dict[str, float],
     wsm: dict[str, float],
 ) -> dict[str, float]:
+    """Average matching metric values for legacy callers."""
     return {name: (care[name] + wsm[name]) / 2 for name in care}
 
 
 class MultitaskPRFMetric(BaseMetric):
-    """Six metrics for both diseases with separate corpus averages."""
+    """Compute six masked binary metrics by task and corpus."""
 
     def __init__(self) -> None:
         self.reset()
@@ -172,7 +173,13 @@ class MultitaskPRFMetric(BaseMetric):
 
     def compute(self) -> dict[str, float]:
         if not self._rows:
-            return self._undefined("joint")
+            result = self._missing_metrics("care")
+            result.update(self._missing_metrics("wsm"))
+            for task, _ in _TASKS:
+                for name in _METRICS:
+                    result[f"average/{task}/{name}"] = float("nan")
+            result["average_macro_f1"] = float("-inf")
+            return result
 
         predictions = torch.cat([row[0] for row in self._rows])
         targets = torch.cat([row[1] for row in self._rows])
@@ -183,58 +190,35 @@ class MultitaskPRFMetric(BaseMetric):
         result: dict[str, float] = {}
         corpus_results: dict[str, dict[str, float]] = {}
         for corpus in ("CARE", "WSM"):
+            prefix = corpus.lower()
             mask = torch.tensor(
                 [item == corpus for item in corpora],
                 dtype=torch.bool,
             )
-            if mask.any():
-                block = self._compute_block(
-                    predictions[mask],
-                    targets[mask],
-                    observed[mask],
-                    corpus.lower(),
+            block = (
+                self._corpus_metrics(
+                    predictions[mask], targets[mask], observed[mask], prefix
                 )
-                result.update(block)
-                corpus_results[corpus.lower()] = block
+                if mask.any()
+                else self._missing_metrics(prefix)
+            )
+            result.update(block)
+            corpus_results[prefix] = block
 
-        if len(corpus_results) == 2:
-            result.update(self._compute_block(predictions, targets, observed, "joint"))
-
+        valid_task_scores: list[float] = []
         for task, _ in _TASKS:
             for name in _METRICS:
-                care_value = corpus_results.get("care", {}).get(
-                    f"care/{task}/{name}",
-                    float("nan"),
-                )
-                wsm_value = corpus_results.get("wsm", {}).get(
-                    f"wsm/{task}/{name}",
-                    float("nan"),
-                )
+                care_value = corpus_results["care"][f"care/{task}/{name}"]
+                wsm_value = corpus_results["wsm"][f"wsm/{task}/{name}"]
                 result[f"average/{task}/{name}"] = (
                     (care_value + wsm_value) / 2
                     if care_value == care_value and wsm_value == wsm_value
                     else float("nan")
                 )
-            care_count = corpus_results.get("care", {}).get(
-                f"care/{task}/observed_count",
-                0.0,
-            )
-            wsm_count = corpus_results.get("wsm", {}).get(
-                f"wsm/{task}/observed_count",
-                0.0,
-            )
-            result[f"average/{task}/observed_count"] = (
-                (care_count + wsm_count) / 2
-                if care_count and wsm_count
-                else 0.0
-            )
+            task_score = result[f"average/{task}/macro_f1"]
+            if task_score == task_score:
+                valid_task_scores.append(task_score)
 
-        valid_task_scores = [
-            result[f"average/{task}/macro_f1"]
-            for task, _ in _TASKS
-            if result[f"average/{task}/macro_f1"]
-            == result[f"average/{task}/macro_f1"]
-        ]
         result["average_macro_f1"] = (
             sum(valid_task_scores) / len(valid_task_scores)
             if valid_task_scores
@@ -242,7 +226,7 @@ class MultitaskPRFMetric(BaseMetric):
         )
         return result
 
-    def _compute_block(
+    def _corpus_metrics(
         self,
         predictions: torch.Tensor,
         targets: torch.Tensor,
@@ -257,13 +241,13 @@ class MultitaskPRFMetric(BaseMetric):
             result[f"{prefix}/{task}/observed_count"] = values["observed_count"]
         return result
 
-    def _undefined(self, prefix: str) -> dict[str, float]:
+    @staticmethod
+    def _missing_metrics(prefix: str) -> dict[str, float]:
         result: dict[str, float] = {}
         for task, _ in _TASKS:
             for name in _METRICS:
                 result[f"{prefix}/{task}/{name}"] = float("nan")
             result[f"{prefix}/{task}/observed_count"] = 0.0
-        result["average_macro_f1"] = float("nan")
         return result
 
 
