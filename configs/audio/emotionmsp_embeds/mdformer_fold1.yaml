@@ -1,5 +1,5 @@
 callbacks:
-- name: carewsm_val_checkpoint_callback
+- name: checkpoint_callback
   params:
     filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
     log_path: logs/audio/emotionmsp_embeds
@@ -18,7 +18,7 @@ callbacks:
 - name: carewsm_summary_callback
   params:
     filename: summary.txt
-- name: carewsm_val_early_stopping_callback
+- name: early_stopping_callback
   params:
     min_delta: 0.0
     mode: max
