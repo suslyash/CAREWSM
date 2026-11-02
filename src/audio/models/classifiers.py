@@ -10,6 +10,11 @@ from chimera_ml.core.registry import MODELS
 from chimera_ml.core.types import ModelOutput
 from chimera_ml.models.base import BaseModel
 
+try:
+    from mamba_ssm.modules.mamba_simple import Mamba
+except Exception:  # pragma: no cover - optional dependency
+    Mamba = None
+
 
 def _unpack(batch: Any) -> tuple[torch.Tensor, torch.Tensor]:
     values = batch.inputs["native"].float()
@@ -68,34 +73,120 @@ class SequenceClassifier(BaseModel):
 
 
 class TSCMambaClassifier(SequenceClassifier):
-    """TSCMamba-inspired temporal/spectral multiview SSM classifier."""
+    """Audio-only TSCMamba temporal/spectral encoder with BiMamba blocks."""
 
-    def __init__(self, input_dim: int, hidden_dim: int = 96, num_layers: int = 2,
-                 dropout: float = 0.1, mamba_required: bool = True) -> None:
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dim: int = 96,
+        num_layers: int = 2,
+        num_heads: int = 4,
+        dropout: float = 0.1,
+        mamba_required: bool = True,
+    ) -> None:
         super().__init__(input_dim, hidden_dim, dropout)
-        try:
-            from mamba_ssm import Mamba
-        except ImportError:
-            Mamba = None
-        if Mamba is None and mamba_required:
-            raise ModuleNotFoundError("TSCMamba requires mamba_ssm; no fallback is used")
+        self.temporal_encoder = MaskSafeTemporalEncoder(
+            hidden_dim=hidden_dim,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            dropout=dropout,
+            mamba_required=mamba_required,
+        )
         self.spectral_projection = nn.Linear(hidden_dim, hidden_dim)
-        self.normalization = nn.LayerNorm(hidden_dim)
-        self.mamba_layers = nn.ModuleList(
-            Mamba(d_model=hidden_dim, d_state=16, d_conv=4, expand=2)
-            for _ in range(num_layers)
-        ) if Mamba is not None else nn.ModuleList()
+        self.spectral_norm = nn.LayerNorm(hidden_dim)
 
     def encode(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        if not self.mamba_layers:
-            return values
-        valid = values * mask.unsqueeze(-1)
+        valid = values * mask.unsqueeze(-1).to(values.dtype)
         spectrum = torch.fft.rfft(valid, dim=1).abs()
-        spectral_view = torch.fft.irfft(spectrum, n=values.shape[1], dim=1)
-        encoded = self.normalization(valid + self.spectral_projection(spectral_view))
-        for layer in self.mamba_layers:
-            encoded = layer(encoded) * mask.unsqueeze(-1)
-        return encoded
+        spectral = torch.fft.irfft(spectrum, n=values.shape[1], dim=1)
+        fused = self.spectral_norm(valid + self.spectral_projection(spectral))
+        return self.temporal_encoder(fused, mask)
+
+
+class MaskSafeTemporalEncoder(nn.Module):
+    """Legacy-derived temporal encoder with strict padding safety."""
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        num_layers: int,
+        num_heads: int,
+        dropout: float,
+        mamba_required: bool,
+    ) -> None:
+        super().__init__()
+        if Mamba is None and mamba_required:
+            raise ModuleNotFoundError(
+                "TSCMamba requires mamba_ssm; no fallback is used"
+            )
+        if Mamba is not None:
+            self.encoder_type = "mamba"
+            self.layers = nn.ModuleList(
+                [BiMambaBlock(hidden_dim, dropout) for _ in range(num_layers)]
+            )
+        else:
+            self.encoder_type = "transformer"
+            layer = nn.TransformerEncoderLayer(
+                hidden_dim, num_heads, hidden_dim * 4, dropout,
+                batch_first=True, norm_first=True,
+            )
+            self.layers = nn.TransformerEncoder(layer, num_layers)
+
+    def forward(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        mask = mask.to(device=values.device, dtype=torch.bool)
+        if self.encoder_type == "mamba":
+            for layer in self.layers:
+                values = layer(values, mask)
+            return values * mask.unsqueeze(-1).to(values.dtype)
+        safe_mask = safe_valid_mask(mask)
+        values = self.layers(values, src_key_padding_mask=~safe_mask)
+        return values * mask.unsqueeze(-1).to(values.dtype)
+
+
+class BiMambaBlock(nn.Module):
+    """Bidirectional Mamba residual block copied from the legacy design."""
+
+    def __init__(self, hidden_dim: int, dropout: float) -> None:
+        super().__init__()
+        if Mamba is None:
+            raise ModuleNotFoundError("BiMambaBlock requires mamba_ssm")
+        self.norm = nn.LayerNorm(hidden_dim)
+        self.forward_mamba = Mamba(d_model=hidden_dim, d_state=16, d_conv=4, expand=2)
+        self.backward_mamba = Mamba(d_model=hidden_dim, d_state=16, d_conv=4, expand=2)
+        self.output = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.ffn = nn.Sequential(
+            nn.LayerNorm(hidden_dim), nn.Linear(hidden_dim, hidden_dim * 4),
+            nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 4, hidden_dim),
+            nn.Dropout(dropout),
+        )
+
+    def forward(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        mask_float = mask.unsqueeze(-1).to(values.dtype)
+        normalized = self.norm(values) * mask_float
+        forward = self.forward_mamba(normalized.contiguous())
+        backward = self.backward_mamba(
+            _reverse_valid_sequence(normalized, mask).contiguous()
+        )
+        backward = _reverse_valid_sequence(backward, mask)
+        mixed = self.output(torch.cat((forward, backward), dim=-1))
+        values = (values + self.dropout(mixed)) * mask_float
+        return (values + self.ffn(values)) * mask_float
+
+
+def safe_valid_mask(mask: torch.Tensor) -> torch.Tensor:
+    """Ensure Transformer receives one unmasked token for all-padding rows."""
+    safe = mask.clone().bool()
+    safe[:, 0] = True
+    return safe
+
+
+def _reverse_valid_sequence(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    reversed_values = values.clone()
+    for index in range(values.shape[0]):
+        valid = mask[index]
+        reversed_values[index, valid] = values[index, valid].flip(0)
+    return reversed_values
 
 
 class MPTSNetClassifier(SequenceClassifier):
@@ -104,7 +195,7 @@ class MPTSNetClassifier(SequenceClassifier):
     def __init__(self, input_dim: int, hidden_dim: int = 96,
                  dropout: float = 0.1) -> None:
         super().__init__(input_dim, hidden_dim, dropout)
-        self.periodic_block = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
+        self.periodic_blocks = nn.ModuleList([nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1) for _ in range(3)])
         self.global_block = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
         self.fusion = nn.Linear(hidden_dim * 4, hidden_dim)
 
@@ -121,10 +212,11 @@ class MPTSNetClassifier(SequenceClassifier):
         folded = F.pad(valid, (0, 0, 0, pad)).reshape(
             valid.shape[0], (length + pad) // period, period, valid.shape[2]
         ).permute(0, 3, 1, 2)
-        periodic = F.gelu(self.periodic_block(folded))
+        periodic_views = [F.gelu(block(folded)) for block in self.periodic_blocks]
+        periodic = torch.stack(periodic_views, dim=0).mean(dim=0)
         periodic = periodic.permute(0, 2, 3, 1).reshape(valid.shape[0], -1, valid.shape[2])[:, :length]
         global_view, _ = self.global_block(valid)
-        return self.fusion(torch.cat((valid, periodic, periodic, global_view), dim=-1))
+        return self.fusion(torch.cat((valid, periodic, global_view, valid + periodic), dim=-1))
 
 
 class MDFormerClassifier(SequenceClassifier):
