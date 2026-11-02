@@ -4,17 +4,17 @@
 
 **Status: READY**
 
-Authoritative implementation prompt:
+Prompt:
 
 `docs/tasks/TASK-001_FEATURE_AUDIT.md`
 
 Purpose:
 
-- discover the exact 11 feature families from real extraction outputs/code;
-- validate whether artifacts actually extracted successfully;
-- identify failed/missing/corrupt/empty/non-finite artifacts;
-- generate deterministic feature-availability/filtering metadata;
-- verify enough split/label/sample identity facts to make later filtering safe;
-- do this without training or feature re-extraction.
+- discover the exact operational 11-family feature registry from live data/code;
+- verify which artifacts actually extracted successfully;
+- classify missing/corrupt/empty/non-finite/schema-invalid artifacts;
+- build deterministic per-sample/per-family availability metadata;
+- verify the fixed split/fold/label/sample mapping needed for later filtering;
+- record temporal/static/timestamp semantics needed for the Mantis 1.0 s / 0.5 s representation task.
 
-Do not start the Chimera DataModule or model implementation until the manager reviews TASK-001.
+Do not train models, derive Mantis embeddings, implement Optuna, or run transfer experiments before manager review.

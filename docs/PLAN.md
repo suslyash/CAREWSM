@@ -1,106 +1,164 @@
 # CAREWSM Audio Research Plan
 
-## Stage 0 — documentation and operating contract
+## Stage 0 — project contracts
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 
-- establish manager/Codex workflow;
-- define audio-only scope;
-- define feature-audit requirement;
-- define experiment funnel;
-- select three recent temporal model families.
+- audio-only scope;
+- manager/Codex workflow;
+- fixed split discipline;
+- two-head masked target contract;
+- Mantis temporalization requirement;
+- three-model shortlist;
+- cross-corpus programme.
 
-## Stage 1 — feature extraction audit and filtering metadata
+## Stage 1 — feature integrity and coverage audit
 
-**Next**
+**Status: NEXT**
 
-Codex must inspect the actual 11 extracted feature families.
+Codex audits the actual 11 owner-reported extracted audio feature families.
 
 Outputs:
 
-- exact feature registry;
-- schema/shape/dtype inventory;
-- temporal/static classification;
-- per-corpus/per-split coverage;
-- missing/corrupt/empty/non-finite/schema-failed counts;
-- sample-feature availability manifest;
-- retention estimates for complete-case and per-feature/per-combination filtering;
-- split/label sanity checks;
-- no training.
+- exact operational registry;
+- schemas/shapes/dtypes;
+- timestamps/temporal semantics;
+- valid/missing/corrupt/empty/non-finite status;
+- per-sample availability manifest;
+- per-feature and pairwise coverage;
+- complete-case retention;
+- split/fold/label sanity.
 
-Priority: complete quickly and produce machine-readable results that unblock modelling.
+No training or Mantis derivation.
 
-## Stage 2 — Chimera-ML audio data layer
-
-- canonical sample identity across CARE and WSM;
-- label masks;
-- feature-availability masks;
-- family-specific loading;
-- variable-length masks;
-- normalization fitted only on TRAIN;
-- fold-aware DataModule;
-- per-corpus metadata;
-- strict leakage tests.
-
-All active code under `src/audio/data` and `src/audio/features`.
-
-## Stage 3 — model infrastructure
+## Stage 2 — Chimera-ML data layer
 
 Implement:
 
-- pooled MLP reference;
+- canonical CARE/WSM sample identity;
+- split/fold loading;
+- two target values + observed masks;
+- per-feature availability;
+- native temporal/static loaders;
+- normalization fit on training data only;
+- unit tests preventing leakage.
+
+All active code under `src/audio/data` and `src/audio/features`.
+
+## Stage 3 — Mantis temporal representation
+
+Freeze:
+
+- supported feature blocks;
+- 1.0 s / 0.5 s window construction;
+- Mantis checkpoint/version;
+- selected layer;
+- pooling;
+- validity/confidence semantics;
+- scaler/PCA contract;
+- cache schema/fingerprint.
+
+Build derived sequences without modifying source extracted features.
+
+## Stage 4 — model/loss infrastructure
+
+Implement:
+
+- pooled reference baseline;
 - TSCMamba-inspired;
 - MPTSNet-inspired;
 - MD-Former-inspired;
-- two-head masked classifier contract;
-- common model output/metric interface.
+- shared/common representation;
+- task-specific Depression/Parkinson feature layers;
+- binary heads;
+- masked BCE;
+- weighted BCE;
+- Equal/PCGrad/CAGrad/STCH/PAGB hooks;
+- required metrics/callbacks.
 
-All active code under `src/audio/models`, `loss`, `metrics`, and `callbacks`.
+## Stage 5 — within-corpus feature screening
 
-## Stage 4 — single-feature benchmark
+CARE and WSM separately.
 
-Run every valid feature family through:
+Evaluate:
 
-- pooled MLP;
-- each of the three research models.
+- every usable single family;
+- native representation;
+- Mantis representation where valid;
+- simple baseline;
+- three research models under standardized budget.
 
-Use a cheap screening budget first, then full CV for promoted candidates.
+## Stage 6 — feature combinations
 
-Produce comparable coverage + performance tables.
+Evaluate structured groups, then greedy forward additions.
 
-## Stage 5 — structured feature combinations
+Avoid exhaustive 2047-subset search.
 
-Test meaningful feature groups derived from Stage-1 schemas.
+Re-compare best few combinations across all three models.
 
-Prioritize temporal information while retaining complementary static descriptors.
+## Stage 7 — multitask loss/balancing study
 
-Avoid exhaustive 2047-subset brute force.
+Compare:
 
-## Stage 6 — greedy feature search and final model comparison
+- Equal;
+- PCGrad;
+- CAGrad;
+- STCH;
+- PAGB;
+- single-task models;
+- unweighted vs weighted BCE where appropriate.
 
-Use the best one/two architectures for forward feature addition.
+Use matched feature/model settings.
 
-Then compare the best few combinations across all three research models under full CV.
+## Stage 8 — within-corpus final models
 
-DEV selects the final combination/model.
+Finalize CARE and WSM separately using TRAIN CV + DEV.
 
-## Stage 7 — Optuna refinement
+No TEST-driven changes.
 
-Tune only the winning model + feature combination.
+## Stage 9 — cross-corpus direct transfer
 
-Use TRAIN CV objective.
+- CARE -> WSM;
+- WSM -> CARE.
 
-Search a narrow set of model/optimizer/regularization parameters.
+No target refitting/tuning.
 
-No TEST feedback.
+## Stage 10 — joint CARE + WSM training
 
-## Stage 8 — final evidence
+Train jointly; evaluate separately on each corpus.
 
-- multi-seed confirmation;
-- DEV-selected final checkpoint/config;
-- one report-only TEST evaluation;
-- per-task/per-corpus metrics;
-- ablation/evidence tables;
-- reproducibility summary.
+## Stage 11 — external tests
 
-Multimodality remains out of scope until the owner starts a new stage.
+- D-Vlog for Depression;
+- YouTubePD for Parkinson.
+
+Requires verified dataset roots/protocols.
+
+## Stage 12 — small-target adaptation
+
+Use only a pre-declared labeled fraction of target TRAIN.
+
+Freeze fractions, participant sampling and update policy before running.
+
+## Stage 13 — Optuna
+
+Tune only the winning model/feature/loss configuration.
+
+TRAIN CV objective only.
+
+## Stage 14 — final evidence
+
+Report:
+
+- within-corpus;
+- direct transfer;
+- joint training;
+- adaptation;
+- external tests;
+- required metrics;
+- coverage;
+- seeds;
+- runtime/parameters;
+- exact reproducibility metadata.
+
+Multimodality remains out of scope.

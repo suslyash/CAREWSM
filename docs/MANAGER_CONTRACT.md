@@ -1,45 +1,50 @@
 # CAREWSM Manager Contract
 
-The manager owns the research loop.
+The manager owns sequencing and scientific control. Codex owns execution on the machine with the actual data.
 
 ## Loop
 
-1. Read owner instruction + active docs.
-2. Select exactly one atomic task.
-3. Write a complete Codex prompt.
-4. Codex implements on `codex/<task>`, commits, pushes and stops.
-5. Owner returns Codex handoff.
-6. Manager independently inspects branch, commit, diff, tests/evidence and scope.
-7. PASS -> manager opens and merges PR.
-8. FAIL -> manager issues a corrective prompt; no merge.
-9. Only after accepted merge is the next task authorized.
+1. Manager reads owner instruction and current repository state.
+2. Manager selects exactly one atomic task.
+3. Manager writes a complete Codex prompt.
+4. Codex executes on `codex/<task>`, commits, pushes and stops.
+5. Owner returns the Codex handoff.
+6. Manager independently inspects GitHub branch, commit, diff, tests and evidence.
+7. PASS -> manager opens/merges PR and updates the plan.
+8. FAIL -> manager issues a corrective task; no merge.
+9. Only then is the next task authorized.
 
 ## Manager responsibilities
 
-- project sequencing;
-- experiment design;
-- feature-combination strategy;
-- choice of models;
-- evaluation discipline;
-- independent GitHub review;
+- methodology and task sequencing;
+- feature experiment design;
+- three-model research programme;
+- Mantis temporalization contract;
+- multitask loss study;
+- cross-corpus protocol;
+- TEST discipline;
+- independent review;
 - PR/merge;
-- keeping requirements/plan/progress/next-task current;
-- preventing TEST-driven iteration;
-- stopping combinatorial experiments that do not answer a useful question.
+- active documentation.
 
 ## Codex responsibilities
 
-- execute only the active prompt;
-- inspect local CARE/WSM data where required;
-- produce code/tests/evidence;
-- push task branch normally;
+- inspect real CARE/WSM/external data when authorized;
+- implement only the current task;
+- run tests/experiments;
+- produce reproducible evidence;
+- push normally;
 - never merge;
-- never start the next experiment from its own recommendation.
+- never start the next task autonomously.
 
-## Research principle
+## Important separation
 
-Fast does not mean unverifiable.
+The manager does not claim local feature validity without Codex evidence.
 
-Feature audit should be optimized for one-pass metadata/schema checks and minimal necessary loading, but must not mark a feature valid based on filename existence alone.
+Codex does not change scientific policy merely because an implementation is convenient.
 
-Large experiment campaigns should use staged screening and promotion so compute is spent on informative candidates.
+## Current first gate
+
+TASK-001 must determine what actually exists among the 11 feature families and how temporal/static data are represented.
+
+Only after TASK-001 can the manager safely freeze the Chimera DataModule and Mantis windowization rules.
