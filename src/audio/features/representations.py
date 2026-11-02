@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-from src.audio.data.joint_datamodule import JointDataModule, NativeFeature, Sample
+from audio.data.joint_datamodule import JointDataModule, NativeFeature, Sample
 
 
 @dataclass(frozen=True)
@@ -27,6 +27,26 @@ def native_representation(dm: JointDataModule, sample: Sample, family: str) -> R
                           {"corpus": sample.corpus, "sample_id": sample.sample_id,
                            "profile_id": sample.profile_id, "family": family,
                            "source": str(feature.path), "source_metadata": feature.metadata})
+
+
+def pooled_native_representation(dm: JointDataModule, sample: Sample, family: str,
+                                 max_sequence_length: int) -> Representation:
+    """Pool contiguous bins over the complete trajectory for bounded smoke runs."""
+    if max_sequence_length < 1:
+        raise ValueError("max_sequence_length must be positive")
+    representation = native_representation(dm, sample, family)
+    values = representation.values[0]
+    if len(values) <= max_sequence_length:
+        return representation
+    edges = np.linspace(0, len(values), max_sequence_length + 1, dtype=np.int64)
+    pooled = np.stack([values[edges[i]:edges[i + 1]].mean(axis=0)
+                       for i in range(max_sequence_length)], axis=0)
+    return Representation("native_binned", pooled[None, ...],
+                          np.ones((1, len(pooled)), dtype=bool),
+                          np.asarray([len(pooled)], dtype=np.int64),
+                          {**representation.metadata, "full_length": len(values),
+                           "pooling": "contiguous_full_trajectory_mean",
+                           "max_sequence_length": max_sequence_length})
 
 
 def mantis_windows(feature: NativeFeature, window_sec: float = 1.0,

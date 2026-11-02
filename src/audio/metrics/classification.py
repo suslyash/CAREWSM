@@ -104,3 +104,76 @@ def carewsm_healthy_recall(context: Any | None = None, **params: Any) -> BinaryM
 
 def corpus_average(care: dict[str, float], wsm: dict[str, float]) -> dict[str, float]:
     return {name: (care[name] + wsm[name]) / 2 for name in care}
+
+
+class MultitaskPRFMetric(BaseMetric):
+    """Six required metrics for both diseases, with corpus-aware keys."""
+
+    _tasks = (("depression", 0), ("parkinson", 1))
+    _metric_names = ("macro_f1", "weighted_f1", "macro_recall", "weighted_recall",
+                     "patient_recall", "healthy_recall")
+
+    def __init__(self) -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        self._rows: list[tuple[torch.Tensor, torch.Tensor, torch.Tensor, list[dict[str, Any]]]] = []
+
+    def update(self, output: Any, batch: Any) -> None:
+        observed = batch.get_masks("observed_targets")
+        if observed is None and batch.meta and "sample_meta" in batch.meta:
+            observed = torch.stack([item["observed_targets"] for item in batch.meta["sample_meta"]])
+        if observed is None:
+            raise ValueError("Batch does not contain observed-label masks")
+        metas = batch.meta.get("sample_meta", []) if batch.meta else []
+        self._rows.append((output.preds.detach().cpu(), batch.targets.detach().cpu(),
+                           observed.detach().cpu(), metas))
+
+    def compute(self) -> dict[str, float]:
+        if not self._rows:
+            return self._undefined("joint")
+        predictions = torch.cat([row[0] for row in self._rows])
+        targets = torch.cat([row[1] for row in self._rows])
+        observed = torch.cat([row[2] for row in self._rows])
+        metas = [meta for row in self._rows for meta in row[3]]
+        corpora = [meta.get("corpus", "UNKNOWN") for meta in metas]
+        result: dict[str, float] = {}
+        for corpus in ("CARE", "WSM"):
+            mask = torch.tensor([item == corpus for item in corpora], dtype=torch.bool)
+            if mask.any():
+                result.update(self._compute_block(predictions[mask], targets[mask], observed[mask], corpus.lower()))
+        result.update(self._compute_block(predictions, targets, observed, "joint"))
+        if all(f"{corpus.lower()}/depression/{name}" in result for corpus in ("CARE", "WSM") for name in self._metric_names):
+            for task, _ in self._tasks:
+                for name in self._metric_names:
+                    result[f"average/{task}/{name}"] = (result[f"care/{task}/{name}"] + result[f"wsm/{task}/{name}"]) / 2
+        return result
+
+    def _compute_block(self, predictions: torch.Tensor, targets: torch.Tensor,
+                       observed: torch.Tensor, prefix: str) -> dict[str, float]:
+        result: dict[str, float] = {}
+        for task, index in self._tasks:
+            values = _metric_values(predictions > 0, targets, observed, index)
+            count = values.pop("count")
+            result[f"{prefix}/{task}/observed_count"] = count
+            for name in self._metric_names:
+                metric_name = name.replace(" ", "_").lower()
+                metric_value = (values[{"macro_f1": "Macro F1", "weighted_f1": "Weighted F1", "macro_recall": "Macro Recall", "weighted_recall": "Weighted Recall", "patient_recall": "Patient Recall", "healthy_recall": "Healthy Recall"}[name]] if count else float("nan"))
+                result[f"{prefix}/{task}/{metric_name}"] = metric_value
+                if prefix == "joint":
+                    result[f"{task}_{metric_name}"] = metric_value
+        return result
+
+    def _undefined(self, prefix: str) -> dict[str, float]:
+        result: dict[str, float] = {}
+        for task, _ in self._tasks:
+            result[f"{prefix}/{task}/observed_count"] = 0.0
+            for name in self._metric_names:
+                result[f"{prefix}/{task}/{name}"] = float("nan")
+        return result
+
+
+@METRICS.register("carewsm_multitask_prf")
+def carewsm_multitask_prf(context: Any | None = None, **params: Any) -> MultitaskPRFMetric:
+    del context, params
+    return MultitaskPRFMetric()

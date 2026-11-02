@@ -2,7 +2,7 @@
 from __future__ import annotations
 import argparse
 from pathlib import Path
-from src.audio.data.joint_datamodule import JointDataModule
+from audio.data.joint_datamodule import JointDataModule
 
 def main() -> None:
     p = argparse.ArgumentParser(); p.add_argument("--care-root", type=Path, default=Path("/media/maxim/Databases/CARE")); p.add_argument("--wsm-root", type=Path, default=Path("/media/maxim/Databases/WSM_NEW")); p.add_argument("--manifest", type=Path, default=Path("reports/feature_audit/sample_feature_availability.csv")); p.add_argument("--registry", type=Path, default=Path("/media/maxim/Databases/CARE/splits/features.json")); a = p.parse_args()

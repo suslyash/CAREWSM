@@ -9,10 +9,11 @@ def register() -> None:
     if _REGISTERED:
         return
     modules = (
-        "src.audio.data.chimera_datamodule",
-        "src.audio.models.classifiers",
-        "src.audio.loss.masked_bce",
-        "src.audio.metrics.classification",
+        "audio.data.chimera_datamodule",
+        "audio.models.classifiers",
+        "audio.loss.masked_bce",
+        "audio.metrics.classification",
+        "audio.callbacks.summary",
     )
     for module in modules:
         try:
