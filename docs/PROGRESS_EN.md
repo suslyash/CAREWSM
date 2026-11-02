@@ -2,6 +2,8 @@
 
 ## Current state
 
+TASK-004 model infrastructure is implemented on `codex/task-004-model-infrastructure`: registered TSCMamba-inspired, MPTSNet-inspired and MD-Former-inspired native sequence classifiers, masked BCE and six binary metrics. Focused YAML/forward-backward smoke evidence is recorded; TSCMamba remains dependency-blocked if `mamba_ssm` is unavailable.
+
 TASK-001 audit implementation and evidence are complete on `codex/task-001-feature-audit`; manager review is pending. The review correction now resolves WSM through the real `extracted/` tree, validates CARE/WSM NPZ headers without numpy, and records split/fold/leakage and coverage summaries. Live audit found 11 audio registry sources, missing CARE `splits/videos.csv`, a WSM train/dev split inconsistency, CARE artifact failures, and no valid WSM feature mapping under current paths.
 
 The project has been restarted as an audio-only research programme.

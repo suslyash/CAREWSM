@@ -1,0 +1,7 @@
+models:
+  - name: carewsm_tscmamba
+    params: {input_dim: 8, hidden_dim: 16, mamba_required: true}
+  - name: carewsm_mptsnet
+    params: {input_dim: 8, hidden_dim: 16}
+  - name: carewsm_md_former
+    params: {input_dim: 8, hidden_dim: 16, num_heads: 4}
