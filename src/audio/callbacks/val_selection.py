@@ -8,6 +8,7 @@ from typing import Any
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
 from chimera_ml.callbacks.early_stopping_callback import EarlyStoppingCallback
 from chimera_ml.core.registry import CALLBACKS
+from chimera_ml.logging.console_file_logger import ConsoleFileLogger
 
 
 class CarewsmValCheckpointCallback(CheckpointCallback):
@@ -16,18 +17,35 @@ class CarewsmValCheckpointCallback(CheckpointCallback):
     def on_fit_start(self, trainer: Any) -> None:
         """Place checkpoints beside the logger's other run artifacts.
 
-        Chimera-ML's CLI injects runtime names into its built-in
-        ``checkpoint_callback`` only. This project-specific callback is
-        intentionally named differently, so the active console logger is the
-        authoritative source for the run directory.
+        Chimera-ML 0.3.0 creates a ``ConsoleFileLogger`` before callbacks and
+        stores the concrete ``train.log`` path in its ``log_path`` attribute.
+        The parent of that path is the authoritative directory for this run.
         """
-        log_file = getattr(getattr(trainer, "logger", None), "log_path", None)
-        if log_file is not None:
-            self._resolved_dirpath = Path(log_file).parent / "checkpoints"
-            self._resolved_dirpath.mkdir(parents=True, exist_ok=True)
-            return
+        logger = getattr(trainer, "logger", None)
+        if not isinstance(logger, ConsoleFileLogger):
+            raise RuntimeError(
+                "CarewsmValCheckpointCallback requires Chimera-ML's "
+                "ConsoleFileLogger on trainer.logger; the current run "
+                "directory cannot be determined safely."
+            )
 
-        super().on_fit_start(trainer)
+        log_file = logger.log_path
+        if not isinstance(log_file, Path) or log_file.name != "train.log":
+            raise RuntimeError(
+                "CarewsmValCheckpointCallback requires logger.log_path to "
+                "be a pathlib.Path naming the current run's train.log; "
+                f"received {log_file!r}."
+            )
+
+        run_dir = log_file.parent
+        if run_dir == log_file or run_dir == Path("."):
+            raise RuntimeError(
+                "CarewsmValCheckpointCallback could not resolve a distinct "
+                f"run directory from logger.log_path={log_file!s}."
+            )
+
+        self._resolved_dirpath = run_dir / "checkpoints"
+        self._resolved_dirpath.mkdir(parents=True, exist_ok=True)
 
     def on_epoch_end(self, trainer: Any, epoch: int, logs: dict[str, float]) -> None:
         value = logs.get(self.monitor)
