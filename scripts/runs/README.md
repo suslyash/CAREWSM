@@ -1,16 +1,14 @@
 # CAREWSM audio experiment launcher
 
-The only launcher is `scripts/run_audio_experiments.sh`; it is Bash and invokes the official Chimera-ML CLI.
+The only launcher is `scripts/run_audio_experiments.sh`; it runs existing YAML files through the official Chimera-ML CLI.
 
 ```bash
 scripts/run_audio_experiments.sh --list
-CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --series mptsnet_native_egemaps_lld
-CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --series mdformer_native_egemaps_lld
+CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --feature egemaps
+CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --feature egemaps --model mptsnet
 CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --all
 ```
 
-With no arguments the script prints help and does nothing. The only automatic loop inside a selected series is folds 0–4. The seed is read from the selected YAML; there is no seed sweep, Optuna, or hidden model/feature loop. `set -euo pipefail` stops at the first failed fold.
+With no arguments the script prints help and does nothing. `--feature egemaps` runs all prepared eGeMAPS models and folds; `--model mptsnet` restricts it to the five MPTSNet YAMLs. The script never edits YAML, generates configs, sweeps seeds, or implements a training loop. `set -euo pipefail` stops at the first failed fold.
 
-Chimera-ML owns the standard run layout. Each fold gets one experiment directory plus one generated run directory containing `train.log`, `summary.txt`, resolved YAML, checkpoints, snapshots and the matching MLflow run. No `find`, `mv`, rename, or post-hoc log manipulation is used. Existing results are preserved by Chimera's unique timestamp/hash run names.
-
-Collect summaries with `python3 scripts/collect_summary.py --root logs --output all_summary.txt`. TEST evaluation is not part of training or checkpoint selection.
+The prepared layout is `configs/audio/egemaps/{mptsnet,mdformer}_fold{0..4}.yaml`. Chimera-ML uses `logs/audio/egemaps/<model>_fold<k>/<generated-run>/` with standard train log, summary, YAML snapshot, checkpoints, snapshots and MLflow identity. No log cleanup or post-hoc movement is performed.

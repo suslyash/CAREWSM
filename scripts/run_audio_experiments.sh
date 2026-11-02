@@ -1,80 +1,69 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-series_dir="configs/audio/series"
-series_names=(mptsnet_native_egemaps_lld mdformer_native_egemaps_lld)
-
 usage() {
   cat <<'USAGE'
 Usage:
   scripts/run_audio_experiments.sh --list
-  scripts/run_audio_experiments.sh --series mptsnet_native_egemaps_lld
-  scripts/run_audio_experiments.sh --series mdformer_native_egemaps_lld
+  scripts/run_audio_experiments.sh --feature egemaps
+  scripts/run_audio_experiments.sh --feature egemaps --model mptsnet
   scripts/run_audio_experiments.sh --all
 
-Runs one selected YAML series across canonical folds 0-4 through Chimera-ML.
 No arguments print this help and launch nothing.
 USAGE
 }
 
 list_series() {
-  printf '%s\n' "${series_names[@]}"
+  printf '%s\n' "egemaps/mptsnet_fold0..fold4" "egemaps/mdformer_fold0..fold4"
 }
 
-config_for_series() {
-  case "$1" in
-    mptsnet_native_egemaps_lld)
-      printf '%s\n' "$series_dir/audio_mptsnet_native_egemaps_lld.yaml" ;;
-    mdformer_native_egemaps_lld)
-      printf '%s\n' "$series_dir/audio_mdformer_native_egemaps_lld.yaml" ;;
-    *)
-      printf 'Unknown series: %s\n' "$1" >&2
-      return 2 ;;
-  esac
-}
-
-run_series() {
-  local series="$1"
-  local base_config
-  base_config="$(config_for_series "$series")"
-
-  for fold in 0 1 2 3 4; do
-    local run_config
-    run_config="$(mktemp --suffix=.yaml)"
-    trap 'rm -f "$run_config"' RETURN
-    sed "s/fold0/fold${fold}/g" "$base_config" > "$run_config"
-    printf 'Starting %s fold %s\n' "$series" "$fold"
-    CUDA_VISIBLE_DEVICES=0 .venv/bin/chimera-ml train -c "$run_config"
-    rm -f "$run_config"
-    trap - RETURN
+run_configs() {
+  local feature="$1"
+  local model="${2:-}"
+  local pattern="configs/audio/${feature}/*_fold[0-4].yaml"
+  local configs=( $pattern )
+  [[ -d "configs/audio/${feature}" ]] || { printf 'Unknown feature: %s\n' "$feature" >&2; return 2; }
+  if [[ -n "$model" ]]; then
+    configs=( "configs/audio/${feature}/${model}_fold0.yaml" \
+              "configs/audio/${feature}/${model}_fold1.yaml" \
+              "configs/audio/${feature}/${model}_fold2.yaml" \
+              "configs/audio/${feature}/${model}_fold3.yaml" \
+              "configs/audio/${feature}/${model}_fold4.yaml" )
+  fi
+  local expected=10
+  [[ -n "$model" ]] && expected=5
+  [[ "${#configs[@]}" -eq "$expected" ]] || { printf 'Expected %s fold configs for %s/%s\n' "$expected" "$feature" "${model:-all-models}" >&2; return 2; }
+  for config in "${configs[@]}"; do
+    [[ -f "$config" ]] || { printf 'Missing config: %s\n' "$config" >&2; return 2; }
+    printf 'Starting %s\n' "$config"
+    CUDA_VISIBLE_DEVICES=0 .venv/bin/chimera-ml train -c "$config"
   done
 }
 
-if [[ $# -eq 0 ]]; then
-  usage
+[[ $# -gt 0 ]] || { usage; exit 0; }
+feature=""
+model=""
+all_series=false
+list_only=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --list) list_only=true; shift ;;
+    --all) all_series=true; shift ;;
+    --feature) [[ $# -ge 2 ]] || { usage >&2; exit 2; }; feature="$2"; shift 2 ;;
+    --model) [[ $# -ge 2 ]] || { usage >&2; exit 2; }; model="$2"; shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+if "$list_only"; then
+  [[ -z "$feature" && -z "$model" && "$all_series" == false ]] || { usage >&2; exit 2; }
+  list_series
   exit 0
 fi
-
-case "$1" in
-  --list)
-    [[ $# -eq 1 ]] || { usage >&2; exit 2; }
-    list_series
-    ;;
-  --series)
-    [[ $# -eq 2 ]] || { usage >&2; exit 2; }
-    run_series "$2"
-    ;;
-  --all)
-    [[ $# -eq 1 ]] || { usage >&2; exit 2; }
-    for series in "${series_names[@]}"; do
-      run_series "$series"
-    done
-    ;;
-  --help|-h)
-    usage
-    ;;
-  *)
-    usage >&2
-    exit 2
-    ;;
-esac
+if "$all_series"; then
+  [[ -z "$feature" && -z "$model" ]] || { usage >&2; exit 2; }
+  run_configs egemaps
+  exit 0
+fi
+[[ -n "$feature" ]] || { usage >&2; exit 2; }
+run_configs "$feature" "$model"
