@@ -2,6 +2,8 @@
 
 ## Current state
 
+TASK-001 audit implementation and evidence are complete on `codex/task-001-feature-audit`; manager review is pending. The review correction now resolves WSM through the real `extracted/` tree, validates CARE/WSM NPZ headers without numpy, and records split/fold/leakage and coverage summaries. Live audit found 11 audio registry sources, missing CARE `splits/videos.csv`, a WSM train/dev split inconsistency, CARE artifact failures, and no valid WSM feature mapping under current paths.
+
 The project has been restarted as an audio-only research programme.
 
 Owner-reported state:
