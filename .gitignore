@@ -2,7 +2,6 @@
 /.venv/
 /.venv-diarizen/
 /.venv-audio/
-/care_scripts/
 /third_party/
 
 /external/
