@@ -4,6 +4,7 @@ from typing import Any
 import torch
 from torch.utils.data import Dataset
 from chimera_ml.data.datamodule import DataModule
+from chimera_ml.core.registry import DATAMODULES
 from src.audio.data.joint_datamodule import JointDataModule, Sample
 from src.audio.features.representations import native_representation
 
@@ -45,3 +46,10 @@ class CarewsmJointDataModule(DataModule):
         context.set("data.feature_family", self.feature_family)
         for key in ("train", "val", "care_test", "wsm_test"):
             context.set("data." + key + "_count", len(self.views[key]))
+
+
+@DATAMODULES.register("carewsm_joint")
+def carewsm_joint(context: Any | None = None, **params: Any) -> CarewsmJointDataModule:
+    """Build the joint CARE+WSM DataModule from YAML parameters."""
+    del context
+    return CarewsmJointDataModule(**params)

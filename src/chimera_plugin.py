@@ -1,5 +1,6 @@
 """CAREWSM registrations for the installed Chimera-ML registry."""
-from chimera_ml.core.registry import DATAMODULES
+import importlib
+
 _REGISTERED = False
 
 def register() -> None:
@@ -7,8 +8,16 @@ def register() -> None:
     global _REGISTERED
     if _REGISTERED:
         return
-    from src.audio.data.chimera_datamodule import CarewsmJointDataModule
-    from src.audio import models as _models  # noqa: F401
-    if "carewsm_joint" not in DATAMODULES.keys():
-        DATAMODULES.register("carewsm_joint")(CarewsmJointDataModule)
+    modules = (
+        "src.audio.data.chimera_datamodule",
+        "src.audio.models.classifiers",
+        "src.audio.loss.masked_bce",
+        "src.audio.metrics.classification",
+    )
+    for module in modules:
+        try:
+            importlib.import_module(module)
+        except ModuleNotFoundError as exc:
+            if exc.name != "mamba_ssm":
+                raise
     _REGISTERED = True
