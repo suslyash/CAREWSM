@@ -74,7 +74,7 @@ Deferred until the primary joint model is complete:
 
 ## Current stage
 
-Stage 2 — TASK-002 joint CARE+WSM native data layer is implemented on `codex/task-002-joint-datamodule`; manager review is pending. It consumes canonical fold files directly, keeps DEV metadata-only, and does not train or derive Mantis representations.
+TASK-003 dual representation adapters are implemented on `codex/task-003-dual-representation`. Native sequences and defensible timestamped 1.0 s / 0.5 s windows are smoke-tested on real CARE and WSM `egemaps_lld` samples. Frozen Mantis inference is explicitly BLOCKED because the official `mantis-tsfm` package is not installed; no checkpoint or cache was invented. Manager review is required before installing/pinning Mantis and generating embeddings.
 
 ## Next task
 
