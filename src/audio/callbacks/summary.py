@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import math
 from dataclasses import dataclass, field
@@ -65,7 +67,7 @@ class CarewsmSummaryCallback(BaseCallback):
     """Evaluate fixed TEST after VAL and write compact per-epoch artifacts."""
 
     context: Any | None = field(default=None, repr=False)
-    filename: str = "summary.txt"
+    filename: str = "summary.csv"
     metrics_filename: str = "metrics_history.json"
     _path: Path | None = field(default=None, init=False)
     _metrics_path: Path | None = field(default=None, init=False)
@@ -227,52 +229,49 @@ class CarewsmSummaryCallback(BaseCallback):
             encoding="utf-8",
         )
 
-        best = self._best_row()
-        lines = [
-            "CAREWSM epoch summary",
-            "=====================",
-            self._run_metadata(),
-            "",
-            "Best VAL epoch: " + (str(best["epoch"]) if best else "-"),
-            "Best VAL monitor (joint/average_macro_f1): "
-            + (_format(best["logs"].get("joint/average_macro_f1")) if best else "-"),
-            "Best VAL checkpoint: "
-            + (best.get("checkpoint") or "-" if best else "-"),
-            "",
-            "epoch | split | task | loss | macro_f1 | weighted_f1 | macro_recall | "
-            "weighted_recall | patient_recall | healthy_recall | CARE_count | "
-            "WSM_count | total_count",
-            "------|-------|------|------|----------|-------------|--------------|"
-            "----------------|----------------|--------------|------------|-----------|------------",
+        fieldnames = [
+            "epoch",
+            "split",
+            "task",
+            "loss",
+            *_METRICS,
+            "CARE_count",
+            "WSM_count",
+            "total_count",
         ]
+        output = io.StringIO(newline="")
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+
         for record in self._rows:
             for split, prefix, loss_prefix, care_prefix, wsm_prefix in self._table_splits():
                 values = record["logs"]
                 for task in _TASKS:
-                    loss = values.get(f"{loss_prefix}/loss") if task == "depression" else None
+                    loss = (
+                        values.get(f"{loss_prefix}/loss")
+                        if task == "depression"
+                        else None
+                    )
                     care_count = self._count(values, care_prefix, task)
                     wsm_count = self._count(values, wsm_prefix, task)
-                    total_count = care_count + wsm_count
-                    row = [
-                        str(record["epoch"]),
-                        split,
-                        task,
-                        _format(loss),
-                    ]
-                    row.extend(
-                        _format(values.get(f"{prefix}/{task}/{metric}"))
-                        for metric in _METRICS
+                    row = {
+                        "epoch": record["epoch"],
+                        "split": split,
+                        "task": task,
+                        "loss": _format(loss) if loss is not None else "",
+                        "CARE_count": _format(care_count),
+                        "WSM_count": _format(wsm_count),
+                        "total_count": _format(care_count + wsm_count),
+                    }
+                    row.update(
+                        {
+                            metric: _format(values.get(f"{prefix}/{task}/{metric}"))
+                            for metric in _METRICS
+                        }
                     )
-                    row.extend(
-                        [
-                            _format(care_count),
-                            _format(wsm_count),
-                            _format(total_count),
-                        ]
-                    )
-                    lines.append(" | ".join(row))
+                    writer.writerow(row)
 
-        self._path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        self._path.write_text(output.getvalue(), encoding="utf-8")
 
     @staticmethod
     def _count(values: dict[str, Any], prefix: str | None, task: str) -> float:

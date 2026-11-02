@@ -17,7 +17,7 @@ callbacks:
     save_config: true
 - name: carewsm_summary_callback
   params:
-    filename: summary.txt
+    filename: summary.csv
 - name: early_stopping_callback
   params:
     min_delta: 0.0
@@ -39,7 +39,7 @@ data:
     wsm_root: /media/maxim/Databases/WSM_NEW
 experiment_info:
   params:
-    experiment_name: mdformer_fold4
+    experiment_name: mdformer
     run_name: fold4
 logging:
 - name: console_file_logger

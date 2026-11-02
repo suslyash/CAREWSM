@@ -173,13 +173,7 @@ class MultitaskPRFMetric(BaseMetric):
 
     def compute(self) -> dict[str, float]:
         if not self._rows:
-            result = self._missing_metrics("care")
-            result.update(self._missing_metrics("wsm"))
-            for task, _ in _TASKS:
-                for name in _METRICS:
-                    result[f"average/{task}/{name}"] = float("nan")
-            result["average_macro_f1"] = float("-inf")
-            return result
+            return {}
 
         predictions = torch.cat([row[0] for row in self._rows])
         targets = torch.cat([row[1] for row in self._rows])
@@ -195,35 +189,35 @@ class MultitaskPRFMetric(BaseMetric):
                 [item == corpus for item in corpora],
                 dtype=torch.bool,
             )
-            block = (
-                self._corpus_metrics(
+            if mask.any():
+                block = self._corpus_metrics(
                     predictions[mask], targets[mask], observed[mask], prefix
                 )
-                if mask.any()
-                else self._missing_metrics(prefix)
-            )
-            result.update(block)
-            corpus_results[prefix] = block
+                result.update(block)
+                corpus_results[prefix] = block
+
+        # A single-corpus evaluation is not a joint evaluation. Do not
+        # manufacture an average or a -inf checkpoint monitor for it.
+        if "care" not in corpus_results or "wsm" not in corpus_results:
+            return result
 
         valid_task_scores: list[float] = []
         for task, _ in _TASKS:
             for name in _METRICS:
                 care_value = corpus_results["care"][f"care/{task}/{name}"]
                 wsm_value = corpus_results["wsm"][f"wsm/{task}/{name}"]
-                result[f"average/{task}/{name}"] = (
-                    (care_value + wsm_value) / 2
-                    if care_value == care_value and wsm_value == wsm_value
-                    else float("nan")
-                )
-            task_score = result[f"average/{task}/macro_f1"]
-            if task_score == task_score:
+                if care_value == care_value and wsm_value == wsm_value:
+                    result[f"average/{task}/{name}"] = (
+                        care_value + wsm_value
+                    ) / 2
+            task_score = result.get(f"average/{task}/macro_f1")
+            if task_score is not None and task_score == task_score:
                 valid_task_scores.append(task_score)
 
-        result["average_macro_f1"] = (
-            sum(valid_task_scores) / len(valid_task_scores)
-            if valid_task_scores
-            else float("-inf")
-        )
+        if valid_task_scores:
+            result["average_macro_f1"] = sum(valid_task_scores) / len(
+                valid_task_scores
+            )
         return result
 
     def _corpus_metrics(

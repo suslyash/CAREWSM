@@ -57,7 +57,7 @@ callbacks:
       save_config: true
   - name: carewsm_summary_callback
     params:
-      filename: summary.txt
+      filename: summary.csv
   - name: early_stopping_callback
     params:
       monitor: joint/average_macro_f1
