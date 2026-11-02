@@ -45,7 +45,7 @@ logging:
 - name: console_file_logger
   params:
     console_level: INFO
-    file_level: INFO
+    file_level: WARNING
     log_file: train.log
     log_path: logs/audio/emotionmsp_embeds
 - name: mlflow_logger

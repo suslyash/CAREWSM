@@ -23,12 +23,28 @@ _METRICS = (
     "patient_recall",
     "healthy_recall",
 )
-_HEADERS = (*_METRICS, "observed_count")
 
 
-class _SilentLogger:
+class _EvaluationLogger:
+    """Suppress INFO during TEST while preserving warnings and errors."""
+
+    def __init__(self, original: Any) -> None:
+        self._original = original
+
     def info(self, *args: Any, **kwargs: Any) -> None:
         del args, kwargs
+
+    def warning(self, *args: Any, **kwargs: Any) -> None:
+        self._original.warning(*args, **kwargs)
+
+    def error(self, *args: Any, **kwargs: Any) -> None:
+        self._original.error(*args, **kwargs)
+
+    def exception(self, *args: Any, **kwargs: Any) -> None:
+        self._original.exception(*args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._original, name)
 
 
 def _finite(value: Any) -> float | None:
@@ -74,8 +90,14 @@ class CarewsmSummaryCallback(BaseCallback):
 
     def on_epoch_end(self, trainer: Any, epoch: int, logs: dict[str, Any]) -> None:
         test_logs = self._evaluate_test(trainer, epoch)
-        combined = {key: value for key, value in logs.items()}
+        combined = dict(logs)
         combined.update(test_logs)
+        combined = {
+            key: value
+            for key, value in combined.items()
+            if not ("/average/" in key and key.endswith("/observed_count"))
+            and not (key.startswith("average/") and key.endswith("/observed_count"))
+        }
         checkpoint = self._checkpoint_for_epoch(trainer, epoch)
 
         record = {
@@ -96,13 +118,19 @@ class CarewsmSummaryCallback(BaseCallback):
         self._log_compact_epoch(trainer, record)
 
     def _evaluate_test(self, trainer: Any, epoch: int) -> dict[str, float]:
+        """Evaluate TEST with no callback side effects.
+
+        Chimera-ML 0.3.0 exposes no per-epoch TEST hook. Its public
+        evaluate method executes all callbacks, so this callback uses the
+        private epoch primitive and restores the logger in a finally block.
+        """
         if not self._test_loaders:
             return {}
 
         device = torch.device(trainer.config.device if torch.cuda.is_available() else "cpu")
         scaler = torch.amp.GradScaler(device=device.type, enabled=False)
         original_logger = trainer.logger
-        trainer.logger = _SilentLogger()
+        trainer.logger = _EvaluationLogger(original_logger)
         results: dict[str, float] = {}
         try:
             for name, loader in self._test_loaders.items():
@@ -158,12 +186,6 @@ class CarewsmSummaryCallback(BaseCallback):
                     and _finite(wsm_value) is not None
                     else float("nan")
                 )
-            results[f"test/average/{task}/observed_count"] = (
-                (care_count + wsm_count) / 2
-                if care_count and wsm_count
-                else 0.0
-            )
-
         care_loss = results.get("test/CARE/loss", float("nan"))
         wsm_loss = results.get("test/WSM/loss", float("nan"))
         results["test/average/loss"] = (
@@ -200,7 +222,7 @@ class CarewsmSummaryCallback(BaseCallback):
             f"{_format(values.get('test/CARE/care/parkinson/macro_f1'))},"
             f"{_format(values.get('test/WSM/wsm/parkinson/macro_f1'))})",
         ]
-        trainer.logger.info("[epoch summary] " + " ".join(pieces))
+        trainer.logger.warning("[epoch summary] " + " ".join(pieces))
 
     def _write(self) -> None:
         if self._path is None or self._metrics_path is None:
@@ -224,35 +246,62 @@ class CarewsmSummaryCallback(BaseCallback):
             + (best.get("checkpoint") or "-" if best else "-"),
             "",
             "epoch | split | task | loss | macro_f1 | weighted_f1 | macro_recall | "
-            "weighted_recall | patient_recall | healthy_recall | observed_count",
-            "------|-------|------|------|----------------|----------|-------------|"
-            "--------------|----------------|----------------|--------------",
+            "weighted_recall | patient_recall | healthy_recall | CARE_count | "
+            "WSM_count | total_count",
+            "------|-------|------|------|----------|-------------|--------------|"
+            "----------------|----------------|--------------|------------|-----------|------------",
         ]
         for record in self._rows:
-            for split, prefix, loss_prefix in self._table_splits():
+            for split, prefix, loss_prefix, care_prefix, wsm_prefix in self._table_splits():
+                values = record["logs"]
                 for task in _TASKS:
-                    loss = record["logs"].get(f"{loss_prefix}/loss")
-                    if task != "depression":
-                        loss = None
-                    values = record["logs"]
-                    row = [str(record["epoch"]), split, task, _format(loss)]
+                    loss = values.get(f"{loss_prefix}/loss") if task == "depression" else None
+                    care_count = self._count(values, care_prefix, task)
+                    wsm_count = self._count(values, wsm_prefix, task)
+                    total_count = care_count + wsm_count
+                    row = [
+                        str(record["epoch"]),
+                        split,
+                        task,
+                        _format(loss),
+                    ]
                     row.extend(
                         _format(values.get(f"{prefix}/{task}/{metric}"))
-                        for metric in _HEADERS
+                        for metric in _METRICS
+                    )
+                    row.extend(
+                        [
+                            _format(care_count),
+                            _format(wsm_count),
+                            _format(total_count),
+                        ]
                     )
                     lines.append(" | ".join(row))
 
         self._path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
     @staticmethod
-    def _table_splits() -> list[tuple[str, str, str]]:
+    def _count(values: dict[str, Any], prefix: str | None, task: str) -> float:
+        if prefix is None:
+            return 0.0
+        return float(values.get(f"{prefix}/{task}/observed_count") or 0.0)
+
+    @staticmethod
+    def _table_splits() -> list[tuple[str, str, str, str | None, str | None]]:
         return [
-            ("TRAIN", "train/joint", "train"),
-            ("VAL CARE", "CARE/care", "CARE"),
-            ("VAL WSM", "WSM/wsm", "WSM"),
-            ("VAL average", "joint/average", "joint"),
-            ("TEST CARE", "test/CARE/care", "test/CARE"),
-            ("TEST WSM", "test/WSM/wsm", "test/WSM"),
-            ("TEST average", "test/average", "test/average"),
+            ("TRAIN", "train/joint", "train", "train/care", "train/wsm"),
+            ("VAL CARE", "CARE/care", "CARE", "CARE/care", None),
+            ("VAL WSM", "WSM/wsm", "WSM", None, "WSM/wsm"),
+            ("VAL average", "joint/average", "joint", "joint/care", "joint/wsm"),
+            ("TEST CARE", "test/CARE/care", "test/CARE", "test/CARE/care", None),
+            ("TEST WSM", "test/WSM/wsm", "test/WSM", None, "test/WSM/wsm"),
+            (
+                "TEST average",
+                "test/average",
+                "test/average",
+                "test/CARE/care",
+                "test/WSM/wsm",
+            ),
         ]
 
     def _best_row(self) -> dict[str, Any] | None:

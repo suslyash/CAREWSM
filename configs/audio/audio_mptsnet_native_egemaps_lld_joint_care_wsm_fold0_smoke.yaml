@@ -70,7 +70,7 @@ logging:
       log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       log_file: train.log
       console_level: INFO
-      file_level: INFO
+      file_level: WARNING
   - name: mlflow_logger
     params:
       tracking_uri: sqlite:///logs/mlflow.db
