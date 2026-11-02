@@ -4,29 +4,49 @@
 
 TRAIN CV drives development, feature/model comparison and hyperparameter search.
 
-DEV selects the final configuration.
+DEV is used for configuration selection.
 
-TEST is report-only after selection.
+For **every CV fold and every evaluated configuration**, the fold checkpoint is also evaluated on both fixed TEST sets:
 
-External D-Vlog/YouTubePD are also report-only unless the owner explicitly defines a different development protocol.
+- CARE TEST;
+- WSM TEST.
 
-## Required metrics
+TEST metrics are always logged, but they are never a development/selection signal.
 
-Per task:
+External D-Vlog/YouTubePD are deferred until the final external-evaluation stage and are report-only unless the owner explicitly defines another protocol.
 
-- F1;
-- weighted F1;
-- UAR;
-- weighted average recall.
+## Required metric table
+
+For each Configuration × Task × Fold, log three blocks: CARE, WSM and Average.
+
+Each block contains:
+
+- Macro F1;
+- Weighted F1;
+- Macro Recall;
+- Weighted Recall;
+- Patient Recall;
+- Healthy Recall.
+
+Definitions:
+
+- Patient Recall = positive/patient class recall;
+- Healthy Recall = negative/healthy class recall;
+- Macro Recall = mean of Patient Recall and Healthy Recall (UAR);
+- Weighted Recall = support-weighted class recall;
+- Average metric = arithmetic mean of CARE and WSM values for that metric.
+
+The Average block is not computed by pooling predictions across corpora.
 
 Every table also includes:
 
 - number of evaluated samples;
 - number of observed labels;
 - feature coverage/retention;
-- corpus/domain.
+- corpus/domain;
+- fold identifier.
 
-The manager may define a scalar selection score after TASK-001/Stage-2 confirms label distributions. Until then, do not silently optimize a metric not specified by the owner.
+The manager may define a scalar TRAIN-CV/DEV selection score after TASK-001/Stage-2 confirms label distributions. TEST metrics must never be used for that choice.
 
 ## Stage A — fast integrity audit
 
@@ -127,7 +147,9 @@ Loss-method comparison must not be confounded by changing feature sets unless th
 
 ## Stage H — within-corpus finalization
 
-Finalize CARE and WSM baselines separately using full TRAIN CV and DEV.
+Finalize CARE and WSM baselines separately using TRAIN CV and DEV for decisions.
+
+For every fold checkpoint, evaluate and persist the full required TEST table on **both CARE and WSM**.
 
 Persist:
 
@@ -136,7 +158,12 @@ Persist:
 - model;
 - loss method;
 - preprocessing;
+- fold-wise CARE TEST metrics;
+- fold-wise WSM TEST metrics;
+- fold-wise Average metrics;
 - seed results.
+
+Do not use fold-level TEST results to promote/reject configurations.
 
 ## Stage I — direct transfer
 
@@ -192,7 +219,7 @@ TEST/external metrics are forbidden from trial selection.
 
 ## Stage M — final reporting
 
-Run the DEV-selected configuration on TEST and external sets.
+Consolidate the already logged fold-level CARE/WSM TEST results for the DEV-selected configuration and run the deferred external evaluations.
 
 Report:
 
@@ -201,8 +228,10 @@ Report:
 - joint training;
 - adaptation;
 - external tests;
-- per-task metrics;
-- per-corpus metrics;
+- per-task/per-fold CARE metrics;
+- per-task/per-fold WSM metrics;
+- per-task/per-fold Average metrics;
+- aggregate fold statistics;
 - coverage;
 - seed variability;
 - model/runtime/parameter footprint where practical.

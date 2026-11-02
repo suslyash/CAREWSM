@@ -26,12 +26,16 @@ Architecture:
 - task-specific feature layer per disease;
 - disease-specific binary head.
 
-Metrics:
+Metrics per task/fold:
 
-- F1;
-- weighted F1;
-- UAR;
-- weighted average recall.
+- Macro F1;
+- Weighted F1;
+- Macro Recall (UAR);
+- Weighted Recall;
+- Patient Recall;
+- Healthy Recall.
+
+Every fold/configuration is evaluated on CARE TEST and WSM TEST; the same six metrics are also logged as a simple metric-wise CARE/WSM Average. TEST metrics are evidence only and cannot drive experiment selection.
 
 Loss study:
 

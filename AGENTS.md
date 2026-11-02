@@ -168,21 +168,30 @@ Do not use DEV/TEST labels to calculate `pos_weight`.
 
 ## Metrics
 
-Required base reporting:
+For every evaluated task, fold, and configuration log exactly these six classification metrics:
 
-- F1;
-- weighted F1;
-- UAR;
-- weighted average recall.
+- Macro F1;
+- Weighted F1;
+- Macro Recall;
+- Weighted Recall;
+- Patient Recall;
+- Healthy Recall.
 
-Report per task and the manager-defined aggregate summary. Also report corpus-specific results whenever an experiment involves multiple corpora.
+For every fold, evaluate the same checkpoint/configuration on both CARE TEST and WSM TEST.
+
+Also log an `Average` block computed as the simple arithmetic mean of the corresponding CARE and WSM metric values. Do not pool predictions across corpora to obtain this Average.
+
+`Macro Recall` is the binary-class macro average of Patient Recall and Healthy Recall. It is equivalent to UAR for this setting.
+
+Report sample counts and observed-label counts beside metrics.
 
 ## Evaluation discipline
 
 - TRAIN folds: development and hyperparameter selection.
-- DEV: final model/configuration selection.
-- TEST: report-only after selection.
-- TEST must not drive feature selection, model selection, threshold tuning, Optuna, reruns, ablation continuation or loss-method choice.
+- DEV: model/configuration selection.
+- For every CV fold/configuration, TEST evaluation on **both CARE and WSM** is mandatory for logging/reporting.
+- TEST results may be visible and persisted, but must not drive feature selection, model selection, threshold tuning, Optuna, reruns, ablation continuation or loss-method choice.
+- Selection decisions must be justified from TRAIN-CV/DEV evidence, never from TEST numbers.
 
 For direct transfer, preprocessing is fitted on source TRAIN only and is not refitted on target data.
 

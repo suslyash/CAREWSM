@@ -125,18 +125,28 @@ These comparisons must use the same data/features/model budget whenever possible
 
 ## 8. Metrics
 
-Required:
+For each task and fold compute:
 
-- F1;
-- weighted F1;
-- UAR;
-- weighted average recall.
+- Macro F1;
+- Weighted F1;
+- Macro Recall;
+- Weighted Recall;
+- Patient Recall;
+- Healthy Recall.
 
-Report per task.
+Compute these separately on CARE TEST and WSM TEST for every fold/configuration.
 
-For joint/transfer experiments also report per corpus/domain.
+Then compute the `Average` block metric-wise as:
 
-Coverage and number of observed labels are always reported beside metrics.
+`0.5 * metric_CARE + 0.5 * metric_WSM`.
+
+Do not pool corpora before computing the Average.
+
+Patient Recall is positive-class recall. Healthy Recall is negative-class recall. Macro Recall is the unweighted mean of the two and corresponds to UAR in the binary setting.
+
+Metrics use only examples with the relevant target observed.
+
+Coverage, evaluated sample count and observed-label count are always logged beside metrics.
 
 ## 9. Model families
 
@@ -150,9 +160,13 @@ A simple pooled MLP/reference classifier is permitted as a sanity baseline.
 
 The three research models consume standardized native or Mantis-derived representations through clean family adapters.
 
-## 10. No TEST-driven iteration
+## 10. Fold-level TEST logging without TEST-driven iteration
 
-TEST and external test sets do not determine:
+Every CV-fold checkpoint/configuration is evaluated on both CARE TEST and WSM TEST and the complete six-metric table is logged.
+
+These TEST numbers are evidence, not a selection signal.
+
+TEST and external test sets must not determine:
 
 - feature sets;
 - architecture;
@@ -162,4 +176,4 @@ TEST and external test sets do not determine:
 - Optuna trials;
 - retry/ablation continuation.
 
-Development decisions come from TRAIN CV and DEV according to the active experiment protocol.
+Development decisions must be justified from TRAIN CV and DEV according to the active experiment protocol.
