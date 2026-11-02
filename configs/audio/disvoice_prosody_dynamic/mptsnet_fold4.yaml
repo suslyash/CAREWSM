@@ -1,5 +1,5 @@
 callbacks:
-- name: carewsm_val_checkpoint_callback
+- name: checkpoint_callback
   params:
     filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
     log_path: logs/audio/disvoice_prosody_dynamic
