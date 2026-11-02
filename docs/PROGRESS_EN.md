@@ -74,7 +74,7 @@ Deferred until the primary joint model is complete:
 
 ## Current stage
 
-Stage 1 — feature integrity and coverage audit.
+Stage 2 — TASK-002 joint CARE+WSM native data layer is implemented on `codex/task-002-joint-datamodule`; manager review is pending. It consumes canonical fold files directly, keeps DEV metadata-only, and does not train or derive Mantis representations.
 
 ## Next task
 
