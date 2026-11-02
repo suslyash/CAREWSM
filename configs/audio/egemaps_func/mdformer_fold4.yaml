@@ -1,0 +1,78 @@
+callbacks:
+- name: carewsm_val_checkpoint_callback
+  params:
+    filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
+    log_path: logs/audio/egemaps_func
+    mode: max
+    monitor: joint/average_macro_f1
+    save_last: true
+    save_top_k: 1
+- name: snapshot_callback
+  params:
+    include:
+    - src
+    - configs
+    log_path: logs/audio/egemaps_func
+    save_code_zip: true
+    save_config: true
+- name: carewsm_summary_callback
+  params:
+    filename: summary.txt
+- name: carewsm_val_early_stopping_callback
+  params:
+    min_delta: 0.0
+    mode: max
+    monitor: joint/average_macro_f1
+    patience: 3
+data:
+  name: carewsm_joint
+  params:
+    batch_size: 64
+    care_root: /media/maxim/Databases/CARE
+    feature_family: egemaps_func
+    fold: 4
+    manifest: reports/feature_audit/sample_feature_availability.csv
+    max_sequence_length: 256
+    num_workers: 0
+    registry: /media/maxim/Databases/CARE/splits/features.json
+    shuffle_train: true
+    wsm_root: /media/maxim/Databases/WSM_NEW
+experiment_info:
+  params:
+    experiment_name: mdformer_fold4
+    run_name: fold4
+logging:
+- name: console_file_logger
+  params:
+    console_level: INFO
+    file_level: INFO
+    log_file: train.log
+    log_path: logs/audio/egemaps_func
+- name: mlflow_logger
+  params:
+    tracking_uri: sqlite:///logs/mlflow.db
+loss:
+  name: carewsm_masked_bce
+metrics:
+- name: carewsm_multitask_prf
+model:
+  name: carewsm_md_former
+  params:
+    input_dim: 88
+    hidden_dim: 16
+    dropout: 0.1
+    num_heads: 4
+optimizer:
+  name: adamw_optimizer
+  params:
+    lr: 0.0001
+    weight_decay: 0.0
+seed: 5
+train:
+  params:
+    collect_cache: true
+    device: cuda
+    epochs: 10
+    grad_clip_norm: 1.0
+    log_every_steps: 100
+    mixed_precision: true
