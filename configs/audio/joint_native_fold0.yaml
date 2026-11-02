@@ -1,0 +1,15 @@
+experiment_info:
+  params:
+    experiment_name: carewsm-native-fold0-smoke
+data:
+  name: carewsm_joint
+  params:
+    care_root: /media/maxim/Databases/CARE
+    wsm_root: /media/maxim/Databases/WSM_NEW
+    manifest: reports/feature_audit/sample_feature_availability.csv
+    registry: /media/maxim/Databases/CARE/splits/features.json
+    fold: 0
+    feature_family: egemaps_lld
+    batch_size: 2
+    num_workers: 0
+    shuffle_train: false

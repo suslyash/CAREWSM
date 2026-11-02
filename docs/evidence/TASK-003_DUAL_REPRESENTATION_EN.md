@@ -30,3 +30,9 @@ The smoke uses the same `(corpus, sample_id)` for both modes, checks ordered win
 ## Reproducibility and limitations
 
 Representation fingerprints include mode, family, source artifact, window/hop settings and sample identity in the adapter metadata. The current task intentionally does not persist a cache because official frozen inference is blocked. Future Mantis output must add checkpoint/revision, selected layer, pooling, preprocessing and code fingerprints and fit any learned preprocessing on TRAIN only.
+
+## Chimera-ML integration
+
+Installed `chimera-ml==0.3.0` uses `DATAMODULES.register`, `build_datamodule`, and the `chimera_ml.plugins` entry-point group. `src/chimera_plugin.py` registers `carewsm_joint`; the factory subclasses Chimera standard `DataModule`, uses standard `MaskingCollate`, and exposes the native adapter as the `native` input.
+
+YAML: `configs/audio/joint_native_fold0.yaml`. Command: `PYTHONPATH=src:. .venv/bin/python scripts/smoke_chimera_datamodule.py`. Real fold-0 sizes: TRAIN 6998, joint VAL 1780 (CARE 352 / WSM 1428), CARE TEST 318, WSM TEST 1364. Every loader produced a batch with native tensors and sequence masks, without training. Entry-point registration also succeeds without manually calling `chimera_plugin.register()`.
