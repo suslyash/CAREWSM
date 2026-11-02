@@ -115,22 +115,14 @@ class MaskSafeTemporalEncoder(nn.Module):
         mamba_required: bool,
     ) -> None:
         super().__init__()
-        if Mamba is None and mamba_required:
+        if Mamba is None:
             raise ModuleNotFoundError(
-                "TSCMamba requires mamba_ssm; no fallback is used"
+                "TSCMamba is BLOCKED: mamba_ssm is required; no fallback is used"
             )
-        if Mamba is not None:
-            self.encoder_type = "mamba"
-            self.layers = nn.ModuleList(
-                [BiMambaBlock(hidden_dim, dropout) for _ in range(num_layers)]
-            )
-        else:
-            self.encoder_type = "transformer"
-            layer = nn.TransformerEncoderLayer(
-                hidden_dim, num_heads, hidden_dim * 4, dropout,
-                batch_first=True, norm_first=True,
-            )
-            self.layers = nn.TransformerEncoder(layer, num_layers)
+        self.encoder_type = "mamba"
+        self.layers = nn.ModuleList(
+            [BiMambaBlock(hidden_dim, dropout) for _ in range(num_layers)]
+        )
 
     def forward(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         mask = mask.to(device=values.device, dtype=torch.bool)
@@ -195,7 +187,10 @@ class MPTSNetClassifier(SequenceClassifier):
     def __init__(self, input_dim: int, hidden_dim: int = 96,
                  dropout: float = 0.1) -> None:
         super().__init__(input_dim, hidden_dim, dropout)
-        self.periodic_blocks = nn.ModuleList([nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1) for _ in range(3)])
+        self.periodic_blocks = nn.ModuleList([
+            nn.Conv2d(hidden_dim, hidden_dim, kernel_size=size, padding=size // 2)
+            for size in (3, 5, 7)
+        ])
         self.global_block = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
         self.fusion = nn.Linear(hidden_dim * 4, hidden_dim)
 
