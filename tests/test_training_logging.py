@@ -1,3 +1,4 @@
+import csv
 import sys
 from types import SimpleNamespace
 
@@ -162,10 +163,28 @@ def test_multitask_metric_handles_missing_corpus_and_task_labels():
 
     assert result["care/depression/observed_count"] == 2.0
     assert result["care/parkinson/observed_count"] == 0.0
-    assert result["wsm/depression/observed_count"] == 0.0
-    assert result["wsm/parkinson/observed_count"] == 0.0
-    assert result["average_macro_f1"] == float("-inf")
-    assert not any(key.endswith("/observed_count") and "average" in key for key in result)
+    assert "wsm/depression/observed_count" not in result
+    assert "wsm/parkinson/observed_count" not in result
+    assert "average_macro_f1" not in result
+    assert not any("average" in key for key in result)
+
+
+def test_multitask_metric_emits_finite_average_only_for_joint_corpus_input():
+    metric = MultitaskPRFMetric()
+    targets = torch.tensor([[1, 0], [0, 1]])
+    predictions = torch.tensor([[2.0, -2.0], [-2.0, 2.0]])
+    observed = torch.ones((2, 2), dtype=torch.bool)
+    metric.update(
+        SimpleNamespace(preds=predictions),
+        _MetricBatch(targets, observed, ["CARE", "WSM"]),
+    )
+
+    result = metric.compute()
+
+    assert result["average/depression/macro_f1"] == 0.5
+    assert result["average/parkinson/macro_f1"] == 0.5
+    assert result["average_macro_f1"] == 0.5
+    assert all(torch.isfinite(torch.tensor(value)) for value in result.values())
 
 
 def test_best_epoch_is_selected_from_val_monitor_only():
@@ -225,7 +244,7 @@ def test_summary_renders_all_metrics_for_every_section_and_task(tmp_path):
 
     callback._rows = [{"epoch": 1, "checkpoint": "epoch=1.pt", "logs": logs}]
     callback._write()
-    text = callback._path.read_text(encoding="utf-8")
+    rows = list(csv.DictReader(callback._path.open(newline="", encoding="utf-8")))
 
     for section in (
         "TRAIN",
@@ -236,9 +255,17 @@ def test_summary_renders_all_metrics_for_every_section_and_task(tmp_path):
         "TEST WSM",
         "TEST average",
     ):
-        rows = [line for line in text.splitlines() if f"| {section} |" in line]
-        assert len(rows) == 2
-        assert all(row.count("0.1000") >= 6 for row in rows)
+        section_rows = [row for row in rows if row["split"] == section]
+        assert len(section_rows) == 2
+        assert all(
+            sum(row[metric] == "0.1000" for metric in _METRICS) == 6
+            for row in section_rows
+        )
 
-    assert "VAL average | depression" in text
-    assert "- | - | - | - | - | -" not in text
+    assert any(
+        row["split"] == "VAL average" and row["task"] == "depression"
+        for row in rows
+    )
+    assert callback._path.read_text(encoding="utf-8").splitlines()[0].startswith(
+        "epoch,split,task,loss,"
+    )
