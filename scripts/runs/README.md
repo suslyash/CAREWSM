@@ -1,16 +1,16 @@
-# CAREWSM audio series launcher
+# CAREWSM audio experiment launcher
 
-Use the single explicit launcher:
+The only launcher is `scripts/run_audio_experiments.sh`; it is Bash and invokes the official Chimera-ML CLI.
 
 ```bash
-.venv/bin/python scripts/run_audio_experiments.py --list
-CUDA_VISIBLE_DEVICES=0 .venv/bin/python scripts/run_audio_experiments.py --series mptsnet_native_egemaps_lld
-CUDA_VISIBLE_DEVICES=0 .venv/bin/python scripts/run_audio_experiments.py --series mdformer_native_egemaps_lld
-CUDA_VISIBLE_DEVICES=0 .venv/bin/python scripts/run_audio_experiments.py --all
+scripts/run_audio_experiments.sh --list
+CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --series mptsnet_native_egemaps_lld
+CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --series mdformer_native_egemaps_lld
+CUDA_VISIBLE_DEVICES=0 scripts/run_audio_experiments.sh --all
 ```
 
-With no arguments the script prints help and launches nothing. It has one automatic loop per selected series, over folds 0–4 only. The seed remains the single fixed seed in the series YAML; there is no seed sweep. Each fold invokes the official Chimera-ML CLI and a non-zero exit stops the script.
+With no arguments the script prints help and does nothing. The only automatic loop inside a selected series is folds 0–4. The seed is read from the selected YAML; there is no seed sweep, Optuna, or hidden model/feature loop. `set -euo pipefail` stops at the first failed fold.
 
-Before launching, the script refuses to overwrite `logs/audio_<architecture>_<representation>_<feature>_fold<k>/`. The project Chimera plugin configures the standard console/file logger, checkpoint and snapshot callbacks to use that directory directly; no `find`, `mv`, rename, or post-hoc flattening is used. MLflow run identity remains the experiment/run identity for the same fold.
+Chimera-ML owns the standard run layout. Each fold gets one experiment directory plus one generated run directory containing `train.log`, `summary.txt`, resolved YAML, checkpoints, snapshots and the matching MLflow run. No `find`, `mv`, rename, or post-hoc log manipulation is used. Existing results are preserved by Chimera's unique timestamp/hash run names.
 
-Each run contains `train.log`, `summary.txt`, resolved YAML, checkpoint(s), and snapshot artifacts. Collect completed summaries with `python3 scripts/collect_summary.py --root logs --output all_summary.txt`. TEST is not part of training or checkpoint selection.
+Collect summaries with `python3 scripts/collect_summary.py --root logs --output all_summary.txt`. TEST evaluation is not part of training or checkpoint selection.
