@@ -92,9 +92,19 @@ def audit(corpus_roots: dict[str, Path], registry_path: Path, out: Path) -> dict
         rows_by={n: (_read_csv(p) if p.exists() else []) for n,p in files.items()}
         split_rows_by[corpus]=rows_by
         if not files["videos"].exists(): split_notes.append(f"{corpus}: missing splits/videos.csv")
-        all_rows=[]
+        grouped={}
         for n in ("train","dev","test"):
-            for row in rows_by[n]: row=dict(row); row["_declared_file"]=n; all_rows.append(row)
+            for source_row in rows_by[n]:
+                row=dict(source_row); row["_declared_file"]=n
+                grouped.setdefault(row.get("sample_id",[]), []).append(row)
+        all_rows=[]
+        for sample_id, candidates in grouped.items():
+            # Keep one deterministic artifact record while preserving every source split/fold.
+            row=dict(next((x for x in candidates if x.get("_declared_file")=="dev"), candidates[0]))
+            row["_source_declared_files"]=";".join(sorted({x.get("_declared_file","") for x in candidates}))
+            row["_source_split_values"]=";".join(sorted({x.get("split","") for x in candidates}))
+            row["_source_cv_folds"]=";".join(sorted({x.get("cv_fold","") for x in candidates if x.get("cv_fold","") != ""}))
+            all_rows.append(row)
         video_index={r.get("sample_id"):r for r in rows_by["videos"]}
         for row in all_rows:
             sample=row.get("sample_id",""); labels={"depression": "", "parkinson": ""}
@@ -104,7 +114,7 @@ def audit(corpus_roots: dict[str, Path], registry_path: Path, out: Path) -> dict
             else:
                 labels["depression"] = "1" if row.get("label_id","").upper()=="DEPRESSION" else ("0" if row.get("label_id","").upper() in ("CONTROL","PARKINSON") else "")
                 labels["parkinson"] = "1" if row.get("label_id","").upper()=="PARKINSON" else ("0" if row.get("label_id","").upper() in ("CONTROL","DEPRESSION") else "")
-            rec={"corpus":corpus,"sample_id":sample,"profile_id":row.get("profile_id",""),"video_id":row.get("video_id",""),"split":row.get("split",row.get("_declared_file","")),"declared_file":row.get("_declared_file",""),"cv_fold":row.get("cv_fold",""),"depression":labels["depression"],"depression_observed":bool(labels["depression"]!=""),"parkinson":labels["parkinson"],"parkinson_observed":bool(labels["parkinson"]!="")}
+            rec={"corpus":corpus,"sample_id":sample,"profile_id":row.get("profile_id",""),"video_id":row.get("video_id",""),"split":row.get("split",row.get("_declared_file","")),"declared_file":row.get("_declared_file",""),"cv_fold":row.get("cv_fold",""),"source_declared_files":row.get("_source_declared_files",""),"source_split_values":row.get("_source_split_values",""),"source_cv_folds":row.get("_source_cv_folds",""),"depression":labels["depression"],"depression_observed":bool(labels["depression"]!=""),"parkinson":labels["parkinson"],"parkinson_observed":bool(labels["parkinson"]!="")}
             for name,spec in specs.items():
                 status,reason=validate_artifact(_artifact(root,row,spec["file"]),spec); rec[name+"_status"]=status; rec[name+"_valid"]=status=="VALID"; statuses[(corpus,name,status)]+=1
             manifest.append(rec)

@@ -2,7 +2,7 @@
 
 ## Executive result
 
-The corrected audit inspected 11,676 manifest rows in 480.37s. WSM artifacts are resolved through `extracted/<label>/<subgroup>/PROFILE_<id>/VIDEO_<id>`; the legacy CSV `video_dir` is retained only as evidence. CARE and WSM NPZ files pass dependency-light NPY header and actual numeric-value validation; NaN/Inf values are classified as NONFINITE.
+The corrected audit inspected 10,464 manifest rows in 428.59s. WSM artifacts are resolved through `extracted/<label>/<subgroup>/PROFILE_<id>/VIDEO_<id>`; the legacy CSV `video_dir` is retained only as evidence. CARE and WSM NPZ files pass dependency-light NPY header and actual numeric-value validation; NaN/Inf values are classified as NONFINITE.
 
 ## Registry and temporal semantics
 
@@ -49,30 +49,30 @@ The manifest contains one status and boolean validity column per family. Selecte
 
 | corpus | family | VALID | MISSING | EMPTY | INVALID_DTYPE |
 |---|---|---:|---:|---:|---:|
-| CARE | egemaps_func | 2307 | 0 | 0 | 0 |
-| CARE | egemaps_lld | 2307 | 0 | 0 | 0 |
-| CARE | disvoice_prosody_static | 1054 | 0 | 0 | 1253 |
-| CARE | disvoice_prosody_dynamic | 2278 | 0 | 0 | 29 |
-| CARE | disvoice_phonation_static | 2203 | 0 | 0 | 104 |
-| CARE | disvoice_phonation_dynamic | 2307 | 0 | 0 | 0 |
-| CARE | disvoice_articulation_static | 2295 | 0 | 0 | 12 |
-| CARE | wav2vec_xlsr300m | 2307 | 0 | 0 | 0 |
-| CARE | trillsson4_1 | 2307 | 0 | 0 | 0 |
-| CARE | emotionmsp_trajectories | 2307 | 0 | 0 | 0 |
-| CARE | emotionmsp_embeds | 2307 | 0 | 0 | 0 |
-| WSM | egemaps_func | 9361 | 6 | 0 | 2 |
-| WSM | egemaps_lld | 9361 | 6 | 0 | 2 |
-| WSM | disvoice_prosody_static | 7691 | 6 | 0 | 1672 |
-| WSM | disvoice_prosody_dynamic | 9276 | 6 | 0 | 87 |
-| WSM | disvoice_phonation_static | 9267 | 6 | 0 | 96 |
-| WSM | disvoice_phonation_dynamic | 9268 | 6 | 95 | 0 |
-| WSM | disvoice_articulation_static | 9311 | 6 | 0 | 52 |
-| WSM | wav2vec_xlsr300m | 9363 | 6 | 0 | 0 |
-| WSM | trillsson4_1 | 9363 | 6 | 0 | 0 |
-| WSM | emotionmsp_trajectories | 9363 | 6 | 0 | 0 |
-| WSM | emotionmsp_embeds | 9363 | 6 | 0 | 0 |
+| CARE | egemaps_func | 2031 | 0 | 0 | 0 |
+| CARE | egemaps_lld | 2031 | 0 | 0 | 0 |
+| CARE | disvoice_prosody_static | 935 | 0 | 0 | 1096 |
+| CARE | disvoice_prosody_dynamic | 2004 | 0 | 0 | 27 |
+| CARE | disvoice_phonation_static | 1938 | 0 | 0 | 93 |
+| CARE | disvoice_phonation_dynamic | 2031 | 0 | 0 | 0 |
+| CARE | disvoice_articulation_static | 2020 | 0 | 0 | 11 |
+| CARE | wav2vec_xlsr300m | 2031 | 0 | 0 | 0 |
+| CARE | trillsson4_1 | 2031 | 0 | 0 | 0 |
+| CARE | emotionmsp_trajectories | 2031 | 0 | 0 | 0 |
+| CARE | emotionmsp_embeds | 2031 | 0 | 0 | 0 |
+| WSM | egemaps_func | 8429 | 3 | 0 | 1 |
+| WSM | egemaps_lld | 8429 | 3 | 0 | 1 |
+| WSM | disvoice_prosody_static | 6922 | 3 | 0 | 1508 |
+| WSM | disvoice_prosody_dynamic | 8353 | 3 | 0 | 77 |
+| WSM | disvoice_phonation_static | 8344 | 3 | 0 | 86 |
+| WSM | disvoice_phonation_dynamic | 8345 | 3 | 85 | 0 |
+| WSM | disvoice_articulation_static | 8385 | 3 | 0 | 45 |
+| WSM | wav2vec_xlsr300m | 8430 | 3 | 0 | 0 |
+| WSM | trillsson4_1 | 8430 | 3 | 0 | 0 |
+| WSM | emotionmsp_trajectories | 8430 | 3 | 0 | 0 |
+| WSM | emotionmsp_embeds | 8430 | 3 | 0 | 0 |
 
-Global complete-case across all 11 families: **8,650/11,676 (74.08%)**.
+Global complete-case across all 11 families: **7,774/10,464 (74.29%)**.
 
 Pairwise joint-valid counts are recorded in `audit_summary.json` under `pairwise_joint_valid`; diagonal entries are single-family valid counts. This includes the required pairwise matrix without pooling or deleting samples.
 
@@ -82,26 +82,26 @@ Pairwise joint-valid counts are recorded in `audit_summary.json` under `pairwise
 {
   "CARE": {
     "depression": {
-      "negative": 1703,
-      "observed": 2307,
-      "positive": 604
+      "negative": 1498,
+      "observed": 2031,
+      "positive": 533
     },
     "parkinson": {
-      "negative": 2074,
-      "observed": 2307,
-      "positive": 233
+      "negative": 1827,
+      "observed": 2031,
+      "positive": 204
     }
   },
   "WSM": {
     "depression": {
-      "negative": 3335,
-      "observed": 5735,
-      "positive": 2400
+      "negative": 3028,
+      "observed": 5111,
+      "positive": 2083
     },
     "parkinson": {
-      "negative": 2233,
-      "observed": 3634,
-      "positive": 1401
+      "negative": 2026,
+      "observed": 3322,
+      "positive": 1296
     }
   }
 }
@@ -110,8 +110,8 @@ Pairwise joint-valid counts are recorded in `audit_summary.json` under `pairwise
 ## Manifest and reproducibility
 
 - path: `/media/maxim/Programs/Projects/CAREWSM/reports/feature_audit/sample_feature_availability.csv`
-- rows: 11,676; bytes: 2,731,277
-- SHA256: `00fd495ceecb488e1064b91bba40afaeae2a397a6900d5dd093926841f53cbe6`
+- rows: 10,464; bytes: 2,592,264
+- SHA256: `bacf3b9715d0ff38f39596934bfcfe13da8dddbc5177a22ff362a56fdf389533`
 - command: `python3 -m src.audio.data.feature_audit --out reports/feature_audit`
 
 ## Tests, limitations and recommendation
