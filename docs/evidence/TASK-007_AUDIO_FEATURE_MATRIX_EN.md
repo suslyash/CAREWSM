@@ -35,3 +35,12 @@ Logs use the standard Chimera layout rooted at `logs/audio/<feature>/`; no monke
 - `bash -n scripts/run_audio_experiments.sh` passes;
 - Python syntax and `git diff --check` pass;
 - no experiments, MLflow runs, preprocessing or cleanup were executed.
+
+
+## TASK-008 preflight guard
+
+The single launcher now supports a read-only `--check` mode. It validates every selected literal YAML for fold 0--4, model registry name, feature registry name, input dimension, fixed CARE/WSM roots, CUDA device, standard loggers, and VAL-only checkpoint/early-stopping callbacks monitoring `joint/average_macro_f1` in `max` mode. It does not train, create MLflow runs, evaluate TEST, generate YAML, or touch logs.
+
+The following native families are explicitly marked `STATIC_INPUT / TEMPORAL_INTERPRETATION_LIMITED` by preflight: `egemaps_func`, `disvoice_prosody_static`, `disvoice_phonation_static`, `disvoice_articulation_static`, `wav2vec_xlsr300m`, `trillsson4_1`, `emotionmsp_trajectories`, and `emotionmsp_embeds`. Their native shape is `T=1`; classifier results are exploratory and must not be interpreted as validation of periodic folding or temporal attention mechanisms. `egemaps_lld`, `disvoice_prosody_dynamic`, and `disvoice_phonation_dynamic` retain sequence semantics and are reported as `SEQUENCE_INPUT`.
+
+Static checks completed for `--check --feature egemaps`, one static feature, and `--check --all` (110 configs); no numerical experiment evidence was produced.
