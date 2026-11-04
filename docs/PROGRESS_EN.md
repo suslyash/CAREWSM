@@ -67,7 +67,7 @@ Required metrics:
 
 ## Current stage
 
-REFACTOR-002 corpus-specific masked metrics and validation monitor submitted for independent manager review. Legacy loader names, metrics, summary callback, and historical monitor remain compatible; YAML migration and final logging changes are deferred to later refactor tasks.
+REFACTOR-003 epoch logging, wide summary, and run paths submitted for independent manager review. REFACTOR-002 is preserved, including the validation-only `dev_mean_macro_recall` monitor and legacy compatibility.
 
 The next scientific question is whether the strongest static deep embeddings are complementary when combined.
 
@@ -75,6 +75,6 @@ The immediate task does **not** run the full combination study. It first makes m
 
 ## Next task
 
-REFACTOR-002 — corpus-specific masked metrics and validation monitor submitted for independent manager review.
+REFACTOR-003 — epoch logging, wide summary, and run paths submitted for independent manager review.
 
 TASK-011 remains PAUSED until REFACTOR-000 through REFACTOR-005 and final integration review are independently reviewed and merged. The historical 110 runs remain preserved.
