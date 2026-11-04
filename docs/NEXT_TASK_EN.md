@@ -2,11 +2,13 @@
 
 ## TASK-011 — multi-feature static deep fusion infrastructure
 
-**Status: READY**
+**Status: PAUSED**
 
 Prompt:
 
 `docs/tasks/TASK-011_STATIC_DEEP_FUSION.md`
+
+The next task requires manager review and explicit authorization after REFACTOR-001.
 
 Purpose:
 

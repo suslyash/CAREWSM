@@ -78,3 +78,8 @@ The immediate task does **not** run the full combination study. It first makes m
 TASK-011 — multi-feature static deep fusion infrastructure.
 
 Do not start loss balancing, Mantis, Optuna, external evaluation or a full feature-combination matrix before manager review of TASK-011.
+
+
+## REFACTOR-001
+
+The owner approved an infrastructure refactor to simplify the active audio data layer into a direct Dataset and fold-aware DataModule. The earlier 110 historical runs remain preserved; this refactor does not rerun or rewrite them.
