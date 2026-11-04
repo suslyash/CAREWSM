@@ -2,103 +2,79 @@
 
 ## Current state
 
-TASK-005 native Chimera-ML training pipeline is implemented on `codex/task-005-training-pipeline`. A real bounded fold-0 MPTSNet train/VAL smoke completed on joint CARE+WSM eGeMAPS LLD with standard console logger and callbacks; evidence is in `docs/evidence/TASK-005_TRAINING_PIPELINE_EN.md`. MLflow is restored with pinned SQLAlchemy 2.0.x compatibility; a real FINISHED MLflow run is recorded.
+The first complete joint CARE+WSM single-feature audio matrix has been reviewed and merged.
 
+Manager-reviewed evidence:
 
-TASK-004 model infrastructure is implemented on `codex/task-004-model-infrastructure`: registered TSCMamba-inspired, MPTSNet-inspired and MD-Former-inspired native sequence classifiers, masked BCE and six binary metrics. Focused YAML/forward-backward smoke evidence is recorded; TSCMamba remains dependency-blocked if `mamba_ssm` is unavailable.
+- 22 configurations;
+- 110 canonical fold-runs;
+- five folds per configuration;
+- checkpoint selection from VAL `joint/average_macro_f1` only;
+- CARE TEST and WSM TEST retained as descriptive statistics;
+- all six required metrics logged for VAL and TEST;
+- one historical duplicate excluded deterministically;
+- reproducible analysis script and fold-level derived evidence committed.
 
-TASK-001 audit implementation and evidence are complete on `codex/task-001-feature-audit`; manager review is pending. The review correction now resolves WSM through the real `extracted/` tree, validates CARE/WSM NPZ headers without numpy, and records split/fold/leakage and coverage summaries. Live audit found 11 audio registry sources, missing CARE `splits/videos.csv`, a WSM train/dev split inconsistency, CARE artifact failures, and no valid WSM feature mapping under current paths.
+Evidence:
 
-The project has been restarted as an audio-only research programme.
+- `docs/evidence/MANAGER_AUDIO_EXPERIMENT_REPORT_2026-11-04.md`
+- `docs/evidence/MANAGER_AUDIO_EXPERIMENT_FOLD_RESULTS_2026-11-04.csv`
+- `scripts/analyze_audio_experiments.py`
 
-Owner-reported state:
+## Validation-first findings
 
-- 11 intended audio feature families have been extracted;
-- some sample/feature extractions failed;
-- coverage has not yet been validated;
-- Mantis temporal window embeddings have not yet been frozen as a derived representation contract;
-- no current CAREWSM model result is accepted as project evidence.
+Top configurations by mean five-fold VAL monitor:
+
+1. `emotionmsp_embeds/mlp` — 0.7941
+2. `emotionmsp_embeds/mdformer` — 0.7882
+3. `trillsson4_1/mlp` — 0.7621
+4. `trillsson4_1/mdformer` — 0.7559
+5. `wav2vec_xlsr300m/mlp` — 0.7118
+6. `wav2vec_xlsr300m/mdformer` — 0.6668
+
+The strongest single-feature representations are therefore the static deep embeddings:
+
+- `emotionmsp_embeds`;
+- `trillsson4_1`;
+- `wav2vec_xlsr300m`.
+
+The strongest handcrafted static family is `disvoice_articulation_static/mlp` at 0.6186 VAL monitor.
+
+Several weaker configurations exhibit majority-class collapse with near-zero Patient Recall. Weighted metrics must not be used alone to judge them.
+
+TSCMamba was not evaluated because `mamba_ssm` is unavailable; it did not experimentally lose.
 
 ## Current methodology
 
-Targets:
+Primary protocol remains joint CARE+WSM five-fold training.
 
-- Depression binary head;
-- Parkinson binary head;
-- missing labels masked.
+For fold `k`:
 
-Architecture:
+- TRAIN = CARE fold-k TRAIN + WSM fold-k TRAIN;
+- VAL = CARE fold-k VAL + WSM fold-k VAL;
+- preprocessing and class weights use TRAIN only;
+- checkpoint/configuration selection uses VAL only;
+- CARE/WSM TEST are logged only for statistics.
 
-- common/shared representation;
-- task-specific feature layer per disease;
-- disease-specific binary head.
-
-Metrics per task/fold:
+Required metrics:
 
 - Macro F1;
 - Weighted F1;
-- Macro Recall (UAR);
+- Macro Recall;
 - Weighted Recall;
 - Patient Recall;
 - Healthy Recall.
 
-Every fold/configuration is evaluated on CARE TEST and WSM TEST; the same six metrics are also logged as a simple metric-wise CARE/WSM Average. TEST metrics are evidence only and cannot drive experiment selection.
-
-Loss study:
-
-- BCE;
-- weighted BCE;
-- Equal;
-- PCGrad;
-- CAGrad;
-- STCH;
-- PAGB;
-- single-task reference models.
-
-Temporal representation:
-
-- frozen Mantis embeddings;
-- 1.0 s windows;
-- 0.5 s hop;
-- sequence retained per video/block.
-
-Primary research protocol:
-
-- CARE + WSM are mixed from the first training experiment;
-- fold-k TRAIN = CARE fold-k TRAIN + WSM fold-k TRAIN;
-- fold-k VAL = CARE fold-k VAL + WSM fold-k VAL;
-- model/feature/loss selection uses validation only;
-- every selected fold checkpoint logs CARE TEST and WSM TEST statistics.
-
-Deferred until the primary joint model is complete:
-
-- CARE-only / WSM-only ablations;
-- direct transfer;
-- D-Vlog / YouTubePD;
-- small-target adaptation.
-
 ## Current stage
 
-TASK-003 dual representation adapters are implemented on `codex/task-003-dual-representation`. Native sequences and defensible timestamped 1.0 s / 0.5 s windows are smoke-tested on real CARE and WSM `egemaps_lld` samples. Frozen Mantis inference is explicitly BLOCKED because the official `mantis-tsfm` package is not installed; no checkpoint or cache was invented. Manager review is required before installing/pinning Mantis and generating embeddings.
+Feature-combination infrastructure.
+
+The next scientific question is whether the strongest static deep embeddings are complementary when combined.
+
+The immediate task does **not** run the full combination study. It first makes multi-feature loading/fusion explicit, testable and coverage-aware.
 
 ## Next task
 
-TASK-001 — fast audit of real extracted feature artifacts and deterministic filtering metadata.
+TASK-011 — multi-feature static deep fusion infrastructure.
 
-No training or Mantis cache generation is authorized until manager review of TASK-001.
-
-## TASK-006 preparation
-
-The TASK-006 experiment organization is prepared but no real training was run in this revision. Native eGeMAPS LLD fold-specific YAMLs and one explicit universal launcher with five-fold execution are available for MPTSNet and MD-Former. Each fold uses full canonical TRAIN/VAL rows, a fixed seed, contiguous full-trajectory bin pooling to 256 steps (no first-N truncation), VAL-only aggregate Macro F1 checkpoint/early-stopping monitor, and standard Chimera logging/callbacks. TEST is intentionally deferred to a separate fixed-checkpoint evaluation mode.
-
-## TASK-007 audio feature matrix
-
-Static native schema audit confirmed all 11 registry audio families and dimensions. Explicit MPTSNet and MD-Former fold YAMLs are prepared under `configs/audio/<feature>/` for every confirmed family. The single Bash launcher discovers folders and existing fold files; no experiments were run.
-
-## TASK-008 audio preflight
-
-Added a read-only `--check` mode to the single Bash launcher. It validates all literal fold YAMLs, registry/model names, dimensions, fixed paths, CUDA device, callbacks and VAL-only monitoring, and labels native `T=1` families as `STATIC_INPUT / TEMPORAL_INTERPRETATION_LIMITED`. No training, MLflow runs or log cleanup were performed.
-
-## TASK-010 MLP matrix
-
-The literal matrix now contains MLP only for the eight native `T=1` feature families, with five folds each. Static MPTSNet YAMLs were removed; static MD-Former remains comparative. The three temporal families retain only MPTSNet and MD-Former. The single Bash launcher and read-only preflight enforce these pairings. No experiments were run.
+Do not start loss balancing, Mantis, Optuna, external evaluation or a full feature-combination matrix before manager review of TASK-011.
