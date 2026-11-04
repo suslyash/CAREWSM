@@ -6,10 +6,10 @@ from types import SimpleNamespace
 import torch
 from torch.utils.data import DataLoader
 
-from audio.callbacks.summary import CAREWSMSummaryCallback
-from audio.callbacks.validation_monitor import CAREWSMValidationMonitorCallback
-from audio.loss.masked_bce import CAREWSMMaskedBCELoss
-from audio.metrics.classification import CAREWSMClassificationMetric
+from audio.callbacks.carewsm_summary_callback import CAREWSMSummaryCallback
+from audio.callbacks.carewsm_validation_monitor_callback import CAREWSMValidationMonitorCallback
+from audio.loss.carewsm_masked_bce_loss import CAREWSMMaskedBCELoss
+from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
 from audio.models.classifiers import PooledMLP
 from chimera_ml.callbacks.base import BaseCallback
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
@@ -41,15 +41,6 @@ class _CaptureLogs(BaseCallback):
     def on_epoch_end(self, trainer, epoch, logs):
         del trainer, epoch
         self.logs = dict(logs)
-
-
-class _Context:
-    def __init__(self, data_module):
-        self.data_module = data_module
-
-    def get(self, name):
-        assert name == "data.module"
-        return self.data_module
 
 
 def _samples(corpus, count=4, flip=False):
@@ -111,14 +102,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         console_level="INFO",
         file_level="INFO",
     )
-    data_module = SimpleNamespace(
-        evaluation_layout="corpus",
-        test_dataloader=lambda: {
-            "test_care": _loader("CARE", flip=True),
-            "test_wsm": _loader("WSM", flip=True),
-        },
-    )
-    summary = CAREWSMSummaryCallback(context=_Context(data_module))
+    summary = CAREWSMSummaryCallback()
     checkpoint = CheckpointCallback(
         log_path=str(run_root),
         experiment_name="synthetic_audio",
@@ -170,7 +154,12 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     train_samples[0]["meta"]["observed_targets"] = torch.tensor([True, False])
     trainer.fit(
         _loader_from_samples(train_samples),
-        val_loaders={"val_care": _loader("CARE"), "val_wsm": _loader("WSM")},
+        val_loaders={
+            "val_care": _loader("CARE"),
+            "val_wsm": _loader("WSM"),
+            "test_care": _loader("CARE", flip=True),
+            "test_wsm": _loader("WSM", flip=True),
+        },
     )
 
     run_dir = run_root / "synthetic_audio" / "pooled_mlp_fold0"
@@ -188,26 +177,21 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     assert capture.logs is not None
     assert capture.logs["train/num_samples"] == 4
     assert log_text.index("[val_wsm epoch 1]") < log_text.index("[test_care epoch 1]")
+    assert not trainer._test_loaders
 
     validation_values = [capture.logs[name] for name in CAREWSMValidationMonitorCallback.components]
     assert capture.logs["dev_mean_macro_recall"] == sum(validation_values) / 4
     test_recall_pairs = [
         (
-            capture.logs[f"val_{corpus}/depression/macro_recall"],
-            summary._corpus_test_results[1][f"test_{corpus}/depression/macro_recall"],
+            capture.logs[f"val_{corpus}/{task}/macro_recall"],
+            capture.logs[f"test_{corpus}/{task}/macro_recall"],
         )
         for corpus in ("care", "wsm")
+        for task in ("depression", "parkinson")
     ]
-    test_recall_pairs.extend(
-        (
-            capture.logs[f"val_{corpus}/parkinson/macro_recall"],
-            summary._corpus_test_results[1][f"test_{corpus}/parkinson/macro_recall"],
-        )
-        for corpus in ("care", "wsm")
-    )
     assert any(validation != test for validation, test in test_recall_pairs)
-    assert summary._corpus_test_results[1]["test_care/loss"] >= 0.0
-    assert summary._corpus_test_results[1]["test_wsm/loss"] >= 0.0
+    assert capture.logs["test_care/loss"] >= 0.0
+    assert capture.logs["test_wsm/loss"] >= 0.0
     assert checkpoint._best == capture.logs["dev_mean_macro_recall"]
     assert early_stopping._best == capture.logs["dev_mean_macro_recall"]
     assert checkpoint._saved

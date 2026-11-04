@@ -1,39 +1,63 @@
 # REFACTOR-005 Cleanup Evidence
 
-## Naming
+## Active tree before/after
 
-| Before | After |
-|---|---|
-| `CarewsmValidationMonitor` | `CAREWSMValidationMonitorCallback` |
-| `CAREWSMSummaryCallback` | `CAREWSMSummaryCallback` |
-| `MaskedMultitaskClassificationMetric` | `CAREWSMClassificationMetric` |
-| `MaskedMultitaskBCE` | `CAREWSMMaskedBCELoss` |
-| `CAREWSMAudioDataset` | `CAREWSMAudioDataset` |
-| `CAREWSMAudioDataModule` | `CAREWSMAudioDataModule` |
+The active training path is now the direct Chimera flow:
 
-The class renames do not change the registry identifiers. The obsolete `CarewsmSummaryCallback` alias was removed.
+`CAREWSMAudioDataModule -> Trainer.fit(train, val_care, val_wsm, test_care, test_wsm) -> CAREWSMSummaryCallback`
 
-## Deleted legacy runtime code
+The callback receives completed epoch logs only. It does not access the DataModule or execute the model.
 
-`src/audio/metrics/classification.py` now contains only the active masked six-metric implementation and the `carewsm_masked_multitask_classification` registration. The old `BinaryMetric`, individual metric factories, `MultitaskPRFMetric`, corpus-average helper, and `carewsm_multitask_prf` registration were removed.
+Renamed modules:
 
-`CAREWSMSummaryCallback` now has only the corpus-specific `train`, `val_care`, `val_wsm`, `test_care`, and `test_wsm` summary contract. Legacy CSV/JSON output, legacy TEST remapping/averaging, old monitor selection, and compact duplicate logging were removed. Native Trainer logging remains authoritative.
+- `callbacks/summary.py` -> `callbacks/carewsm_summary_callback.py`
+- `callbacks/validation_monitor.py` -> `callbacks/carewsm_validation_monitor_callback.py`
+- `metrics/classification.py` -> `metrics/carewsm_classification_metric.py`
+- `loss/masked_bce.py` -> `loss/carewsm_masked_bce_loss.py`
 
-The DataModule accepts only `evaluation_layout: corpus` and provides canonical loader names directly. The three noncanonical audio YAMLs were individually updated to the current metric/layout/monitor contract where they are executable smoke or validation configurations; they remain outside the 110-file matrix.
+Deleted obsolete files:
 
-## Data-layer decision
+- `src/audio/data/joint_datamodule.py`
+- `src/audio/features/representations.py`
+- `src/audio/data/feature_audit.py`
+- obsolete real-data smoke scripts and YAML
+- `tests/test_feature_audit.py`
 
-The active training data layer remains exactly `carewsm_audio_dataset.py` and `carewsm_audio_datamodule.py`. `joint_datamodule.py` and `features/representations.py` remain outside the active pipeline as identifiable deferred Mantis research utilities; smoke scripts that exercise them remain explicit deferred utilities and are not imported by the Chimera training entry point. No replacement Sample/View/NativeFeature hierarchy was introduced.
+## Simplification
 
-## Registry and import audit
+The production `src/` and repository `scripts/` diff adds 128 lines and deletes 867 lines (excluding YAML, tests, and documentation).
 
-Retained registry identifiers: `carewsm_joint`, `carewsm_masked_bce`, `carewsm_masked_multitask_classification`, `carewsm_validation_monitor`, and `carewsm_summary_callback`, plus all active model identifiers. A repository search found no active imports of deleted metric, loss, monitor, or summary class names.
+`CAREWSMSummaryCallback` now has only path setup, log receipt, deterministic wide-column persistence, and epoch idempotency. Manual `_run_epoch()` TEST evaluation, loader/cache state, legacy schema enumeration, and custom TEST logging were removed.
+
+The DataModule now requires one explicit `feature_family`, has no sample limits or evaluation-layout modes, and exposes:
+
+```python
+val_dataset = {
+    "val_care": datasets["val_care"],
+    "val_wsm": datasets["val_wsm"],
+    "test_care": datasets["test_care"],
+    "test_wsm": datasets["test_wsm"],
+}
+```
+
+The Dataset loads exactly one native family and preserves native temporal shape and values.
+
+The remaining validation monitor is necessary because Chimera has no arithmetic four-component monitor expression. It writes only `dev_mean_macro_recall` before checkpoint and early stopping.
+
+The old parallel data architecture and feature-audit runtime module were deleted rather than moved elsewhere. Generated audit reports and historical experiment reports remain preserved.
+
+## Registry and configuration
+
+Registry identifiers remain unchanged: `carewsm_joint`, `carewsm_masked_bce`, `carewsm_masked_multitask_classification`, `carewsm_validation_monitor`, and `carewsm_summary_callback`, plus active model identifiers. All 110 canonical YAMLs retain their dimensions, seeds, folds, feature families, optimizer settings, and validation-only selection policy; obsolete `evaluation_layout` and sequence/limit parameters were removed.
 
 ## Verification
 
-- Focused CAREWSM suite: 23 passed, 2 existing Transformer warnings.
-- `python3 -m py_compile` passed for all touched Python modules and `scripts/smoke_models.py`.
-- Full 110-YAML preflight and `--list` were run after the cleanup.
-- Historical experiment reports and the 110 canonical YAML matrix were not rewritten.
+- Synthetic CPU `Trainer.fit()`: 5 native passes (`train`, `val_care`, `val_wsm`, `test_care`, `test_wsm`).
+- Focused CAREWSM suite: 18 passed, 2 existing Transformer warnings.
+- Strict 110-YAML preflight: passed.
+- `--list`: 11 canonical feature directories.
+- Registry factory instantiation: passed.
+- Shell syntax, Python compilation, and `git diff --check`: passed.
+- No real CARE/WSM training or historical experiment was run.
 
-Remaining items for the separate final integration review are broader project-suite dependency availability and a manager review of the retained deferred Mantis utilities.
+Remaining blocker: the broader repository suite still requires unavailable vendored `intervaltree` and `pyannote.*` dependencies.

@@ -2,7 +2,7 @@
 
 ## REFACTOR-005 — final naming, legacy removal, and architecture cleanup
 
-**Status: AUTHORIZED — implementation in progress.**
+**Status: AUTHORIZED — correction in progress.**
 
 Standardize active CAREWSM component names, remove obsolete runtime compatibility code, retain the direct two-file data layer, and verify the canonical 110-YAML matrix without running historical experiments.
 

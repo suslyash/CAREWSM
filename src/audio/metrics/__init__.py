@@ -1,1 +1,1 @@
-from .classification import CAREWSMClassificationMetric, carewsm_masked_multitask_classification
+from .carewsm_classification_metric import CAREWSMClassificationMetric, carewsm_masked_multitask_classification

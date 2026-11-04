@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from audio.metrics.classification import CAREWSMClassificationMetric
+from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
 from chimera_ml.data.masking_collate import MaskingCollate
 
 

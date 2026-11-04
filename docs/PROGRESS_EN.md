@@ -67,7 +67,7 @@ Required metrics:
 
 ## Current stage
 
-REFACTOR-000 through REFACTOR-004 have passed independent review and are merged. REFACTOR-005 cleanup is the current authorized atomic task; it standardizes active component names, removes obsolete runtime compatibility code, and preserves the 110 canonical configurations without running historical experiments. The validation-only `dev_mean_macro_recall` monitor and historical evidence remain preserved.
+REFACTOR-000 through REFACTOR-004 have passed independent review and are merged. REFACTOR-005 cleanup is the current authorized atomic task; it standardizes active module/class names, removes redundant TEST and parallel-data architecture, and preserves the 110 canonical configurations without running historical experiments. The validation-only `dev_mean_macro_recall` monitor and historical evidence remain preserved.
 
 The next scientific question is whether the strongest static deep embeddings are complementary when combined; that work remains paused until REFACTOR-005 and the final integration review are complete.
 

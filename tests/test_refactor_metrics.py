@@ -5,10 +5,10 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from audio.callbacks.validation_monitor import CAREWSMValidationMonitorCallback
+from audio.callbacks.carewsm_validation_monitor_callback import CAREWSMValidationMonitorCallback
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
 from chimera_ml.callbacks.early_stopping_callback import EarlyStoppingCallback
-from audio.metrics.classification import CAREWSMClassificationMetric
+from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
 from chimera_ml.data.masking_collate import MaskingCollate
 
 

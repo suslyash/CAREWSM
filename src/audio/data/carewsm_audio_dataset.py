@@ -68,79 +68,34 @@ def load_feature_array(
 
 
 class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
-    """Load native feature arrays and return Chimera-compatible samples."""
+    """Load one configured native feature family without changing its shape."""
 
     def __init__(
         self,
         records: list[dict[str, Any]] | tuple[dict[str, Any], ...],
-        feature_families: list[str] | tuple[str, ...],
+        feature_family: str,
         feature_specs: Mapping[str, Mapping[str, Any]],
-        max_sequence_length: int | None = None,
     ) -> None:
+        if not feature_family:
+            raise ValueError("CAREWSMAudioDataset requires feature_family")
+        if feature_family not in feature_specs:
+            raise ValueError(f"unknown feature family: {feature_family}")
         self.records = tuple(records)
-        self.feature_families = tuple(feature_families)
-        self.feature_specs = feature_specs
-        self.max_sequence_length = max_sequence_length
-
-        if not self.feature_families:
-            raise ValueError("at least one feature family is required")
-        if len(set(self.feature_families)) != len(self.feature_families):
-            raise ValueError("duplicate feature families are not allowed")
-        unknown = set(self.feature_families) - set(self.feature_specs)
-        if unknown:
-            raise ValueError(f"unknown feature family: {sorted(unknown)}")
-        if max_sequence_length is not None and max_sequence_length < 1:
-            raise ValueError("max_sequence_length must be positive")
+        self.feature_family = feature_family
+        self.feature_spec = feature_specs[feature_family]
 
     def __len__(self) -> int:
         return len(self.records)
 
-    def _load_record_features(
-        self, record: Mapping[str, Any]
-    ) -> list[tuple[np.ndarray, Path]]:
-        loaded: list[tuple[np.ndarray, Path]] = []
-        for family in self.feature_families:
-            if record.get(f"{family}_status") != "VALID":
-                raise ValueError(
-                    f"feature is not VALID for {record['corpus']}/{record['sample_id']}: {family}"
-                )
-            path = Path(record["feature_paths"][family])
-            values = load_feature_array(path, self.feature_specs[family], family)
-            loaded.append((values, path))
-        return loaded
-
-    def _combine_features(
-        self, loaded: list[tuple[np.ndarray, Path]]
-    ) -> tuple[np.ndarray, list[int]]:
-        arrays = [values for values, _ in loaded]
-        dimensions = [int(values.shape[1]) for values in arrays]
-        if len(arrays) > 1:
-            if any(values.shape[0] != 1 for values in arrays):
-                raise ValueError(
-                    "multiple feature families require genuine static T=1 arrays; "
-                    "temporal alignment is not defined"
-                )
-            return np.concatenate(arrays, axis=1), dimensions
-
-        values = arrays[0]
-        if self.max_sequence_length is None or len(values) <= self.max_sequence_length:
-            return values, dimensions
-
-        edges = np.linspace(
-            0, len(values), self.max_sequence_length + 1, dtype=np.int64
-        )
-        pooled = np.stack(
-            [
-                values[edges[i] : edges[i + 1]].mean(axis=0)
-                for i in range(self.max_sequence_length)
-            ]
-        )
-        return pooled, dimensions
-
     def __getitem__(self, index: int) -> dict[str, Any]:
         record = self.records[index]
-        loaded = self._load_record_features(record)
-        values, dimensions = self._combine_features(loaded)
+        family = self.feature_family
+        if record.get(f"{family}_status") != "VALID":
+            raise ValueError(
+                f"feature is not VALID for {record['corpus']}/{record['sample_id']}: {family}"
+            )
+        path = Path(record["feature_paths"][family])
+        values = load_feature_array(path, self.feature_spec, family)
         tensor = torch.from_numpy(values.astype(np.float32, copy=False))
 
         observed = torch.tensor(
@@ -154,8 +109,6 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
             ],
             dtype=torch.float32,
         )
-        paths = [str(path) for _, path in loaded]
-
         return {
             "inputs": {"native": tensor},
             "targets": targets,
@@ -163,9 +116,9 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
                 "corpus": record["corpus"],
                 "sample_id": record["sample_id"],
                 "profile_id": record["profile_id"],
-                "feature_families": list(self.feature_families),
-                "feature_dimensions": dimensions,
-                "feature_paths": paths,
+                "feature_family": family,
+                "feature_dimension": int(tensor.shape[1]),
+                "feature_path": str(path),
                 "observed_targets": observed,
                 "masks": {
                     "sequence_mask": torch.ones(tensor.shape[0], dtype=torch.bool)
