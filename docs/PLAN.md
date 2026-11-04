@@ -4,149 +4,103 @@
 
 **Status: COMPLETE**
 
-- audio-only scope;
-- manager/Codex workflow;
-- fixed split discipline;
-- joint CARE+WSM primary training protocol;
-- two-head masked target contract;
-- Mantis temporalization requirement;
-- three-model shortlist;
-- validation-only model selection;
-- fold-wise CARE/WSM TEST statistics.
-
 ## Stage 1 — feature integrity and coverage audit
 
-**Status: NEXT**
-
-Codex audits the actual extracted audio feature families.
-
-Outputs:
-
-- exact operational registry;
-- schemas/shapes/dtypes;
-- timestamps/temporal semantics;
-- valid/missing/corrupt/empty/non-finite status;
-- per-sample availability manifest;
-- per-feature and pairwise coverage;
-- complete-case retention;
-- split/fold/label sanity;
-- confirmation that fold `k` can be combined safely across CARE and WSM.
-
-No training or Mantis derivation.
+**Status: COMPLETE**
 
 ## Stage 2 — joint Chimera-ML data layer
 
-Implement:
-
-- canonical CARE/WSM sample identity;
-- joint fold construction `CARE_train_k + WSM_train_k`;
-- joint validation construction `CARE_val_k + WSM_val_k`;
-- separate CARE/WSM validation views for metrics;
-- separate CARE/WSM TEST loaders;
-- two target values + observed masks;
-- per-feature availability;
-- native temporal/static loaders;
-- TRAIN-only normalization/PCA/class weights;
-- leakage tests.
-
-All active code under `src/audio/data` and `src/audio/features`.
+**Status: COMPLETE FOR SINGLE-FEATURE NATIVE INPUT**
 
 ## Stage 3 — Mantis temporal representation
 
-Freeze:
+**Status: DEFERRED**
 
-- supported feature blocks;
-- 1.0 s / 0.5 s window construction;
-- Mantis checkpoint/version;
-- selected layer;
-- pooling;
-- validity/confidence semantics;
-- scaler/PCA contract;
-- cache schema/fingerprint.
-
-Build derived sequences without modifying source features.
+Mantis remains blocked/unfrozen and is not required for the current static deep-feature combination study.
 
 ## Stage 4 — model/loss infrastructure
 
-Implement:
+**Status: COMPLETE FOR CURRENT SCREENING**
 
-- pooled reference baseline;
-- TSCMamba-inspired;
+Implemented/usable:
+
+- pooled MLP;
 - MPTSNet-inspired;
 - MD-Former-inspired;
-- shared/common representation;
-- task-specific Depression/Parkinson feature layers;
-- binary heads;
-- masked BCE;
-- weighted BCE;
-- Equal/PCGrad/CAGrad/STCH/PAGB hooks;
-- validation and TEST metrics/callbacks.
+- TSCMamba-inspired code path remains dependency-blocked by `mamba_ssm`;
+- masked multitask BCE;
+- six required metrics;
+- VAL-only checkpointing;
+- CARE/WSM TEST statistics.
 
 ## Stage 5 — joint single-feature screening
 
-Train every experiment on CARE+WSM jointly.
+**Status: COMPLETE**
 
-Evaluate:
+Manager-reviewed matrix:
 
-- every usable single family;
-- native representation;
-- Mantis representation where valid;
-- reference baseline;
-- three research models.
+- 22 configurations;
+- 110 fold-runs.
 
-Select/promote using validation only.
+Primary VAL ranking is recorded in the manager report.
 
-For each fold, also log CARE TEST and WSM TEST statistics.
+Strongest feature families:
+
+1. `emotionmsp_embeds`;
+2. `trillsson4_1`;
+3. `wav2vec_xlsr300m`.
 
 ## Stage 6 — joint feature combinations
 
-Evaluate structured groups, then greedy forward additions.
+**Status: IN PROGRESS**
 
-Avoid exhaustive 2047-subset search.
+### Stage 6A — multi-feature static fusion infrastructure
 
-Selection uses validation only.
+Next: TASK-011.
 
-## Stage 7 — joint multitask loss/balancing study
+Implement a clean ordered multi-family T=1 concatenation path, coverage filtering and smoke validation.
 
-Compare:
+### Stage 6B — bounded deep-feature combination matrix
 
-- Equal;
-- PCGrad;
-- CAGrad;
-- STCH;
-- PAGB;
-- single-task models;
-- unweighted vs weighted BCE.
+After TASK-011 review, run a manager-defined set such as:
 
-Use matched joint-fold settings.
+- emotion + TRILLsson;
+- emotion + XLS-R;
+- TRILLsson + XLS-R;
+- emotion + TRILLsson + XLS-R;
+- one complementary handcrafted addition if coverage permits.
+
+Selection remains validation-only.
+
+### Stage 6C — mixed static + temporal combinations
+
+Only after the static deep fusion study shows what signal remains to gain.
+
+Do not introduce fake temporal structure for static embeddings.
+
+## Stage 7 — multitask loss/balancing study
+
+**Status: DEFERRED**
+
+Compare Equal / weighted BCE / PCGrad / CAGrad / STCH / PAGB only on strong feature/model configurations.
 
 ## Stage 8 — Optuna
 
-Tune only the best joint model/feature/loss configuration.
+**Status: DEFERRED**
 
-Objective: joint-fold validation only.
+Tune only the final winning model/feature/loss family.
 
 ## Stage 9 — final joint CARE+WSM evidence
 
-Report:
+**Status: DEFERRED**
 
-- validation results used for selection;
-- fold-wise CARE TEST statistics;
-- fold-wise WSM TEST statistics;
-- metric-wise CARE/WSM Average;
-- fold aggregate statistics;
-- coverage;
-- seeds;
-- runtime/parameters;
-- reproducibility metadata.
+## Stage 10 — secondary studies
 
-## Stage 10 — deferred secondary studies
-
-Only after the primary joint model is complete:
+**Status: DEFERRED**
 
 - CARE-only / WSM-only ablations;
-- CARE -> WSM / WSM -> CARE direct transfer;
-- D-Vlog / YouTubePD external tests;
+- direct transfer;
+- D-Vlog / YouTubePD;
 - small-target adaptation.
 
 Multimodality remains out of scope.
