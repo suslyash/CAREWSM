@@ -48,6 +48,7 @@ class CAREWSMAudioDataModule(DataModule):
         max_train_samples: int | None = None,
         max_val_samples: int | None = None,
         max_test_samples: int | None = None,
+        evaluation_layout: str = "legacy",
     ) -> None:
         if fold not in range(5):
             raise ValueError("fold must be an integer from 0 through 4")
@@ -55,6 +56,8 @@ class CAREWSMAudioDataModule(DataModule):
             raise ValueError(
                 "feature_family and feature_families cannot both be configured"
             )
+        if evaluation_layout not in {"legacy", "corpus"}:
+            raise ValueError("evaluation_layout must be 'legacy' or 'corpus'")
 
         if feature_families is not None:
             selected = tuple(feature_families)
@@ -64,6 +67,7 @@ class CAREWSMAudioDataModule(DataModule):
             raise ValueError("feature families must be non-empty and non-duplicate")
 
         self.fold_index = fold
+        self.evaluation_layout = evaluation_layout
         self.feature_families = selected
         self.feature_family = selected[0] if len(selected) == 1 else None
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
@@ -93,10 +97,26 @@ class CAREWSMAudioDataModule(DataModule):
             )
             for name, records in self.views.items()
         }
+        validation_datasets = (
+            {"joint": datasets["val"]}
+            if evaluation_layout == "legacy"
+            else {
+                "val_care": datasets["care_val"],
+                "val_wsm": datasets["wsm_val"],
+            }
+        )
+        test_datasets = (
+            {"CARE": datasets["care_test"], "WSM": datasets["wsm_test"]}
+            if evaluation_layout == "legacy"
+            else {
+                "test_care": datasets["care_test"],
+                "test_wsm": datasets["wsm_test"],
+            }
+        )
         super().__init__(
             train_dataset=datasets["train"],
-            val_dataset={"joint": datasets["val"]},
-            test_dataset={"CARE": datasets["care_test"], "WSM": datasets["wsm_test"]},
+            val_dataset=validation_datasets,
+            test_dataset=test_datasets,
             batch_size=batch_size,
             num_workers=num_workers,
             pin_memory=False,

@@ -316,3 +316,25 @@ def test_registration_collate_and_model_forward_backward(tmp_path: Path) -> None
         loss = output.preds.sum()
         loss.backward()
         assert output.preds.shape == (2, 2)
+
+
+def test_corpus_evaluation_layout_reuses_effective_validation_views(tmp_path: Path) -> None:
+    dm = build_dm(
+        tmp_path,
+        feature_family="static_a",
+        evaluation_layout="corpus",
+        max_train_samples=1,
+        max_val_samples=1,
+        max_test_samples=1,
+    )
+    assert set(dm.val_dataset) == {"val_care", "val_wsm"}
+    assert set(dm.test_dataset) == {"test_care", "test_wsm"}
+    assert len(dm.train_dataset) == 2
+    assert len(dm.val_dataset["val_care"]) == 1
+    assert len(dm.val_dataset["val_wsm"]) == 1
+    assert len(dm.test_dataset["test_care"]) == 1
+    assert len(dm.test_dataset["test_wsm"]) == 1
+    assert {record["corpus"] for record in dm.views["care_val"]} == {"CARE"}
+    assert {record["corpus"] for record in dm.views["wsm_val"]} == {"WSM"}
+    assert len(dm.views["care_val"]) == len(dm.val_dataset["val_care"])
+    assert len(dm.views["wsm_val"]) == len(dm.val_dataset["val_wsm"])
