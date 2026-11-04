@@ -1,6 +1,7 @@
 """Focused tests for the corpus-mode wide summary and concise epoch logging."""
 
 import csv
+import io
 import logging
 from pathlib import Path
 from types import SimpleNamespace
@@ -58,7 +59,26 @@ def _logs() -> dict[str, float]:
     return logs
 
 
-def test_corpus_summary_has_one_wide_semicolon_row_and_five_info_lines(tmp_path):
+def _test_metrics(value: float) -> dict[str, float]:
+    result = {"loss": value, "num_samples": 2}
+    for task in ("depression", "parkinson"):
+        prefix = f"{task}/"
+        result[f"{prefix}observed_count"] = 2
+        result[f"{prefix}positive_support"] = 1
+        result[f"{prefix}negative_support"] = 1
+        for metric in (
+            "macro_f1",
+            "weighted_f1",
+            "macro_recall",
+            "weighted_recall",
+            "patient_recall",
+            "healthy_recall",
+        ):
+            result[f"{prefix}{metric}"] = value
+    return result
+
+
+def test_corpus_summary_evaluates_real_test_flow_once_per_epoch(tmp_path):
     logger = _Logger(tmp_path / "logs" / "experiment" / "run")
     data_module = SimpleNamespace(
         evaluation_layout="corpus",
@@ -69,12 +89,29 @@ def test_corpus_summary_has_one_wide_semicolon_row_and_five_info_lines(tmp_path)
         logger=logger,
         callbacks=[],
         config=SimpleNamespace(device="cpu"),
+        mlflow_logger=None,
     )
+    calls: list[str] = []
+
+    def run_epoch(**kwargs):
+        calls.append(kwargs["split"])
+        return _test_metrics(0.91 if kwargs["split"] == "test_care" else 0.83)
+
+    trainer._run_epoch = run_epoch
     callback.on_fit_start(trainer)
-    callback._test_loaders = {}
-    callback.on_epoch_end(trainer, 1, _logs())
-    logger.messages.clear()
-    callback.on_epoch_end(trainer, 1, _logs())
+    logs = {
+        key: value
+        for key, value in _logs().items()
+        if not key.startswith("test_")
+    }
+    callback.on_epoch_end(trainer, 1, logs)
+    assert calls == ["test_care", "test_wsm"]
+    first_messages = list(logger.messages)
+
+    callback.on_epoch_end(trainer, 1, logs)
+    assert calls == ["test_care", "test_wsm"]
+    assert logger.messages == first_messages
+    assert len([message for level, message in logger.messages if level == "info"]) == 5
 
     summary = Path(logger.log_path).parent / "summary.txt"
     rows = list(
@@ -84,25 +121,18 @@ def test_corpus_summary_has_one_wide_semicolon_row_and_five_info_lines(tmp_path)
         )
     )
     assert len(rows) == 1
-    assert rows[0]["epoch"] == "1"
-    assert rows[0]["val_care_depression_macro_recall"] == "0.2500"
-    assert rows[0]["test_wsm_parkinson_healthy_recall"] == "0.2500"
-    assert rows[0]["dev_mean_macro_recall"] == "0.6250"
-    assert "val_care_depression_macro_f1" in rows[0]
-    assert "val_care_parkinson_weighted_recall" in rows[0]
-    assert summary.read_text(encoding="utf-8").count("\n") == 2
-
-    messages = [message for level, message in logger.messages if level == "info"]
-    assert len(messages) == 5
-    assert [message.split("split=")[1].split()[0] for message in messages] == [
+    assert rows[0]["test_care_depression_macro_f1"] == "0.9100"
+    assert rows[0]["test_wsm_parkinson_healthy_recall"] == "0.8300"
+    assert "test/average/loss" not in callback._corpus_test_results[1]
+    assert [message.split("split=")[1].split()[0] for level, message in logger.messages if level == "info"] == [
         "train",
         "val_care",
         "val_wsm",
         "test_care",
         "test_wsm",
     ]
-    assert all("macro_f1" not in message for message in messages)
     callback.on_fit_end(trainer)
+
 
 
 def test_corpus_test_mapping_restores_logger_and_uses_corpus_keys(tmp_path):
@@ -129,6 +159,74 @@ def test_corpus_test_mapping_restores_logger_and_uses_corpus_keys(tmp_path):
     assert trainer.logger is original_logger
     assert results["test_care/loss"] == 0.2
     assert results["test_wsm/num_samples"] == 2
+
+
+def _real_logger(tmp_path, name: str):
+    logger = logging.getLogger(name)
+    logger.handlers.clear()
+    logger.filters.clear()
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    stream = io.StringIO()
+    handler = logging.StreamHandler(stream)
+    logger.addHandler(handler)
+    logger.log_path = str(tmp_path / "train.log")
+    return logger, handler, stream
+
+
+def test_real_logging_handler_filter_and_cleanup(tmp_path):
+    logger, handler, stream = _real_logger(tmp_path, "carewsm-summary-filter")
+    data_module = SimpleNamespace(evaluation_layout="corpus", test_dataloader=lambda: {})
+    callback = CAREWSMSummaryCallback(context=_Context(data_module))
+    trainer = SimpleNamespace(logger=logger)
+
+    callback.on_fit_start(trainer)
+    logger.info("[train epoch 1] verbose")
+    logger.info("[epoch summary] concise")
+    logger.warning("[val_care epoch 1] warning")
+    before_cleanup = stream.getvalue()
+    assert "verbose" not in before_cleanup
+    assert "concise" in before_cleanup
+    assert "warning" in before_cleanup
+    assert len(handler.filters) == 1
+
+    callback.on_fit_end(trainer)
+    assert not handler.filters
+    logger.info("[val_care epoch 2] after cleanup")
+    assert "after cleanup" in stream.getvalue()
+    logger.removeHandler(handler)
+    handler.close()
+
+
+def test_test_failure_restores_logger_and_removes_filter(tmp_path):
+    logger, handler, stream = _real_logger(tmp_path, "carewsm-summary-failure")
+    data_module = SimpleNamespace(
+        evaluation_layout="corpus",
+        test_dataloader=lambda: {"test_care": object()},
+    )
+    callback = CAREWSMSummaryCallback(context=_Context(data_module))
+    trainer = SimpleNamespace(
+        logger=logger,
+        config=SimpleNamespace(device="cpu"),
+        mlflow_logger=None,
+    )
+    original_logger = trainer.logger
+    callback.on_fit_start(trainer)
+
+    def failing_epoch(**kwargs):
+        logger.warning("test warning")
+        logger.error("test error")
+        raise RuntimeError("synthetic TEST failure")
+
+    trainer._run_epoch = failing_epoch
+    with pytest.raises(RuntimeError, match="synthetic TEST failure"):
+        callback.on_epoch_end(trainer, 1, _logs())
+    assert trainer.logger is original_logger
+    assert not handler.filters
+    assert "test warning" in stream.getvalue()
+    assert "test error" in stream.getvalue()
+    logger.removeHandler(handler)
+    handler.close()
 
 
 def test_trainer_epoch_filter_suppresses_only_new_stock_info_lines():

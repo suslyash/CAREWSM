@@ -48,7 +48,11 @@ Macro F1, Weighted F1, and Weighted Recall remain in the wide summary and availa
 
 ## TEST and selection isolation
 
-Chimera invokes callbacks in configured list order. The future corpus-mode order is validation monitor, checkpoint, early stopping, then summary. The summary evaluates each `test_care` and `test_wsm` loader once through the existing private `_run_epoch` primitive after selection callbacks have consumed validation logs. It uses `test_care`/`test_wsm` task-prefixed keys, restores the Trainer logger in `finally`, does not call callback lifecycle methods recursively, and never writes TEST values into `dev_mean_macro_recall`.
+Chimera invokes callbacks in configured list order. The future corpus-mode order is validation monitor, checkpoint, early stopping, then summary. The summary evaluates each `test_care` and `test_wsm` loader through the existing private `_run_epoch` primitive after selection callbacks have consumed validation logs. Returned metrics are mapped directly to `test_care/<task>/<metric>` and `test_wsm/<task>/<metric>` keys. Legacy `test/average/...` generation is skipped entirely in corpus mode.
+
+Corpus epoch processing is idempotent: after a successful epoch, a small per-epoch result map and completed-epoch set prevent another TEST evaluation or another five-line INFO emission. A repeated callback invocation may refresh train/validation values in the one existing row, but always reapplies the previously computed TEST values. The epoch is marked complete only after TEST evaluation, summary writing, and concise logging succeed; failed/incomplete processing is not marked complete.
+
+The callback restores the Trainer logger in `finally`, does not call callback lifecycle methods recursively, and never writes TEST values into `dev_mean_macro_recall`.
 
 ## Run layout
 
@@ -71,9 +75,10 @@ Legacy `joint` validation, `CARE`/`WSM` TEST names, `carewsm_multitask_prf`, `Ca
 
 Actual checks completed:
 
-- `.venv/bin/pytest -q tests/test_refactor_audio_data.py tests/test_training_logging.py tests/test_refactor_metrics.py tests/test_refactor_summary.py` — 24 passed;
+- `.venv/bin/pytest -q tests/test_refactor_summary.py` — 6 passed;
+- `.venv/bin/pytest -q tests/test_refactor_audio_data.py tests/test_training_logging.py tests/test_refactor_metrics.py tests/test_refactor_summary.py` — 26 passed;
 - `bash scripts/run_audio_experiments.sh --check --all` — passed for all canonical configurations;
 - `.venv/bin/python -m py_compile` on touched Python files — passed;
 - `git diff --check` — passed.
 
-The full repository suite was attempted and collection remains blocked by vendored DiariZen/pyannote tests requiring unavailable `intervaltree`, `pyannote.core`, `pyannote.database`, and `pyannote.audio` packages. No REFACTOR-003 test failed.
+The summary-specific tests use controlled deterministic `_run_epoch` stubs rather than a full `Trainer.fit()` integration. They also use real standard-library logging handlers for successful filtering and TEST-failure cleanup. The full repository suite was attempted and collection remains blocked by vendored DiariZen/pyannote tests requiring unavailable `intervaltree`, `pyannote.core`, `pyannote.database`, and `pyannote.audio` packages. No REFACTOR-003 test failed.

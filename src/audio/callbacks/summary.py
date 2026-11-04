@@ -90,6 +90,10 @@ class CAREWSMSummaryCallback(BaseCallback):
     _test_loaders: dict[str, Any] = field(default_factory=dict, init=False)
     _corpus_mode: bool = field(default=False, init=False)
     _epoch_filter: _TrainerEpochFilter | None = field(default=None, init=False)
+    _corpus_test_results: dict[int, dict[str, float]] = field(
+        default_factory=dict, init=False
+    )
+    _completed_corpus_epochs: set[int] = field(default_factory=set, init=False)
 
     def on_fit_start(self, trainer: Any) -> None:
         log_path = getattr(getattr(trainer, "logger", None), "log_path", None)
@@ -115,13 +119,26 @@ class CAREWSMSummaryCallback(BaseCallback):
         self._write()
 
     def on_epoch_end(self, trainer: Any, epoch: int, logs: dict[str, Any]) -> None:
+        if self._corpus_mode and epoch in self._completed_corpus_epochs:
+            combined = dict(logs)
+            combined.update(self._corpus_test_results[epoch])
+            self._replace_corpus_row(epoch, combined)
+            self._write_corpus_summary()
+            return
+
         try:
             test_logs = self._evaluate_test(trainer, epoch)
         except Exception:
             self._remove_epoch_filter(trainer)
             raise
         if self._corpus_mode:
-            self._on_corpus_epoch_end(trainer, epoch, logs, test_logs)
+            self._corpus_test_results[epoch] = dict(test_logs)
+            combined = dict(logs)
+            combined.update(test_logs)
+            self._replace_corpus_row(epoch, combined)
+            self._write_corpus_summary()
+            self._log_corpus_lines(trainer, epoch, combined)
+            self._completed_corpus_epochs.add(epoch)
             return
         combined = dict(logs)
         combined.update(test_logs)
@@ -183,7 +200,8 @@ class CAREWSMSummaryCallback(BaseCallback):
         finally:
             trainer.logger = original_logger
 
-        self._add_test_averages(results)
+        if not self._corpus_mode:
+            self._add_test_averages(results)
         if trainer.mlflow_logger:
             mlflow_values = {
                 key: float(value)
@@ -280,20 +298,10 @@ class CAREWSMSummaryCallback(BaseCallback):
     def on_fit_end(self, trainer: Any) -> None:
         self._remove_epoch_filter(trainer)
 
-    def _on_corpus_epoch_end(
-        self,
-        trainer: Any,
-        epoch: int,
-        logs: dict[str, Any],
-        test_logs: dict[str, float],
-    ) -> None:
-        combined = dict(logs)
-        combined.update(test_logs)
-        record = {"epoch": epoch, "logs": combined}
+    def _replace_corpus_row(self, epoch: int, logs: dict[str, Any]) -> None:
+        record = {"epoch": epoch, "logs": logs}
         self._rows = [row for row in self._rows if row.get("epoch") != epoch]
         self._rows.append(record)
-        self._write_corpus_summary()
-        self._log_corpus_lines(trainer, epoch, combined)
 
     @staticmethod
     def _corpus_columns() -> list[str]:
