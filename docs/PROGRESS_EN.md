@@ -67,7 +67,7 @@ Required metrics:
 
 ## Current stage
 
-REFACTOR-003 epoch logging, wide summary, and run paths were submitted for independent manager review. REFACTOR-004 mandatory logging simplification is currently authorized and removes custom suppression while preserving the summary contract. REFACTOR-002 is preserved, including the validation-only `dev_mean_macro_recall` monitor and legacy compatibility.
+REFACTOR-003 epoch logging, wide summary, and run paths were submitted for independent manager review. REFACTOR-004 mandatory logging simplification was merged. REFACTOR-004 YAML migration and Trainer integration is currently authorized and migrates the 110 canonical configurations without running historical experiments. REFACTOR-002 is preserved, including the validation-only `dev_mean_macro_recall` monitor and legacy compatibility.
 
 The next scientific question is whether the strongest static deep embeddings are complementary when combined.
 

@@ -24,7 +24,7 @@ check_configs() {
   [[ "${#configs[@]}" -gt 0 ]] || { printf 'No configs selected\n' >&2; return 2; }
   python3 - "${configs[@]}" <<'PY2'
 from pathlib import Path
-import re
+import os
 import sys
 import yaml
 expected = {
@@ -35,29 +35,68 @@ expected = {
     "trillsson4_1": ("trillsson4_1", 1024, True), "emotionmsp_trajectories": ("emotionmsp_trajectories", 3, True), "emotionmsp_embeds": ("emotionmsp_embeds", 1024, True),
 }
 models = {"mptsnet": "carewsm_mptsnet", "mdformer": "carewsm_md_former", "mlp": "carewsm_pooled_mlp"}
-callbacks = {"checkpoint_callback", "snapshot_callback", "carewsm_summary_callback", "early_stopping_callback"}
+required_callbacks = ["carewsm_validation_monitor", "checkpoint_callback", "early_stopping_callback", "carewsm_summary_callback", "snapshot_callback"]
+identities = set()
+if os.environ.get("CAREWSM_FULL_MATRIX") == "1":
+    root = Path("configs/audio")
+    actual_dirs = {path.name for path in root.iterdir() if path.is_dir()}
+    if actual_dirs != set(expected):
+        raise SystemExit(f"Expected feature directories {sorted(expected)}, found {sorted(actual_dirs)}")
+    expected_paths = {
+        root / feature / f"{model}_fold{fold}.yaml"
+        for feature, (_, _, is_static) in expected.items()
+        for model in ({"mdformer", "mlp"} if is_static else {"mptsnet", "mdformer"})
+        for fold in range(5)
+    }
+    actual_paths = {path for directory in root.iterdir() if directory.is_dir() for path in directory.glob("*.yaml")}
+    if len(actual_paths) != 110 or actual_paths != expected_paths:
+        raise SystemExit(f"Expected 110 canonical files, found {len(actual_paths)}")
 for raw_path in sys.argv[1:]:
-    path = Path(raw_path); match = re.fullmatch(r"(.+)/(mptsnet|mdformer|mlp)_fold([0-4])\.yaml", str(path))
-    if match is None: raise SystemExit(f"Invalid config filename: {path}")
-    folder, model, fold_text = match.groups(); feature = Path(folder).name
-    if feature not in expected: raise SystemExit(f"Unknown feature folder: {feature}")
+    path = Path(raw_path)
+    model, fold_text = path.stem.rsplit("_fold", 1)
+    feature = path.parent.name
+    if feature not in expected or model not in models or fold_text not in {"0", "1", "2", "3", "4"}:
+        raise SystemExit(f"Invalid canonical config filename: {path}")
     family, dimension, is_static = expected[feature]
     allowed = {"mdformer", "mlp"} if is_static else {"mptsnet", "mdformer"}
-    if model not in allowed: raise SystemExit(f"{path}: model {model} is not allowed for {feature}")
-    with path.open(encoding="utf-8") as handle: config = yaml.safe_load(handle)
-    data = config["data"]["params"]; model_config = config["model"]
-    if data.get("fold") != int(fold_text) or data.get("feature_family") != family: raise SystemExit(f"{path}: fold/family mismatch")
-    if model_config.get("name") != models[model] or model_config["params"].get("input_dim") != dimension: raise SystemExit(f"{path}: model/dimension mismatch")
-    if data.get("care_root") != "/media/maxim/Databases/CARE" or data.get("wsm_root") != "/media/maxim/Databases/WSM_NEW": raise SystemExit(f"{path}: data roots mismatch")
-    if config.get("train", {}).get("params", {}).get("device") != "cuda": raise SystemExit(f"{path}: device is not CUDA")
-    callback_map = {item.get("name"): item.get("params", {}) for item in config.get("callbacks", [])}
-    if set(callback_map) != callbacks: raise SystemExit(f"{path}: callback set mismatch")
-    for name in ("checkpoint_callback", "early_stopping_callback"):
-        if callback_map[name].get("monitor") != "joint/average_macro_f1" or callback_map[name].get("mode") != "max": raise SystemExit(f"{path}: invalid VAL monitor")
-    if callback_map["checkpoint_callback"].get("save_top_k") != 1: raise SystemExit(f"{path}: checkpoint selection is not best-only")
-    if {item.get("name") for item in config.get("logging", [])} != {"console_file_logger", "mlflow_logger"}: raise SystemExit(f"{path}: logger set mismatch")
-    label = "STATIC_INPUT / TEMPORAL_INTERPRETATION_LIMITED" if is_static else "SEQUENCE_INPUT"
-    print(f"OK {path}: fold={fold_text} model={model} family={family} dim={dimension} {label}")
+    if model not in allowed:
+        raise SystemExit(f"{path}: model {model} is not allowed for {feature}")
+    with path.open(encoding="utf-8") as handle:
+        config = yaml.safe_load(handle)
+    data = config["data"]["params"]
+    if data.get("fold") != int(fold_text) or data.get("feature_family") != family or data.get("evaluation_layout") != "corpus":
+        raise SystemExit(f"{path}: invalid data contract")
+    if config["model"].get("name") != models[model] or config["model"]["params"].get("input_dim") != dimension:
+        raise SystemExit(f"{path}: model/dimension mismatch")
+    if data.get("care_root") != "/media/maxim/Databases/CARE" or data.get("wsm_root") != "/media/maxim/Databases/WSM_NEW":
+        raise SystemExit(f"{path}: data roots mismatch")
+    callback_items = config.get("callbacks", [])
+    callback_names = [item.get("name") for item in callback_items]
+    if callback_names != required_callbacks:
+        raise SystemExit(f"{path}: callback order mismatch: {callback_names}")
+    callback_map = {item["name"]: item.get("params", {}) for item in callback_items}
+    if callback_map["checkpoint_callback"].get("monitor") != "dev_mean_macro_recall" or callback_map["checkpoint_callback"].get("mode") != "max" or callback_map["checkpoint_callback"].get("save_top_k") != 1 or callback_map["checkpoint_callback"].get("log_path") != "logs":
+        raise SystemExit(f"{path}: invalid checkpoint contract")
+    if callback_map["early_stopping_callback"].get("monitor") != "dev_mean_macro_recall" or callback_map["early_stopping_callback"].get("mode") != "max":
+        raise SystemExit(f"{path}: invalid early-stopping contract")
+    if callback_map["carewsm_summary_callback"].get("filename") != "summary.txt" or callback_map["snapshot_callback"].get("log_path") != "logs":
+        raise SystemExit(f"{path}: invalid summary/snapshot contract")
+    if config.get("metrics") != [{"name": "carewsm_masked_multitask_classification"}]:
+        raise SystemExit(f"{path}: metric mismatch")
+    logging_items = {item.get("name"): item.get("params", {}) for item in config.get("logging", [])}
+    logger = logging_items.get("console_file_logger", {})
+    if set(logging_items) != {"console_file_logger", "mlflow_logger"} or any(logger.get(key) != value for key, value in (("log_path", "logs"), ("console_level", "INFO"), ("file_level", "INFO"), ("log_file", "train.log"))):
+        raise SystemExit(f"{path}: logger contract mismatch")
+    info = config["experiment_info"]["params"]
+    identity = (info.get("experiment_name"), info.get("run_name"))
+    if not identity[0] or not identity[1] or feature not in identity[0] or feature not in identity[1] or model not in identity[1] or f"fold{fold_text}" not in identity[1] or identity in identities:
+        raise SystemExit(f"{path}: non-unique or incomplete experiment identity: {identity}")
+    identities.add(identity)
+    if "joint/average_macro_f1" in str(config):
+        raise SystemExit(f"{path}: obsolete selection monitor remains")
+    print(f"OK {path}: fold={fold_text} model={model} family={family} dim={dimension}")
+if os.environ.get("CAREWSM_FULL_MATRIX") == "1" and len(identities) != 110:
+    raise SystemExit(f"Expected 110 unique identities, found {len(identities)}")
 PY2
 }
 
@@ -145,7 +184,11 @@ if "$check_only"; then
     if [[ -n "$model" ]]; then for fold in 0 1 2 3 4; do configs+=("${directory}/${model}_fold${fold}.yaml"); done
     else configs+=("${directory}"/*_fold[0-4].yaml); fi
   fi
-  check_configs "${configs[@]}"
+  if "$all_features"; then
+    CAREWSM_FULL_MATRIX=1 check_configs "${configs[@]}"
+  else
+    check_configs "${configs[@]}"
+  fi
   exit 0
 fi
 if "$all_features"; then

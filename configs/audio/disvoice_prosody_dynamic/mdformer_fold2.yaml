@@ -1,29 +1,31 @@
 callbacks:
+- name: carewsm_validation_monitor
+  params: {}
 - name: checkpoint_callback
   params:
     filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
-    log_path: logs/audio/disvoice_prosody_dynamic
+    log_path: logs
     mode: max
-    monitor: joint/average_macro_f1
+    monitor: dev_mean_macro_recall
     save_last: true
     save_top_k: 1
+- name: early_stopping_callback
+  params:
+    min_delta: 0.0
+    mode: max
+    monitor: dev_mean_macro_recall
+    patience: 7
+- name: carewsm_summary_callback
+  params:
+    filename: summary.txt
 - name: snapshot_callback
   params:
     include:
     - src
     - configs
-    log_path: logs/audio/disvoice_prosody_dynamic
+    log_path: logs
     save_code_zip: true
     save_config: true
-- name: carewsm_summary_callback
-  params:
-    filename: summary.csv
-- name: early_stopping_callback
-  params:
-    min_delta: 0.0
-    mode: max
-    monitor: joint/average_macro_f1
-    patience: 7
 data:
   name: carewsm_joint
   params:
@@ -37,24 +39,26 @@ data:
     registry: /media/maxim/Databases/CARE/splits/features.json
     shuffle_train: true
     wsm_root: /media/maxim/Databases/WSM_NEW
+    evaluation_layout: corpus
 experiment_info:
   params:
-    experiment_name: mdformer
-    run_name: fold2
+    experiment_name: audio_disvoice_prosody_dynamic
+    run_name: disvoice_prosody_dynamic_mdformer_fold2
+    include_time: false
 logging:
 - name: console_file_logger
   params:
     console_level: INFO
-    file_level: WARNING
+    file_level: INFO
     log_file: train.log
-    log_path: logs/audio/disvoice_prosody_dynamic
+    log_path: logs
 - name: mlflow_logger
   params:
     tracking_uri: sqlite:///logs/mlflow.db
 loss:
   name: carewsm_masked_bce
 metrics:
-- name: carewsm_multitask_prf
+- name: carewsm_masked_multitask_classification
 model:
   name: carewsm_md_former
   params:
