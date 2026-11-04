@@ -184,3 +184,20 @@ TEST and external test sets must not determine:
 - retry/ablation continuation.
 
 Development decisions must be justified from TRAIN CV and DEV according to the active experiment protocol.
+
+
+## Active implementation simplicity
+
+The active training data interface is intentionally small: one direct Dataset and one direct DataModule under `src/audio/data/`. Native artifact loading, ordered static `T=1` concatenation, canonical fold construction, and separate corpus evaluation must be explicit in those files. Do not add generic providers, adapter stacks, or replacement layers for historical data abstractions.
+
+The availability manifest records feature validity but may not contain all path fields. Resolve `label_id`, `subgroup`, and related source location fields from authoritative split metadata. Preserve fixed profile-grouped splits and missing-label masks.
+
+## Evaluation and epoch output
+
+Use the names `train`, `val_care`, `val_wsm`, `test_care`, and `test_wsm`. Joint training is compatible with corpus-specific validation/test reporting. Calculate Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall. Epoch INFO lines in both console and `train.log` show loss, sample/observed-label counts, Macro Recall, Patient Recall, and Healthy Recall; the other metrics are retained in the summary and optionally MLflow.
+
+The selection monitor is `dev_mean_macro_recall`, defined as the simple mean of the four corpus/task validation Macro Recall values. Do not pool corpora, zero-fill missing components, or renormalize.
+
+## Summary and paths
+
+`CAREWSMSummaryCallback` writes one wide semicolon-delimited `summary.txt` row per epoch with explicit split/task/metric names and relevant counts, such as `epoch`, `train_loss`, `val_care_depression_macro_recall`, `val_wsm_parkinson_patient_recall`, `test_care_depression_macro_f1`, `test_wsm_parkinson_healthy_recall`, and `dev_mean_macro_recall`. Runs use `logs/<experiment_name>/<run_name>/` with `train.log`, `summary.txt`, and `checkpoints/`; `sqlite:///logs/mlflow.db` remains valid.

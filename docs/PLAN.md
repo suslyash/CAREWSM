@@ -50,33 +50,13 @@ Strongest feature families:
 2. `trillsson4_1`;
 3. `wav2vec_xlsr300m`.
 
-## Stage 6 — joint feature combinations
+## Refactor gate — documentation and implementation contract
 
-**Status: IN PROGRESS**
+**Status: ACTIVE BEFORE FURTHER REFACTORING**
 
-### Stage 6A — multi-feature static fusion infrastructure
+REFACTOR-000 establishes the simplicity, two-file data-layer, corpus-specific logging, summary, monitor, path, and cleanup contracts. REFACTOR-001 through REFACTOR-005 must be completed and independently reviewed in order before TASK-011 resumes.
 
-Next: TASK-011.
-
-Implement a clean ordered multi-family T=1 concatenation path, coverage filtering and smoke validation.
-
-### Stage 6B — bounded deep-feature combination matrix
-
-After TASK-011 review, run a manager-defined set such as:
-
-- emotion + TRILLsson;
-- emotion + XLS-R;
-- TRILLsson + XLS-R;
-- emotion + TRILLsson + XLS-R;
-- one complementary handcrafted addition if coverage permits.
-
-Selection remains validation-only.
-
-### Stage 6C — mixed static + temporal combinations
-
-Only after the static deep fusion study shows what signal remains to gain.
-
-Do not introduce fake temporal structure for static embeddings.
+The former Stage 6 feature-combination work is paused. No TASK-011 matrix or new feature-combination experiment is authorized by this document.
 
 ## Stage 7 — multitask loss/balancing study
 

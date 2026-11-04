@@ -13,6 +13,6 @@ Read:
 7. `NEXT_TASK_EN.md`
 8. `MANAGER_CONTRACT.md`
 
-Task prompts are stored under `docs/tasks/`.
+The active implementation contract is defined in the repository `AGENTS.md`. REFACTOR-000 establishes the documentation and coding rules before further refactoring.
 
-Observed facts from Codex audits take precedence over assumptions. When data contradicts the current contract, Codex reports the discrepancy and the manager updates the contract deliberately.
+Task prompts are historical instructions unless the manager explicitly authorizes the task. Observed facts from Codex audits take precedence over assumptions; when live data contradicts the contract, Codex reports the discrepancy and the manager updates the contract deliberately.

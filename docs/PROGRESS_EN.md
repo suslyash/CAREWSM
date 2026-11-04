@@ -9,7 +9,7 @@ Manager-reviewed evidence:
 - 22 configurations;
 - 110 canonical fold-runs;
 - five folds per configuration;
-- checkpoint selection from VAL `joint/average_macro_f1` only;
+- checkpoint selection from VAL `joint/average_macro_f1` only (historical contract; preserved, not current policy);
 - CARE TEST and WSM TEST retained as descriptive statistics;
 - all six required metrics logged for VAL and TEST;
 - one historical duplicate excluded deterministically;
@@ -67,7 +67,7 @@ Required metrics:
 
 ## Current stage
 
-Feature-combination infrastructure.
+REFACTOR-000 documentation and coding contract. Further refactoring is gated on this contract and manager review.
 
 The next scientific question is whether the strongest static deep embeddings are complementary when combined.
 
@@ -75,6 +75,6 @@ The immediate task does **not** run the full combination study. It first makes m
 
 ## Next task
 
-TASK-011 — multi-feature static deep fusion infrastructure.
+REFACTOR-001 — corrective Dataset/DataModule implementation after manager authorization.
 
-Do not start loss balancing, Mantis, Optuna, external evaluation or a full feature-combination matrix before manager review of TASK-011.
+TASK-011 remains PAUSED until REFACTOR-000 through REFACTOR-005 and final integration review are independently reviewed and merged. The historical 110 runs remain preserved.

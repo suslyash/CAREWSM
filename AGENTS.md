@@ -276,3 +276,51 @@ Use exactly these headings:
 6. Git handoff
 7. Blockers and risks
 8. Next atomic step
+
+
+## REFACTOR-000 simplicity and active data contract
+
+CAREWSM is research-oriented Python, not a general-purpose enterprise framework. Prefer direct PyTorch and Chimera-ML implementations. Do not add needless dataclasses, wrappers, adapters, inheritance hierarchies, registries beyond Chimera-ML's required registrations, or generic feature-provider frameworks. Prefer readable short classes and functions over dense abstraction. Never compress control flow, function definitions, or multiple statements onto one line. Use conventional imports and formatting. Keep checks limited to data correctness, tensor shapes, label masking, split/profile isolation, and experiment reproducibility.
+
+All new code comments, technical documentation, and Codex handoffs must be in English. Manager review may reject code that violates these rules even when tests pass.
+
+The active training data layer consists of exactly these two files:
+
+- `src/audio/data/carewsm_audio_dataset.py` — one straightforward Dataset that directly loads native feature artifacts and concatenates ordered static `T=1` features.
+- `src/audio/data/carewsm_audio_datamodule.py` — one straightforward DataModule that constructs canonical CARE/WSM folds and separate evaluation populations.
+
+Do not introduce `JointDataModule`, `NativeDataset`, `Sample`, `View`, `NativeFeature`, replacement layers, or generic feature-provider frameworks into the active training pipeline. Historical feature-audit tooling and deferred Mantis utilities may remain outside the active pipeline until explicitly authorized cleanup.
+
+The availability manifest is not guaranteed to contain every feature-path field. The DataModule must join manifest rows with authoritative source split metadata to obtain fields such as `label_id`, `subgroup`, profile, and video paths. It must preserve canonical fixed splits, profile isolation, labels, and feature availability semantics.
+
+The required loader/evaluation names are `train`, `val_care`, `val_wsm`, `test_care`, and `test_wsm`. Joint training is allowed, but validation and TEST outputs remain corpus-specific.
+
+Per-epoch console and `train.log` INFO lines show sample counts, observed-label counts where relevant, loss, Macro Recall, Patient Recall, and Healthy Recall. Calculate all six approved metrics—Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall—but keep the additional metrics in summaries and optionally MLflow rather than cluttering epoch INFO lines. Console and file logging both use INFO.
+
+The summary callback is named `CAREWSMSummaryCallback` and writes one wide semicolon-delimited `summary.txt` row per epoch with explicit split/task/metric names and relevant counts. Expected fields include `epoch`, `train_loss`, `val_care_depression_macro_recall`, `val_wsm_parkinson_patient_recall`, `test_care_depression_macro_f1`, `test_wsm_parkinson_healthy_recall`, and `dev_mean_macro_recall`. The selection monitor is `dev_mean_macro_recall`: the equal-weight arithmetic mean of CARE Depression Macro Recall, CARE Parkinson Macro Recall, WSM Depression Macro Recall, and WSM Parkinson Macro Recall. Missing components are reported transparently; they are never replaced with zero or silently renormalized.
+
+Use this run layout and keep `log_path: logs` consistent:
+
+```text
+logs/
+  <experiment_name>/
+    <run_name>/
+      train.log
+      summary.txt
+      checkpoints/
+```
+
+`sqlite:///logs/mlflow.db` remains permitted. Changing `experiment_name` and `run_name` is sufficient to distinguish runs.
+
+Audio-specific utilities belong under `scripts/audio/python/` and `scripts/audio/shell/`. Do not add one-off smoke wrappers or unnecessary script abstraction layers. The later cleanup task may remove these obsolete artifacts only after updating references; this task does not delete them:
+
+- `configs/audio/audio_mptsnet_native_egemaps_lld_joint_care_wsm_fold0_smoke.yaml`
+- `configs/audio/joint_native_fold0.yaml`
+- `configs/audio/task004_models.yaml`
+- `scripts/runs/`
+- obsolete `smoke_*` scripts
+
+Their removal is REFACTOR-005 work.
+
+
+The active refactor sequence is: REFACTOR-000 documentation contract; REFACTOR-001 corrective Dataset/DataModule implementation after authorization; REFACTOR-002 metrics and epoch logging; REFACTOR-003 summary and paths; REFACTOR-004 configuration migration; REFACTOR-005 repository cleanup; then final integration review. TASK-011 remains paused until independent review and merge.

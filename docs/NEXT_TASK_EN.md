@@ -1,21 +1,9 @@
 # NEXT TASK
 
-## TASK-011 — multi-feature static deep fusion infrastructure
+## REFACTOR-001 — corrective Dataset/DataModule implementation
 
-**Status: READY**
+**Status: PAUSED pending manager review and authorization of REFACTOR-000.**
 
-Prompt:
+The implementation must follow the two-file active data-layer contract in `AGENTS.md` and the active documentation.
 
-`docs/tasks/TASK-011_STATIC_DEEP_FUSION.md`
-
-Purpose:
-
-- extend the joint CARE+WSM native data path from one static feature family to an ordered list of static feature families;
-- concatenate T=1 vectors without inventing temporal structure;
-- preserve feature-family order and component dimensions in metadata;
-- filter only on the selected feature set using the existing availability manifest;
-- measure retained coverage for the first deep-feature combinations;
-- smoke-test MLP and MD-Former compatibility;
-- do not launch a new full five-fold experiment matrix yet.
-
-The next full experiment task will be written only after manager review of TASK-011.
+TASK-011 — multi-feature static deep fusion infrastructure — remains PAUSED. Do not resume it until the refactor sequence and final integration review are complete and the manager explicitly authorizes it.
