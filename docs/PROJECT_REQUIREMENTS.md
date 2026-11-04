@@ -219,3 +219,37 @@ These secondary protocols must not complicate or delay the primary joint feature
 All active Chimera-ML code belongs under `src/audio/`, organized by responsibility.
 
 Keep implementation simple, explicit, testable and independent of obsolete WSM experiment logic.
+
+
+## Simplified active data layer
+
+The active training data layer has exactly two files: `src/audio/data/carewsm_audio_dataset.py` and `src/audio/data/carewsm_audio_datamodule.py`. The Dataset directly loads native artifacts and supports ordered concatenation only for static `T=1` features. The DataModule constructs canonical CARE/WSM fold populations and separate evaluation populations.
+
+The availability manifest is a validity/filtering source, not a complete path registry. It may not contain `label_id`, `subgroup`, or every source-path field. The DataModule must obtain those fields by joining each sample with authoritative CARE/WSM split metadata. It must preserve fixed split membership, profile isolation, labels, and `VALID` feature filtering. No `JointDataModule`, `NativeDataset`, `Sample`, `View`, `NativeFeature`, or replacement adapter hierarchy belongs in the active pipeline.
+
+Required evaluation names are `train`, `val_care`, `val_wsm`, `test_care`, and `test_wsm`; joint training does not justify collapsing corpus-specific validation or TEST outputs.
+
+## Logging and selection
+
+Epoch INFO output in console and `train.log` includes sample counts, observed-label counts where relevant, loss, Macro Recall, Patient Recall, and Healthy Recall. All six approved metrics remain calculated: Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall. Additional metrics belong in `summary.txt` and optionally MLflow.
+
+The new selection monitor is `dev_mean_macro_recall`, the equal-weight arithmetic mean of CARE Depression Macro Recall, CARE Parkinson Macro Recall, WSM Depression Macro Recall, and WSM Parkinson Macro Recall. Missing components are reported as unavailable; they are not zero-filled or renormalized. TEST remains descriptive only.
+
+The historical 110 canonical fold-runs used `joint/average_macro_f1`. They are preserved historical results and must not be reinterpreted as selected by `dev_mean_macro_recall`.
+
+## Active refactor sequence
+
+- REFACTOR-000: documentation and coding contract.
+- REFACTOR-001: corrective Dataset/DataModule implementation after manager authorization.
+- REFACTOR-002: metrics and epoch logging.
+- REFACTOR-003: summary and paths.
+- REFACTOR-004: configuration migration.
+- REFACTOR-005: repository cleanup.
+- Final integration review.
+
+TASK-011 remains paused until this sequence is independently reviewed and merged.
+
+
+## Deferred repository cleanup
+
+REFACTOR-005 may remove the obsolete `configs/audio/audio_mptsnet_native_egemaps_lld_joint_care_wsm_fold0_smoke.yaml`, `configs/audio/joint_native_fold0.yaml`, `configs/audio/task004_models.yaml`, `scripts/runs/`, and obsolete `smoke_*` scripts only with reference updates. REFACTOR-000 does not delete them.
