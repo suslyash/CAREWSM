@@ -168,10 +168,39 @@ def test_source_join_fallback_folds_limits_and_masks(tmp_path: Path) -> None:
         max_val_samples=1,
         max_test_samples=1,
     )
-    assert len(dm.views["train"]) == 4
-    assert len(dm.views["val"]) == 4
+    assert [
+        (record["corpus"], record["sample_id"]) for record in dm.views["train"]
+    ] == [
+        ("CARE", "tr_CARE_1"),
+        ("WSM", "tr_WSM_1"),
+    ]
+    assert [(record["corpus"], record["sample_id"]) for record in dm.views["val"]] == [
+        ("CARE", "va_CARE_1"),
+        ("WSM", "va_WSM_1"),
+    ]
+    assert len(dm.train_dataset) == 2
+    assert len(dm.val_dataset["joint"]) == 2
     assert len(dm.test_dataset["CARE"]) == 1
     assert len(dm.test_dataset["WSM"]) == 1
+    assert len(dm.views["train"]) == len(dm.train_dataset)
+    assert len(dm.views["val"]) == len(dm.val_dataset["joint"])
+    assert len(dm.views["care_test"]) == len(dm.test_dataset["CARE"])
+    assert len(dm.views["wsm_test"]) == len(dm.test_dataset["WSM"])
+
+    class Context:
+        def __init__(self) -> None:
+            self.values: dict[str, object] = {}
+
+        def set(self, key: str, value: object) -> None:
+            self.values[key] = value
+
+    context = Context()
+    dm.describe_context(context)
+    assert context.values["data.train_count"] == len(dm.train_dataset)
+    assert context.values["data.val_count"] == len(dm.val_dataset["joint"])
+    assert context.values["data.care_test_count"] == len(dm.test_dataset["CARE"])
+    assert context.values["data.wsm_test_count"] == len(dm.test_dataset["WSM"])
+
     assert all(record["label_id"] == "DEPRESSION" for record in dm.views["train"])
     assert all("feature_paths" in record for record in dm.views["train"])
     sample = dm.train_dataset[0]

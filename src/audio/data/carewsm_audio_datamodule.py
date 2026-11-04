@@ -72,17 +72,21 @@ class CAREWSMAudioDataModule(DataModule):
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
         self.records = self._read_and_join_manifest(Path(manifest))
-        self.views = self._build_views(selected)
+        unbounded_views = self._build_views(selected)
+        self.views = {
+            name: self._limited_records(
+                name,
+                records,
+                max_train_samples,
+                max_val_samples,
+                max_test_samples,
+            )
+            for name, records in unbounded_views.items()
+        }
 
         datasets = {
             name: CAREWSMAudioDataset(
-                self._limited_records(
-                    name,
-                    records,
-                    max_train_samples,
-                    max_val_samples,
-                    max_test_samples,
-                ),
+                records,
                 selected,
                 self.feature_specs,
                 max_sequence_length,

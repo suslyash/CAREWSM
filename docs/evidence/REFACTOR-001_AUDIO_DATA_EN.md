@@ -7,7 +7,7 @@ The active registered data layer now uses one direct Dataset and one direct Data
 ## Corrections to the rejected implementation
 
 - Manifest rows are joined by `(corpus, sample_id)` with authoritative `train.csv`, `dev.csv`, and `test.csv` source metadata before paths are built. `label_id`, `subgroup`, profile, video, and `video_dir` are taken from source metadata. The extracted layout is preferred, with the original `video_dir` fallback preserved.
-- `max_train_samples` and `max_val_samples` are applied independently within CARE and WSM after deterministic ordering. TEST limits are applied independently to each corpus loader.
+- `max_train_samples` and `max_val_samples` are applied independently within CARE and WSM after deterministic ordering, before `self.views` is stored. TEST limits are applied independently to each corpus loader. Effective view counts, Dataset lengths, and `describe_context()` counts now agree.
 - Production code uses readable multi-line Python with direct functions and no replacement data abstraction hierarchy.
 - Focused tests exercise realistic manifest/source split separation, fallback paths, all five folds, profile isolation, masks, fusion, filtering, registration, collated batches, and model backward passes.
 
@@ -17,7 +17,7 @@ The temporary registry name `carewsm_joint` remains. Legacy YAMLs retain a `join
 
 ## Verification
 
-- `.venv/bin/pytest -q tests/test_refactor_audio_data.py`: **6 passed**; two expected Transformer nested-tensor warnings.
+- `.venv/bin/pytest -q tests/test_refactor_audio_data.py`: **6 passed**; includes explicit effective-count and context-count assertions; two expected Transformer nested-tensor warnings.
 - `.venv/bin/pytest -q`: blocked during collection by unrelated vendored DiariZen/pyannote tests missing `intervaltree`, `pyannote.core`, `pyannote.database`, and `pyannote.audio`. This is an environment dependency issue, not a failure in the focused CAREWSM tests.
 - `bash scripts/run_audio_experiments.sh --check --all`: passed for all canonical configurations; no training launched.
 - `python3 -m py_compile ...`: passed for touched Python files.
