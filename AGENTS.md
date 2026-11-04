@@ -105,7 +105,7 @@ Follow `suslyash/WSM` (`src/chimera_plugin.py`, model/data/loss/metric/callback 
 - **Readable, formatted Python is a merge gate**: PEP 8/Ruff-compatible formatting; conventional imports; 4-space indentation; proper blank lines between imports, classes and functions; meaningful names and type hints; expanded multi-line calculations. No semicolon-chained statements, one-line control-flow blocks, dense single-line functions or obfuscated architecture/metric implementations.
 - Preserve each research architecture's genuine distinctive mechanisms; never replace them with superficially named generic layers. State deviations from the authors' implementations explicitly.
 - Before handoff, format touched Python files and check registration/config instantiation plus one representative real-data batch where feasible. A formatter and compiler passing do not replace source-code readability review.
-- Applies to **all future tasks and the current TASK-004 correction**. Manager review may reject noncompliant code without requesting extra experiments.
+- Applies to **all active and future implementation tasks, including corrective refactoring**. Manager review may reject noncompliant code without requesting extra experiments.
 
 ## Feature integrity
 
@@ -142,7 +142,7 @@ Target derived representation per video and feature block:
 - Mantis checkpoint, selected layer, pooling rule;
 - source-feature list and preprocessing parameters.
 
-Do not invent a family-specific time axis. TASK-001 must first establish the actual schemas/timestamps. A later task freezes how static/turn-level families are mapped into windows.
+Do not invent a family-specific time axis. Any future Mantis temporalization must use actual audited feature schemas and timestamp evidence. Mantis temporalization remains deferred pending manager authorization; a later authorized task must freeze how static/turn-level families are mapped into windows.
 
 Scaler and PCA, if used, must be fitted only on the training portion of the current experimental split/fold. Never fit them globally.
 

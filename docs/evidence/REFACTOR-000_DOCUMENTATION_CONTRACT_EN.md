@@ -16,3 +16,7 @@ This documentation-only task establishes the simplified CAREWSM development cont
 ## Preservation
 
 Historical task prompts, reports, and the fold-results CSV were not deleted or rewritten. No Python, YAML, shell script, test, experiment, or data file was changed.
+
+## Review correction
+
+The manager-gate section now treats TASK-001 as historical, requires explicit authorization for each atomic task, places REFACTOR-001 after independent REFACTOR-000 review and merge, and keeps TASK-011 paused through the refactor sequence. The coding-style rule now applies to all active and future implementation tasks, including corrective refactoring. The Mantis rule now refers to future audited schema/timestamp evidence and deferred manager authorization rather than describing TASK-001 as a future gate.

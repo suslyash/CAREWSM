@@ -43,8 +43,10 @@ The manager does not claim local feature validity without Codex evidence.
 
 Codex does not change scientific policy merely because an implementation is convenient.
 
-## Current first gate
+## Durable manager gates
 
-TASK-001 must determine what actually exists among the 11 feature families and how temporal/static data are represented.
+The manager authorizes and reviews exactly one atomic task at a time. The active refactor sequence is REFACTOR-000 through REFACTOR-005, followed by a final integration review.
 
-Only after TASK-001 can the manager safely freeze the Chimera DataModule and Mantis windowization rules.
+`docs/NEXT_TASK_EN.md` identifies the currently proposed task, but Codex still requires explicit manager authorization before implementation. REFACTOR-001 is not authorized until REFACTOR-000 passes independent review and is merged. TASK-011 remains paused until the approved refactor sequence is completed and reviewed.
+
+TASK-001 is historical; its feature-audit evidence remains preserved.
