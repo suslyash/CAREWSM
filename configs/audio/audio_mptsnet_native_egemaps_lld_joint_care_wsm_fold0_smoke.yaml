@@ -13,7 +13,7 @@ data:
     fold: 0
     feature_family: egemaps_lld
     batch_size: 8
-    num_workers: 0
+    num_workers: 8
     shuffle_train: false
     max_train_samples: 8
     max_val_samples: 8
