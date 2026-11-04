@@ -46,7 +46,7 @@ The legacy registry implementation remains unchanged for historical YAMLs.
 - `val_wsm/depression/macro_recall`;
 - `val_wsm/parkinson/macro_recall`.
 
-All four components have equal weight, regardless of corpus size or observed-label count. The monitor reads validation keys only and cannot use TEST values. A missing, non-finite, or unsupported component raises a visible `ValueError`; it is never replaced with zero and remaining components are never renormalized. The monitor callback must be configured before checkpoint and early-stopping callbacks because Chimera invokes callbacks in list order and passes the same mutable epoch-log dictionary.
+All four components have equal weight, regardless of corpus size or observed-label count. The monitor reads validation keys only and cannot use TEST values. A missing, non-finite, or unsupported component raises a visible `ValueError`; it is never replaced with zero and remaining components are never renormalized. The monitor callback must be configured before checkpoint and early-stopping callbacks because Chimera invokes callbacks in list order and passes the same mutable epoch-log dictionary. The focused integration test constructs the real `CarewsmValidationMonitor`, `CheckpointCallback`, and `EarlyStoppingCallback`, invokes them in that order with one shared epoch-log dictionary, verifies both selection callbacks consume the calculated value, and verifies missing validation input raises before checkpoint selection.
 
 ## Verification
 

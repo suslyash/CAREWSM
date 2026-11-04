@@ -6,6 +6,8 @@ import pytest
 import torch
 
 from audio.callbacks.validation_monitor import CarewsmValidationMonitor
+from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
+from chimera_ml.callbacks.early_stopping_callback import EarlyStoppingCallback
 from audio.metrics.classification import MaskedMultitaskClassificationMetric
 from chimera_ml.data.masking_collate import MaskingCollate
 
@@ -87,7 +89,81 @@ def test_validation_monitor_requires_all_finite_components():
         CarewsmValidationMonitor().on_epoch_end(SimpleNamespace(logger=None), 1, logs)
 
 
-def test_monitor_must_precede_selection_callbacks():
-    order = ["monitor", "checkpoint", "early_stopping"]
-    assert order.index("monitor") < order.index("checkpoint")
-    assert order.index("monitor") < order.index("early_stopping")
+class _CallbackLogger:
+    def __init__(self) -> None:
+        self.messages: list[tuple[str, str]] = []
+
+    def info(self, message: str) -> None:
+        self.messages.append(("info", message))
+
+    def warning(self, message: str) -> None:
+        self.messages.append(("warning", message))
+
+
+def _selection_trainer(tmp_path, logger):
+    model = torch.nn.Linear(1, 1)
+    return SimpleNamespace(
+        logger=logger,
+        model=model,
+        optimizer=torch.optim.SGD(model.parameters(), lr=0.1),
+        scheduler=None,
+        global_step=3,
+        stop_training=False,
+    )
+
+def test_real_callbacks_consume_monitor_in_trainer_order(tmp_path):
+    logger = _CallbackLogger()
+    trainer = _selection_trainer(tmp_path, logger)
+    monitor = CarewsmValidationMonitor()
+    checkpoint = CheckpointCallback(
+        log_path=str(tmp_path),
+        experiment_name="integration",
+        run_name="selection",
+        monitor="dev_mean_macro_recall",
+        mode="max",
+        save_last=False,
+    )
+    early_stopping = EarlyStoppingCallback(
+        monitor="dev_mean_macro_recall", mode="max", patience=2
+    )
+    callbacks = [monitor, checkpoint, early_stopping]
+    callback_names = [callback.__class__.__name__ for callback in callbacks]
+    assert callback_names == [
+        "CarewsmValidationMonitor",
+        "CheckpointCallback",
+        "EarlyStoppingCallback",
+    ]
+    checkpoint.on_fit_start(trainer)
+
+    logs = _valid_logs()
+    logs["test_care/depression/macro_recall"] = 0.99
+    for callback in callbacks:
+        callback.on_epoch_end(trainer, 1, logs)
+
+    assert logs["dev_mean_macro_recall"] == 0.5
+    assert checkpoint._best == logs["dev_mean_macro_recall"]
+    assert len(checkpoint._saved) == 1
+    assert early_stopping._best == logs["dev_mean_macro_recall"]
+    assert not trainer.stop_training
+    assert checkpoint._saved[0].exists()
+
+def test_invalid_monitor_fails_before_real_checkpoint_selection(tmp_path):
+    logger = _CallbackLogger()
+    trainer = _selection_trainer(tmp_path, logger)
+    monitor = CarewsmValidationMonitor()
+    checkpoint = CheckpointCallback(
+        log_path=str(tmp_path),
+        experiment_name="integration",
+        run_name="invalid",
+        monitor="dev_mean_macro_recall",
+        mode="max",
+        save_last=False,
+    )
+    checkpoint.on_fit_start(trainer)
+    logs = _valid_logs()
+    del logs[CarewsmValidationMonitor.components[-1]]
+
+    with pytest.raises(ValueError, match="unavailable"):
+        monitor.on_epoch_end(trainer, 1, logs)
+    assert checkpoint._saved == []
+    assert not list((tmp_path / "integration" / "invalid" / "checkpoints").glob("*.pt"))
