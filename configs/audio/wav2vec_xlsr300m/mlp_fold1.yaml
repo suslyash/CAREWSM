@@ -34,12 +34,10 @@ data:
     feature_family: wav2vec_xlsr300m
     fold: 1
     manifest: reports/feature_audit/sample_feature_availability.csv
-    max_sequence_length: 256
     num_workers: 8
     registry: /media/maxim/Databases/CARE/splits/features.json
     shuffle_train: true
     wsm_root: /media/maxim/Databases/WSM_NEW
-    evaluation_layout: corpus
 experiment_info:
   params:
     experiment_name: audio_wav2vec_xlsr300m

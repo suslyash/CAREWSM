@@ -11,10 +11,10 @@ def register() -> None:
     modules = (
         "audio.data.carewsm_audio_datamodule",
         "audio.models.classifiers",
-        "audio.loss.masked_bce",
-        "audio.metrics.classification",
-        "audio.callbacks.summary",
-        "audio.callbacks.validation_monitor",
+        "audio.loss.carewsm_masked_bce_loss",
+        "audio.metrics.carewsm_classification_metric",
+        "audio.callbacks.carewsm_summary_callback",
+        "audio.callbacks.carewsm_validation_monitor_callback",
     )
     for module in modules:
         try:

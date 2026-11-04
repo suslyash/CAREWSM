@@ -5,10 +5,10 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from audio.callbacks.validation_monitor import CarewsmValidationMonitor
+from audio.callbacks.carewsm_validation_monitor_callback import CAREWSMValidationMonitorCallback
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
 from chimera_ml.callbacks.early_stopping_callback import EarlyStoppingCallback
-from audio.metrics.classification import MaskedMultitaskClassificationMetric
+from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
 from chimera_ml.data.masking_collate import MaskingCollate
 
 
@@ -25,7 +25,7 @@ def _batch(targets: list[list[float]], observed: list[list[bool]]):
 
 
 def test_masked_metric_uses_collated_masks_and_all_six_formulas():
-    metric = MaskedMultitaskClassificationMetric()
+    metric = CAREWSMClassificationMetric()
     batch = _batch(
         [[1, 1], [1, 0], [1, 1], [0, 0]],
         [[True, True], [True, False], [True, True], [True, True]],
@@ -51,7 +51,7 @@ def test_masked_metric_uses_collated_masks_and_all_six_formulas():
 
 
 def test_masked_metric_marks_empty_and_single_class_tasks_unavailable():
-    metric = MaskedMultitaskClassificationMetric()
+    metric = CAREWSMClassificationMetric()
     metric.update(
         SimpleNamespace(preds=torch.tensor([[1.0, 1.0], [1.0, -1.0]])),
         _batch([[1, 0], [1, 0]], [[False, True], [False, True]]),
@@ -70,23 +70,23 @@ def _valid_logs():
     return {
         name: value
         for name, value in zip(
-            CarewsmValidationMonitor.components, (0.2, 0.4, 0.6, 0.8)
+            CAREWSMValidationMonitorCallback.components, (0.2, 0.4, 0.6, 0.8)
         )
     }
 
 
 def test_validation_monitor_is_equal_weight_and_validation_only():
     logs = _valid_logs()
-    CarewsmValidationMonitor().on_epoch_end(SimpleNamespace(logger=None), 1, logs)
+    CAREWSMValidationMonitorCallback().on_epoch_end(SimpleNamespace(logger=None), 1, logs)
     assert logs["dev_mean_macro_recall"] == 0.5
     assert "test_care/depression/macro_recall" not in logs
 
 
 def test_validation_monitor_requires_all_finite_components():
     logs = _valid_logs()
-    del logs[CarewsmValidationMonitor.components[-1]]
+    del logs[CAREWSMValidationMonitorCallback.components[-1]]
     with pytest.raises(ValueError, match="unavailable"):
-        CarewsmValidationMonitor().on_epoch_end(SimpleNamespace(logger=None), 1, logs)
+        CAREWSMValidationMonitorCallback().on_epoch_end(SimpleNamespace(logger=None), 1, logs)
 
 
 class _CallbackLogger:
@@ -114,7 +114,7 @@ def _selection_trainer(tmp_path, logger):
 def test_real_callbacks_consume_monitor_in_trainer_order(tmp_path):
     logger = _CallbackLogger()
     trainer = _selection_trainer(tmp_path, logger)
-    monitor = CarewsmValidationMonitor()
+    monitor = CAREWSMValidationMonitorCallback()
     checkpoint = CheckpointCallback(
         log_path=str(tmp_path),
         experiment_name="integration",
@@ -129,7 +129,7 @@ def test_real_callbacks_consume_monitor_in_trainer_order(tmp_path):
     callbacks = [monitor, checkpoint, early_stopping]
     callback_names = [callback.__class__.__name__ for callback in callbacks]
     assert callback_names == [
-        "CarewsmValidationMonitor",
+        "CAREWSMValidationMonitorCallback",
         "CheckpointCallback",
         "EarlyStoppingCallback",
     ]
@@ -150,7 +150,7 @@ def test_real_callbacks_consume_monitor_in_trainer_order(tmp_path):
 def test_invalid_monitor_fails_before_real_checkpoint_selection(tmp_path):
     logger = _CallbackLogger()
     trainer = _selection_trainer(tmp_path, logger)
-    monitor = CarewsmValidationMonitor()
+    monitor = CAREWSMValidationMonitorCallback()
     checkpoint = CheckpointCallback(
         log_path=str(tmp_path),
         experiment_name="integration",
@@ -161,7 +161,7 @@ def test_invalid_monitor_fails_before_real_checkpoint_selection(tmp_path):
     )
     checkpoint.on_fit_start(trainer)
     logs = _valid_logs()
-    del logs[CarewsmValidationMonitor.components[-1]]
+    del logs[CAREWSMValidationMonitorCallback.components[-1]]
 
     with pytest.raises(ValueError, match="unavailable"):
         monitor.on_epoch_end(trainer, 1, logs)

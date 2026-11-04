@@ -160,181 +160,80 @@ def build_dm(tmp_path: Path, **kwargs) -> CAREWSMAudioDataModule:
     )
 
 
-def test_source_join_fallback_folds_limits_and_masks(tmp_path: Path) -> None:
-    dm = build_dm(
-        tmp_path,
-        feature_family="static_a",
-        max_train_samples=1,
-        max_val_samples=1,
-        max_test_samples=1,
-    )
-    assert [
-        (record["corpus"], record["sample_id"]) for record in dm.views["train"]
-    ] == [
-        ("CARE", "tr_CARE_1"),
-        ("WSM", "tr_WSM_1"),
-    ]
-    assert [(record["corpus"], record["sample_id"]) for record in dm.views["val"]] == [
-        ("CARE", "va_CARE_1"),
-        ("WSM", "va_WSM_1"),
-    ]
-    assert len(dm.train_dataset) == 2
-    assert len(dm.val_dataset["joint"]) == 2
-    assert len(dm.test_dataset["CARE"]) == 1
-    assert len(dm.test_dataset["WSM"]) == 1
-    assert len(dm.views["train"]) == len(dm.train_dataset)
-    assert len(dm.views["val"]) == len(dm.val_dataset["joint"])
-    assert len(dm.views["care_test"]) == len(dm.test_dataset["CARE"])
-    assert len(dm.views["wsm_test"]) == len(dm.test_dataset["WSM"])
-
-    class Context:
-        def __init__(self) -> None:
-            self.values: dict[str, object] = {}
-
-        def set(self, key: str, value: object) -> None:
-            self.values[key] = value
-
-    context = Context()
-    dm.describe_context(context)
-    assert context.values["data.train_count"] == len(dm.train_dataset)
-    assert context.values["data.val_count"] == len(dm.val_dataset["joint"])
-    assert context.values["data.care_test_count"] == len(dm.test_dataset["CARE"])
-    assert context.values["data.wsm_test_count"] == len(dm.test_dataset["WSM"])
-
-    assert all(record["label_id"] == "DEPRESSION" for record in dm.views["train"])
-    assert all("feature_paths" in record for record in dm.views["train"])
+def test_joint_five_population_data_contract(tmp_path: Path) -> None:
+    dm = build_dm(tmp_path, feature_family="static_a")
+    assert set(dm.val_dataset) == {"val_care", "val_wsm", "test_care", "test_wsm"}
+    assert dm.test_dataset is None
+    assert len(dm.train_dataset) == 4
+    assert len(dm.val_dataset["val_care"]) == 2
+    assert len(dm.val_dataset["val_wsm"]) == 2
+    assert len(dm.val_dataset["test_care"]) == 2
+    assert len(dm.val_dataset["test_wsm"]) == 2
     sample = dm.train_dataset[0]
+    assert tuple(sample["inputs"]["native"].shape) == (1, 2)
     assert sample["targets"].tolist() == [1.0, 0.0]
     assert sample["meta"]["observed_targets"].tolist() == [True, False]
-    assert Path(sample["meta"]["feature_paths"][0]).exists()
 
 
-def test_all_folds_membership_and_profile_isolation(tmp_path: Path) -> None:
+def test_all_folds_keep_corpus_and_profile_isolation_in_fixture(tmp_path: Path) -> None:
     care, wsm, manifest, registry = make_fixture(tmp_path)
     for fold in range(5):
         dm = CAREWSMAudioDataModule(
-            str(care),
-            str(wsm),
-            str(manifest),
-            str(registry),
-            fold=fold,
-            feature_family="static_a",
+            str(care), str(wsm), str(manifest), str(registry),
+            fold=fold, feature_family="static_a",
         )
-        assert {r["corpus"] for r in dm.views["train"]} == {"CARE", "WSM"}
         train_profiles = {(r["corpus"], r["profile_id"]) for r in dm.views["train"]}
-        val_profiles = {(r["corpus"], r["profile_id"]) for r in dm.views["val"]}
+        val_profiles = {
+            (r["corpus"], r["profile_id"])
+            for name in ("val_care", "val_wsm")
+            for r in dm.views[name]
+        }
         test_profiles = {
             (r["corpus"], r["profile_id"])
-            for r in dm.views["care_test"] + dm.views["wsm_test"]
+            for name in ("test_care", "test_wsm")
+            for r in dm.views[name]
         }
         assert not train_profiles & val_profiles
         assert not train_profiles & test_profiles
         assert not val_profiles & test_profiles
 
 
-def test_ordered_static_fusion_and_temporal_pooling(tmp_path: Path) -> None:
-    dm = build_dm(tmp_path, feature_families=["static_a", "static_b", "static_c"])
-    sample = dm.train_dataset[0]
-    assert tuple(sample["inputs"]["native"].shape) == (1, 9)
-    assert sample["meta"]["feature_families"] == ["static_a", "static_b", "static_c"]
-    assert sample["meta"]["feature_dimensions"] == [2, 3, 4]
-    temporal = build_dm(
-        tmp_path / "temporal", feature_family="temporal", max_sequence_length=2
-    )
-    assert tuple(temporal.train_dataset[0]["inputs"]["native"].shape) == (2, 2)
-
-
-def test_invalid_feature_declarations_and_fusion(tmp_path: Path) -> None:
-    care, wsm, manifest, registry = make_fixture(tmp_path)
-    constructor = dict(
-        care_root=str(care),
-        wsm_root=str(wsm),
-        manifest=str(manifest),
-        registry=str(registry),
-    )
-    with pytest.raises(ValueError, match="cannot both"):
-        CAREWSMAudioDataModule(
-            **constructor, feature_family="static_a", feature_families=["static_b"]
-        )
-    with pytest.raises(ValueError, match="duplicate"):
-        CAREWSMAudioDataModule(**constructor, feature_families=["static_a", "static_a"])
-    with pytest.raises(ValueError, match="unknown"):
-        CAREWSMAudioDataModule(**constructor, feature_families=["missing"])
-
-    dm = CAREWSMAudioDataModule(
-        **constructor, feature_families=["static_a", "temporal"]
-    )
-    with pytest.raises(ValueError, match="genuine static"):
-        dm.train_dataset[0]
-
-
-def test_unavailable_component_is_filtered(tmp_path: Path) -> None:
+def test_missing_feature_is_filtered_and_temporal_values_are_unchanged(tmp_path: Path) -> None:
     care, wsm, manifest, registry = make_fixture(tmp_path)
     rows = []
     with manifest.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
-    rows[0]["static_b_status"] = "MISSING"
+    rows[0]["static_a_status"] = "MISSING"
     write_csv(manifest, list(rows[0]), rows)
     dm = CAREWSMAudioDataModule(
-        str(care),
-        str(wsm),
-        str(manifest),
-        str(registry),
-        feature_families=["static_a", "static_b"],
+        str(care), str(wsm), str(manifest), str(registry),
+        feature_family="static_a",
     )
-    assert len(dm.views["train"]) == 3
+    assert len(dm.train_dataset) == 3
+    temporal = CAREWSMAudioDataModule(
+        str(care), str(wsm), str(manifest), str(registry),
+        feature_family="temporal",
+    )
+    assert tuple(temporal.train_dataset[0]["inputs"]["native"].shape) == (5, 2)
 
 
 def test_registration_collate_and_model_forward_backward(tmp_path: Path) -> None:
     care, wsm, manifest, registry = make_fixture(tmp_path)
     chimera_plugin.register()
-    assert "carewsm_joint" in DATAMODULES._items
     dm = CAREWSMAudioDataModule(
-        str(care),
-        str(wsm),
-        str(manifest),
-        str(registry),
-        feature_families=["static_a", "static_b"],
-        batch_size=2,
+        str(care), str(wsm), str(manifest), str(registry),
+        feature_family="static_a", batch_size=2,
     )
     batch = next(iter(dm.train_dataloader()))
-    assert tuple(batch.inputs["native"].shape) == (2, 1, 5)
+    assert tuple(batch.inputs["native"].shape) == (2, 1, 2)
     assert tuple(batch.get_masks("sequence_mask").shape) == (2, 1)
     assert [meta["corpus"] for meta in batch.meta["sample_meta"]] == ["CARE", "CARE"]
-    assert all(
-        meta["observed_targets"].tolist() == [True, False]
-        for meta in batch.meta["sample_meta"]
-    )
 
     from audio.models.classifiers import MDFormerClassifier, PooledMLP
-
     for model in (
-        PooledMLP(input_dim=5, hidden_dim=8),
-        MDFormerClassifier(input_dim=5, hidden_dim=8, num_heads=2, num_layers=1),
+        PooledMLP(input_dim=2, hidden_dim=8),
+        MDFormerClassifier(input_dim=2, hidden_dim=8, num_heads=2, num_layers=1),
     ):
         output = model(batch)
-        loss = output.preds.sum()
-        loss.backward()
+        output.preds.sum().backward()
         assert output.preds.shape == (2, 2)
-
-
-def test_corpus_evaluation_layout_reuses_effective_validation_views(tmp_path: Path) -> None:
-    dm = build_dm(
-        tmp_path,
-        feature_family="static_a",
-        evaluation_layout="corpus",
-        max_train_samples=1,
-        max_val_samples=1,
-        max_test_samples=1,
-    )
-    assert set(dm.val_dataset) == {"val_care", "val_wsm"}
-    assert set(dm.test_dataset) == {"test_care", "test_wsm"}
-    assert len(dm.train_dataset) == 2
-    assert len(dm.val_dataset["val_care"]) == 1
-    assert len(dm.val_dataset["val_wsm"]) == 1
-    assert len(dm.test_dataset["test_care"]) == 1
-    assert len(dm.test_dataset["test_wsm"]) == 1
-    assert {record["corpus"] for record in dm.views["care_val"]} == {"CARE"}
-    assert {record["corpus"] for record in dm.views["wsm_val"]} == {"WSM"}
-    assert len(dm.views["care_val"]) == len(dm.val_dataset["val_care"])
-    assert len(dm.views["wsm_val"]) == len(dm.val_dataset["val_wsm"])

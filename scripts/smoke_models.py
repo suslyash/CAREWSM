@@ -39,11 +39,9 @@ def main() -> None:
         loss.backward()
         assert torch.isfinite(output.preds).all()
         print(name, tuple(output.preds.shape), "finite")
-    for name in ("carewsm_macro_f1", "carewsm_weighted_f1", "carewsm_macro_recall",
-                 "carewsm_weighted_recall", "carewsm_patient_recall", "carewsm_healthy_recall"):
-        metric = METRICS.create(name)
-        metric.update(output, batch)
-        print(name, metric.compute())
+    metric = METRICS.create("carewsm_masked_multitask_classification")
+    metric.update(output, batch)
+    print("carewsm_masked_multitask_classification", metric.compute())
     try:
         MODELS.create("carewsm_tscmamba", input_dim=input_dim, hidden_dim=8)
     except ModuleNotFoundError as exc:

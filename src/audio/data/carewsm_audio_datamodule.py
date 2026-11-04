@@ -38,85 +38,47 @@ class CAREWSMAudioDataModule(DataModule):
         wsm_root: str,
         manifest: str,
         registry: str,
+        feature_family: str,
         fold: int = 0,
-        feature_family: str | None = None,
-        feature_families: list[str] | None = None,
         batch_size: int = 32,
         num_workers: int = 0,
         shuffle_train: bool = False,
-        max_sequence_length: int | None = None,
-        max_train_samples: int | None = None,
-        max_val_samples: int | None = None,
-        max_test_samples: int | None = None,
-        evaluation_layout: str = "legacy",
     ) -> None:
-        if fold not in range(5):
-            raise ValueError("fold must be an integer from 0 through 4")
-        if feature_families is not None and feature_family is not None:
-            raise ValueError(
-                "feature_family and feature_families cannot both be configured"
-            )
-        if evaluation_layout not in {"legacy", "corpus"}:
-            raise ValueError("evaluation_layout must be 'legacy' or 'corpus'")
-
-        if feature_families is not None:
-            selected = tuple(feature_families)
-        else:
-            selected = (feature_family or "egemaps_lld",)
-        if not selected or len(set(selected)) != len(selected):
-            raise ValueError("feature families must be non-empty and non-duplicate")
+        if not feature_family:
+            raise ValueError("CAREWSMAudioDataModule requires feature_family")
 
         self.fold_index = fold
-        self.evaluation_layout = evaluation_layout
-        self.feature_families = selected
-        self.feature_family = selected[0] if len(selected) == 1 else None
+        self.feature_family = feature_family
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
         self.feature_specs = self._read_registry(Path(registry))
-        unknown = set(selected) - set(self.feature_specs)
+        unknown = {feature_family} - set(self.feature_specs)
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
         self.records = self._read_and_join_manifest(Path(manifest))
-        unbounded_views = self._build_views(selected)
-        self.views = {
-            name: self._limited_records(
-                name,
-                records,
-                max_train_samples,
-                max_val_samples,
-                max_test_samples,
-            )
-            for name, records in unbounded_views.items()
-        }
+        self.views = self._build_views(feature_family)
 
         datasets = {
             name: CAREWSMAudioDataset(
                 records,
-                selected,
+                self.feature_family,
                 self.feature_specs,
-                max_sequence_length,
             )
             for name, records in self.views.items()
         }
-        validation_datasets = (
-            {"joint": datasets["val"]}
-            if evaluation_layout == "legacy"
-            else {
-                "val_care": datasets["care_val"],
-                "val_wsm": datasets["wsm_val"],
-            }
-        )
-        test_datasets = (
-            {"CARE": datasets["care_test"], "WSM": datasets["wsm_test"]}
-            if evaluation_layout == "legacy"
-            else {
-                "test_care": datasets["care_test"],
-                "test_wsm": datasets["wsm_test"],
+        validation_datasets = {
+            "val_care": datasets["val_care"],
+            "val_wsm": datasets["val_wsm"],
+        }
+        validation_datasets.update(
+            {
+                "test_care": datasets["test_care"],
+                "test_wsm": datasets["test_wsm"],
             }
         )
         super().__init__(
             train_dataset=datasets["train"],
             val_dataset=validation_datasets,
-            test_dataset=test_datasets,
+            test_dataset=None,
             batch_size=batch_size,
             num_workers=num_workers,
             pin_memory=False,
@@ -235,9 +197,9 @@ class CAREWSMAudioDataModule(DataModule):
         return records
 
     def _build_views(
-        self, selected: tuple[str, ...]
+        self, selected: str
     ) -> dict[str, list[dict[str, Any]]]:
-        unknown = set(selected) - set(self.feature_specs)
+        unknown = {selected} - set(self.feature_specs)
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
 
@@ -256,17 +218,12 @@ class CAREWSMAudioDataModule(DataModule):
             for corpus in self.roots
         }
 
-        self._assert_isolated(train, validation, "TRAIN", "VAL")
-        self._assert_isolated(
-            train + validation, tests["CARE"] + tests["WSM"], "TRAIN/VAL", "TEST"
-        )
         views = {
             "train": train,
-            "val": validation,
-            "care_val": [record for record in validation if record["corpus"] == "CARE"],
-            "wsm_val": [record for record in validation if record["corpus"] == "WSM"],
-            "care_test": tests["CARE"],
-            "wsm_test": tests["WSM"],
+            "val_care": [record for record in validation if record["corpus"] == "CARE"],
+            "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
+            "test_care": tests["CARE"],
+            "test_wsm": tests["WSM"],
         }
         return {
             name: [
@@ -274,59 +231,16 @@ class CAREWSMAudioDataModule(DataModule):
                 for record in sorted(
                     records, key=lambda item: (item["corpus"], item["sample_id"])
                 )
-                if all(record.get(f"{family}_status") == "VALID" for family in selected)
+                if record.get(f"{selected}_status") == "VALID"
             ]
             for name, records in views.items()
         }
-
-    @staticmethod
-    def _assert_isolated(
-        left: list[dict[str, Any]],
-        right: list[dict[str, Any]],
-        left_name: str,
-        right_name: str,
-    ) -> None:
-        left_keys = {(row["corpus"], row["sample_id"]) for row in left}
-        right_keys = {(row["corpus"], row["sample_id"]) for row in right}
-        left_profiles = {(row["corpus"], row["profile_id"]) for row in left}
-        right_profiles = {(row["corpus"], row["profile_id"]) for row in right}
-        if left_keys & right_keys:
-            raise ValueError(f"{left_name}/{right_name} sample overlap")
-        if left_profiles & right_profiles:
-            raise ValueError(f"{left_name}/{right_name} profile overlap")
-
-    @staticmethod
-    def _limited_records(
-        name: str,
-        records: list[dict[str, Any]],
-        max_train_samples: int | None,
-        max_val_samples: int | None,
-        max_test_samples: int | None,
-    ) -> list[dict[str, Any]]:
-        limit = max_test_samples if name in {"care_test", "wsm_test"} else None
-        if name == "train":
-            limit = max_train_samples
-        elif name in {"val", "care_val", "wsm_val"}:
-            limit = max_val_samples
-        if limit is None:
-            return records
-        if name in {"train", "val"}:
-            return [
-                record
-                for corpus in ("CARE", "WSM")
-                for record in [row for row in records if row["corpus"] == corpus][
-                    :limit
-                ]
-            ]
-        return records[:limit]
 
     def describe_context(self, context: Any) -> None:
         """Expose fold and population counts to Chimera context logging."""
         context.set("data.module", self)
         context.set("data.fold", self.fold_index)
-        context.set(
-            "data.feature_family", self.feature_family or list(self.feature_families)
-        )
+        context.set("data.feature_family", self.feature_family)
         for name, records in self.views.items():
             context.set(f"data.{name}_count", len(records))
 

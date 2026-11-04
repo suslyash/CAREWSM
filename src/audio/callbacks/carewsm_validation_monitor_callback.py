@@ -1,4 +1,4 @@
-"""Corpus-specific validation monitor for the transitional evaluation layout."""
+"""Corpus-specific validation monitor."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from chimera_ml.callbacks.base import BaseCallback
 from chimera_ml.core.registry import CALLBACKS
 
 
-class CarewsmValidationMonitor(BaseCallback):
+class CAREWSMValidationMonitorCallback(BaseCallback):
     """Add the equal-weight corpus validation recall monitor to epoch logs."""
 
     components = (
@@ -43,6 +43,6 @@ class CarewsmValidationMonitor(BaseCallback):
 def carewsm_validation_monitor(
     context: Any | None = None,
     **params: Any,
-) -> CarewsmValidationMonitor:
+) -> CAREWSMValidationMonitorCallback:
     del context, params
-    return CarewsmValidationMonitor()
+    return CAREWSMValidationMonitorCallback()

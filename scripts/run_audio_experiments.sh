@@ -64,7 +64,7 @@ for raw_path in sys.argv[1:]:
     with path.open(encoding="utf-8") as handle:
         config = yaml.safe_load(handle)
     data = config["data"]["params"]
-    if data.get("fold") != int(fold_text) or data.get("feature_family") != family or data.get("evaluation_layout") != "corpus":
+    if data.get("fold") != int(fold_text) or data.get("feature_family") != family:
         raise SystemExit(f"{path}: invalid data contract")
     if config["model"].get("name") != models[model] or config["model"]["params"].get("input_dim") != dimension:
         raise SystemExit(f"{path}: model/dimension mismatch")
