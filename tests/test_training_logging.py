@@ -88,8 +88,8 @@ def test_per_epoch_test_restores_logger_and_does_not_touch_val_callbacks():
         assert trainer.logger is not logger
         assert kwargs["train"] is False
         calls.append(kwargs["split"])
-        prefix = "care/depression" if kwargs["split"] == "test_CARE" else "wsm/depression"
-        other = "care/parkinson" if kwargs["split"] == "test_CARE" else "wsm/parkinson"
+        prefix = "care/depression" if kwargs["split"] == "test_care" else "wsm/depression"
+        other = "care/parkinson" if kwargs["split"] == "test_care" else "wsm/parkinson"
         result = {"loss": 1.0}
         result.update(_metric_block(prefix, 10 if prefix.startswith("care") else 2, 0.2))
         result.update(_metric_block(other, 4 if other.startswith("care") else 8, 0.3))
@@ -104,7 +104,7 @@ def test_per_epoch_test_restores_logger_and_does_not_touch_val_callbacks():
 
     result = callback._evaluate_test(trainer, epoch=1)
 
-    assert calls == ["test_CARE", "test_WSM"]
+    assert calls == ["test_care", "test_wsm"]
     assert trainer.logger is logger
     assert trainer.train_val_state == state_before
     assert vars(selection) == selection_before
@@ -237,8 +237,9 @@ def test_summary_renders_all_metrics_for_every_section_and_task(tmp_path):
     logs.update(_metric_block("train/wsm/depression", 2, 0.1))
     logs.update(_metric_block("CARE/care/depression", 2, 0.1))
     logs.update(_metric_block("WSM/wsm/depression", 2, 0.1))
-    logs.update(_metric_block("joint/care/depression", 2, 0.1))
-    logs.update(_metric_block("joint/wsm/depression", 2, 0.1))
+    for corpus in ("care", "wsm"):
+        for task in ("depression", "parkinson"):
+            logs.update(_metric_block(f"joint/{corpus}/{task}", 2, 0.1))
     logs.update(_metric_block("test/CARE/care/depression", 2, 0.1))
     logs.update(_metric_block("test/WSM/wsm/depression", 2, 0.1))
 

@@ -136,7 +136,7 @@ class CarewsmSummaryCallback(BaseCallback):
                     scaler=scaler,
                     train=False,
                     epoch=epoch,
-                    split=f"test_{name}",
+                    split=f"test_{name.lower()}",
                 )
                 results.update(
                     {f"test/{name}/{key}": value for key, value in metrics.items()}
@@ -204,14 +204,14 @@ class CarewsmSummaryCallback(BaseCallback):
         pieces = [
             f"epoch={record['epoch']}",
             f"train_loss={_format(values.get('train/loss'))}",
-            f"val_macro_f1=({_format(values.get('CARE/care/depression/macro_f1'))},"
-            f"{_format(values.get('WSM/wsm/depression/macro_f1'))};"
-            f"{_format(values.get('CARE/care/parkinson/macro_f1'))},"
-            f"{_format(values.get('WSM/wsm/parkinson/macro_f1'))})",
-            f"val_patient_recall=({_format(values.get('CARE/care/depression/patient_recall'))},"
-            f"{_format(values.get('WSM/wsm/depression/patient_recall'))};"
-            f"{_format(values.get('CARE/care/parkinson/patient_recall'))},"
-            f"{_format(values.get('WSM/wsm/parkinson/patient_recall'))})",
+            f"val_macro_f1=({_format(values.get('joint/care/depression/macro_f1'))},"
+            f"{_format(values.get('joint/wsm/depression/macro_f1'))};"
+            f"{_format(values.get('joint/care/parkinson/macro_f1'))},"
+            f"{_format(values.get('joint/wsm/parkinson/macro_f1'))})",
+            f"val_patient_recall=({_format(values.get('joint/care/depression/patient_recall'))},"
+            f"{_format(values.get('joint/wsm/depression/patient_recall'))};"
+            f"{_format(values.get('joint/care/parkinson/patient_recall'))},"
+            f"{_format(values.get('joint/wsm/parkinson/patient_recall'))})",
             f"val_monitor={_format(values.get('joint/average_macro_f1'))}",
             f"test_macro_f1=({_format(values.get('test/CARE/care/depression/macro_f1'))},"
             f"{_format(values.get('test/WSM/wsm/depression/macro_f1'))};"
@@ -283,9 +283,9 @@ class CarewsmSummaryCallback(BaseCallback):
     def _table_splits() -> list[tuple[str, str, str, str | None, str | None]]:
         return [
             ("TRAIN", "train/average", "train", "train/care", "train/wsm"),
-            ("VAL CARE", "CARE/care", "CARE", "CARE/care", None),
-            ("VAL WSM", "WSM/wsm", "WSM", None, "WSM/wsm"),
-            ("VAL average", "joint/average", "joint", "CARE/care", "WSM/wsm"),
+            ("VAL CARE", "joint/care", "joint", "joint/care", None),
+            ("VAL WSM", "joint/wsm", "joint", None, "joint/wsm"),
+            ("VAL average", "joint/average", "joint", "joint/care", "joint/wsm"),
             ("TEST CARE", "test/CARE/care", "test/CARE", "test/CARE/care", None),
             ("TEST WSM", "test/WSM/wsm", "test/WSM", None, "test/WSM/wsm"),
             (

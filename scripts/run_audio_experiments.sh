@@ -2,6 +2,8 @@
 set -euo pipefail
 shopt -s nullglob
 
+failed_configs=()
+
 usage() {
   cat <<'USAGE'
 Usage:
@@ -95,7 +97,10 @@ run_feature() {
   fi
   for config in "${configs[@]}"; do
     printf 'Starting %s\n' "$config"
-    CUDA_VISIBLE_DEVICES=0 .venv/bin/chimera-ml train -c "$config"
+    if ! CUDA_VISIBLE_DEVICES=0 .venv/bin/chimera-ml train -c "$config"; then
+      printf '[train] FAILED %s; continuing with the next configuration\n' "$config" >&2
+      failed_configs+=("$config")
+    fi
   done
 }
 
@@ -149,7 +154,17 @@ if "$all_features"; then
     [[ -d "$directory" ]] || continue
     run_feature "${directory#configs/audio/}"
   done
+  if (( ${#failed_configs[@]} > 0 )); then
+    printf '\nFailed configurations (%d):\n' "${#failed_configs[@]}" >&2
+    printf '  %s\n' "${failed_configs[@]}" >&2
+    exit 1
+  fi
   exit 0
 fi
 [[ -n "$feature" ]] || { usage >&2; exit 2; }
 run_feature "$feature" "$model"
+if (( ${#failed_configs[@]} > 0 )); then
+  printf '\nFailed configurations (%d):\n' "${#failed_configs[@]}" >&2
+  printf '  %s\n' "${failed_configs[@]}" >&2
+  exit 1
+fi

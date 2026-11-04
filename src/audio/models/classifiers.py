@@ -196,7 +196,8 @@ class MPTSNetClassifier(SequenceClassifier):
 
     def encode(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         valid = values * mask.unsqueeze(-1)
-        power = torch.fft.rfft(valid, dim=1).abs().mean(dim=-1)
+        # cuFFT half precision requires power-of-two lengths; period detection is computed in float32.
+        power = torch.fft.rfft(valid.float(), dim=1).abs().mean(dim=-1)
         if power.shape[1] > 1:
             power[:, 0] = 0
             period = int(power.argmax(dim=1).median().clamp_min(1).item())
