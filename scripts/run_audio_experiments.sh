@@ -24,6 +24,7 @@ check_configs() {
   [[ "${#configs[@]}" -gt 0 ]] || { printf 'No configs selected\n' >&2; return 2; }
   python3 - "${configs[@]}" <<'PY2'
 from pathlib import Path
+import os
 import sys
 import yaml
 expected = {
@@ -36,6 +37,20 @@ expected = {
 models = {"mptsnet": "carewsm_mptsnet", "mdformer": "carewsm_md_former", "mlp": "carewsm_pooled_mlp"}
 required_callbacks = ["carewsm_validation_monitor", "checkpoint_callback", "early_stopping_callback", "carewsm_summary_callback", "snapshot_callback"]
 identities = set()
+if os.environ.get("CAREWSM_FULL_MATRIX") == "1":
+    root = Path("configs/audio")
+    actual_dirs = {path.name for path in root.iterdir() if path.is_dir()}
+    if actual_dirs != set(expected):
+        raise SystemExit(f"Expected feature directories {sorted(expected)}, found {sorted(actual_dirs)}")
+    expected_paths = {
+        root / feature / f"{model}_fold{fold}.yaml"
+        for feature, (_, _, is_static) in expected.items()
+        for model in ({"mdformer", "mlp"} if is_static else {"mptsnet", "mdformer"})
+        for fold in range(5)
+    }
+    actual_paths = {path for directory in root.iterdir() if directory.is_dir() for path in directory.glob("*.yaml")}
+    if len(actual_paths) != 110 or actual_paths != expected_paths:
+        raise SystemExit(f"Expected 110 canonical files, found {len(actual_paths)}")
 for raw_path in sys.argv[1:]:
     path = Path(raw_path)
     model, fold_text = path.stem.rsplit("_fold", 1)
@@ -80,7 +95,7 @@ for raw_path in sys.argv[1:]:
     if "joint/average_macro_f1" in str(config):
         raise SystemExit(f"{path}: obsolete selection monitor remains")
     print(f"OK {path}: fold={fold_text} model={model} family={family} dim={dimension}")
-if len(sys.argv[1:]) == 110 and len(identities) != 110:
+if os.environ.get("CAREWSM_FULL_MATRIX") == "1" and len(identities) != 110:
     raise SystemExit(f"Expected 110 unique identities, found {len(identities)}")
 PY2
 }
@@ -169,7 +184,11 @@ if "$check_only"; then
     if [[ -n "$model" ]]; then for fold in 0 1 2 3 4; do configs+=("${directory}/${model}_fold${fold}.yaml"); done
     else configs+=("${directory}"/*_fold[0-4].yaml); fi
   fi
-  check_configs "${configs[@]}"
+  if "$all_features"; then
+    CAREWSM_FULL_MATRIX=1 check_configs "${configs[@]}"
+  else
+    check_configs "${configs[@]}"
+  fi
   exit 0
 fi
 if "$all_features"; then

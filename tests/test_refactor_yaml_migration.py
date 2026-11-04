@@ -1,3 +1,5 @@
+import shutil
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -19,6 +21,16 @@ from chimera_ml.training.config import TrainConfig
 from chimera_ml.training.trainer import Trainer
 
 
+class _RecordingMLP(PooledMLP):
+    def __init__(self):
+        super().__init__(input_dim=2, hidden_dim=4, dropout=0.0)
+        self.seen_corpora = []
+
+    def forward(self, batch):
+        self.seen_corpora.extend(item["corpus"] for item in batch.meta["sample_meta"])
+        return super().forward(batch)
+
+
 class _CaptureLogs(BaseCallback):
     def __init__(self):
         self.logs = None
@@ -37,10 +49,12 @@ class _Context:
         return self.data_module
 
 
-def _samples(corpus, count=4):
+def _samples(corpus, count=4, flip=False):
     samples = []
     for index in range(count):
         target = torch.tensor([index % 2, (index + 1) % 2], dtype=torch.float32)
+        if flip:
+            target = 1.0 - target
         samples.append(
             {
                 "inputs": {"native": torch.tensor([[1.0, -1.0]])},
@@ -54,9 +68,18 @@ def _samples(corpus, count=4):
     return samples
 
 
-def _loader(corpus, count=4):
+def _loader_from_samples(samples):
     return DataLoader(
-        _samples(corpus, count),
+        samples,
+        batch_size=2,
+        shuffle=False,
+        collate_fn=MaskingCollate(),
+    )
+
+
+def _loader(corpus, count=4, flip=False):
+    return DataLoader(
+        _samples(corpus, count, flip=flip),
         batch_size=2,
         shuffle=False,
         collate_fn=MaskingCollate(),
@@ -75,7 +98,7 @@ def test_canonical_yaml_inventory_is_110_and_unique():
     assert len(identities) == 110
 
 
-def test_real_trainer_fit_uses_corpus_callbacks_and_native_logging(tmp_path):
+def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     run_root = tmp_path / "logs"
     logger = ConsoleFileLogger(
         log_path=run_root,
@@ -88,8 +111,8 @@ def test_real_trainer_fit_uses_corpus_callbacks_and_native_logging(tmp_path):
     data_module = SimpleNamespace(
         evaluation_layout="corpus",
         test_dataloader=lambda: {
-            "test_care": _loader("CARE"),
-            "test_wsm": _loader("WSM"),
+            "test_care": _loader("CARE", flip=True),
+            "test_wsm": _loader("WSM", flip=True),
         },
     )
     summary = CAREWSMSummaryCallback(context=_Context(data_module))
@@ -129,7 +152,7 @@ def test_real_trainer_fit_uses_corpus_callbacks_and_native_logging(tmp_path):
         "CAREWSMSummaryCallback",
     ]
 
-    model = PooledMLP(input_dim=2, hidden_dim=4, dropout=0.0)
+    model = _RecordingMLP()
     trainer = Trainer(
         model=model,
         loss_fn=MaskedMultitaskBCE(),
@@ -139,8 +162,10 @@ def test_real_trainer_fit_uses_corpus_callbacks_and_native_logging(tmp_path):
         logger=logger,
         callbacks=callbacks,
     )
+    train_samples = _samples("CARE", 2) + _samples("WSM", 2)
+    train_samples[0]["meta"]["observed_targets"] = torch.tensor([True, False])
     trainer.fit(
-        _loader("CARE"),
+        _loader_from_samples(train_samples),
         val_loaders={"val_care": _loader("CARE"), "val_wsm": _loader("WSM")},
     )
 
@@ -154,13 +179,17 @@ def test_real_trainer_fit_uses_corpus_callbacks_and_native_logging(tmp_path):
     assert len(epoch_lines) == 5
     assert [next(split for split in ("train", "val_care", "val_wsm", "test_care", "test_wsm") if f"[{split} epoch 1]" in line) for line in epoch_lines] == ["train", "val_care", "val_wsm", "test_care", "test_wsm"]
     assert "[epoch summary]" not in log_text
-
+    assert set(model.seen_corpora) == {"CARE", "WSM"}
     assert capture.logs is not None
+    assert capture.logs["train/num_samples"] == 4
+    assert log_text.index("[val_wsm epoch 1]") < log_text.index("[test_care epoch 1]")
+
     validation_values = [capture.logs[name] for name in CarewsmValidationMonitor.components]
     assert capture.logs["dev_mean_macro_recall"] == sum(validation_values) / 4
     assert summary._corpus_test_results[1]["test_care/loss"] >= 0.0
     assert summary._corpus_test_results[1]["test_wsm/loss"] >= 0.0
-    assert checkpoint._best == early_stopping._best
+    assert checkpoint._best == capture.logs["dev_mean_macro_recall"]
+    assert early_stopping._best == capture.logs["dev_mean_macro_recall"]
     assert checkpoint._saved
     checkpoint_name = checkpoint._saved[0].name
     assert "dev_mean_macro_recall" in checkpoint_name
@@ -177,6 +206,23 @@ def test_real_trainer_fit_uses_corpus_callbacks_and_native_logging(tmp_path):
                 assert f"{population}_{task}_{metric}" in header
     assert (run_dir / "checkpoints").is_dir()
     assert list((run_dir / "checkpoints").glob("*.pt"))
+
+
+def test_missing_canonical_yaml_fails_full_matrix_check(tmp_path):
+    source = Path("configs/audio")
+    fixture = tmp_path / "configs" / "audio"
+    shutil.copytree(source, fixture)
+    missing = fixture / "emotionmsp_embeds" / "mlp_fold0.yaml"
+    missing.unlink()
+    script = Path("scripts/run_audio_experiments.sh").resolve()
+    result = subprocess.run(
+        ["bash", str(script), "--check", "--all"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "Expected 110 canonical files" in result.stderr
 
 
 def test_missing_validation_component_fails_before_checkpoint(tmp_path):

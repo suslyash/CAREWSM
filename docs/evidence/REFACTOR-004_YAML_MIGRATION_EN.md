@@ -18,13 +18,14 @@ For example, the former `joint/average_macro_f1` checkpoint and `summary.csv` se
 
 ## Preflight and integration evidence
 
-`scripts/run_audio_experiments.sh --check --all` validates all 110 files without launching training or requiring a GPU. It checks native dimensions, fixed roots, corpus layout, exact metric/callback order, validation-only selection, logging paths/levels, deterministic unique identities, and absence of the historical selection key. `--list` continues to enumerate all 11 feature families.
+`scripts/run_audio_experiments.sh --check --all` validates exactly 110 files without launching training or requiring a GPU. It fails if any expected feature directory, allowed feature/model pair, fold, or canonical filename is missing, duplicated, or misnamed. Partial feature/model checks remain scoped to their selection. It checks native dimensions, fixed roots, corpus layout, exact metric/callback order, validation-only selection, logging paths/levels, deterministic unique identities, and absence of the historical selection key. The negative fixture test removes `emotionmsp_embeds/mlp_fold0.yaml` and confirms full-matrix preflight fails with the expected 110-file error. `--list` continues to enumerate all 11 feature families.
 
-`tests/test_refactor_yaml_migration.py` runs the installed Chimera `Trainer.fit()` for one synthetic CPU epoch using real CARE/WSM train, validation, and TEST loaders, the pooled model, masked BCE loss, masked six-metric classification metric, validation monitor, checkpoint, early stopping, summary, snapshot, and console/file logger. The test verifies:
+`tests/test_refactor_yaml_migration.py` runs the installed Chimera `Trainer.fit()` for one synthetic CPU epoch using a joint four-sample TRAIN loader (2 CARE + 2 WSM), separate CARE/WSM validation loaders, and separate CARE/WSM TEST loaders, the pooled model, masked BCE loss, masked six-metric classification metric, validation monitor, checkpoint, early stopping, summary, snapshot, and console/file logger. The test verifies:
 
+- joint TRAIN contains both corpus identities, both contribute to the actual model batches, and `train/num_samples` is 4;
 - four validation Macro Recall values and their arithmetic `dev_mean_macro_recall`;
 - checkpoint and early stopping consumption of the validation monitor;
-- TEST evaluation after selection;
+- TEST evaluation after selection, with deliberately flipped synthetic TEST targets and unchanged validation populations;
 - exactly five native named epoch records and no `[epoch summary]` duplicates;
 - one wide summary row with all six metrics for both tasks and all five populations;
 - expected `train.log`, `summary.txt`, and checkpoint artifacts;
@@ -33,7 +34,8 @@ For example, the former `joint/average_macro_f1` checkpoint and `summary.csv` se
 
 ## Verification
 
-- `bash scripts/run_audio_experiments.sh --check --all` — 110 configurations passed.
+- `bash scripts/run_audio_experiments.sh --check --all` — exactly 110 configurations passed.
+- Negative temporary-fixture preflight — removing one canonical YAML failed as required.
 - `bash scripts/run_audio_experiments.sh --list` — 11 feature families listed.
 - Focused regression and migration suite — 27 passed, 2 existing Transformer warnings.
 - `.venv/bin/pytest -q tests/test_refactor_yaml_migration.py` — 3 passed.
