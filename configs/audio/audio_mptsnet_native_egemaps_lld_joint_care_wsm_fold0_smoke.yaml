@@ -17,6 +17,7 @@ data:
     shuffle_train: false
     max_train_samples: 8
     max_val_samples: 8
+    evaluation_layout: corpus
 model:
   name: carewsm_mptsnet
   params:
@@ -39,38 +40,39 @@ train:
     log_every_steps: 1
     collect_cache: true
 metrics:
-  - name: carewsm_multitask_prf
+  - name: carewsm_masked_multitask_classification
 callbacks:
+  - name: carewsm_validation_monitor
   - name: checkpoint_callback
     params:
       log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
-      monitor: joint/average_macro_f1
+      monitor: dev_mean_macro_recall
       mode: max
       save_top_k: 1
       save_last: true
+  - name: early_stopping_callback
+    params:
+      monitor: dev_mean_macro_recall
+      mode: max
+      patience: 1
+      min_delta: 0.0
+  - name: carewsm_summary_callback
+    params:
+      filename: summary.txt
   - name: snapshot_callback
     params:
       log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       include: [src, configs]
       save_code_zip: true
       save_config: true
-  - name: carewsm_summary_callback
-    params:
-      filename: summary.csv
-  - name: early_stopping_callback
-    params:
-      monitor: joint/average_macro_f1
-      mode: max
-      patience: 1
-      min_delta: 0.0
 logging:
   - name: console_file_logger
     params:
       log_path: logs/audio/mptsnet/native-egemaps_lld/joint-care-wsm-fold0
       log_file: train.log
       console_level: INFO
-      file_level: WARNING
+      file_level: INFO
   - name: mlflow_logger
     params:
       tracking_uri: sqlite:///logs/mlflow.db

@@ -7,9 +7,9 @@ import torch
 from torch.utils.data import DataLoader
 
 from audio.callbacks.summary import CAREWSMSummaryCallback
-from audio.callbacks.validation_monitor import CarewsmValidationMonitor
-from audio.loss.masked_bce import MaskedMultitaskBCE
-from audio.metrics.classification import MaskedMultitaskClassificationMetric
+from audio.callbacks.validation_monitor import CAREWSMValidationMonitorCallback
+from audio.loss.masked_bce import CAREWSMMaskedBCELoss
+from audio.metrics.classification import CAREWSMClassificationMetric
 from audio.models.classifiers import PooledMLP
 from chimera_ml.callbacks.base import BaseCallback
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
@@ -135,7 +135,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     )
     capture = _CaptureLogs()
     callbacks = [
-        CarewsmValidationMonitor(),
+        CAREWSMValidationMonitorCallback(),
         checkpoint,
         early_stopping,
         summary,
@@ -149,7 +149,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         capture,
     ]
     assert [callback.__class__.__name__ for callback in callbacks[:4]] == [
-        "CarewsmValidationMonitor",
+        "CAREWSMValidationMonitorCallback",
         "CheckpointCallback",
         "EarlyStoppingCallback",
         "CAREWSMSummaryCallback",
@@ -159,9 +159,9 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     model = _RecordingMLP()
     trainer = Trainer(
         model=model,
-        loss_fn=MaskedMultitaskBCE(),
+        loss_fn=CAREWSMMaskedBCELoss(),
         optimizer=torch.optim.SGD(model.parameters(), lr=0.01),
-        metrics=[MaskedMultitaskClassificationMetric()],
+        metrics=[CAREWSMClassificationMetric()],
         config=TrainConfig(epochs=1, device="cpu", mixed_precision=False),
         logger=logger,
         callbacks=callbacks,
@@ -189,7 +189,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     assert capture.logs["train/num_samples"] == 4
     assert log_text.index("[val_wsm epoch 1]") < log_text.index("[test_care epoch 1]")
 
-    validation_values = [capture.logs[name] for name in CarewsmValidationMonitor.components]
+    validation_values = [capture.logs[name] for name in CAREWSMValidationMonitorCallback.components]
     assert capture.logs["dev_mean_macro_recall"] == sum(validation_values) / 4
     test_recall_pairs = [
         (
@@ -255,7 +255,7 @@ def test_missing_validation_component_fails_before_checkpoint(tmp_path):
         global_step=0,
         stop_training=False,
     )
-    monitor = CarewsmValidationMonitor()
+    monitor = CAREWSMValidationMonitorCallback()
     checkpoint = CheckpointCallback(
         log_path=str(tmp_path),
         experiment_name="invalid",
@@ -267,7 +267,7 @@ def test_missing_validation_component_fails_before_checkpoint(tmp_path):
     checkpoint.on_fit_start(trainer)
     logs = {
         component: 0.5
-        for component in CarewsmValidationMonitor.components[:-1]
+        for component in CAREWSMValidationMonitorCallback.components[:-1]
     }
     try:
         monitor.on_epoch_end(trainer, 1, logs)

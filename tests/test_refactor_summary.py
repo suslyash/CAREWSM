@@ -182,7 +182,7 @@ def test_test_failure_leaves_logger_and_handlers_unchanged(tmp_path):
     logger, handler, stream = _real_logger(tmp_path, "carewsm-summary-failure")
     data_module = SimpleNamespace(
         evaluation_layout="corpus",
-        test_dataloader=lambda: {"test_care": object()},
+        test_dataloader=lambda: {"test_care": object(), "test_wsm": object()},
     )
     callback = CAREWSMSummaryCallback(context=_Context(data_module))
     trainer = SimpleNamespace(

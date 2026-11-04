@@ -1,12 +1,10 @@
-"""Compact per-epoch CAREWSM summary and TEST statistics."""
+"""Wide per-epoch CAREWSM summary and corpus TEST evaluation."""
 
 from __future__ import annotations
 
 import csv
 import io
-import json
 import math
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +12,6 @@ import torch
 
 from chimera_ml.callbacks.base import BaseCallback
 from chimera_ml.core.registry import CALLBACKS
-from chimera_ml.data.loader_utils import normalize_loaders
 
 _TASKS = ("depression", "parkinson")
 _METRICS = (
@@ -35,50 +32,39 @@ def _finite(value: Any) -> float | None:
     return number if math.isfinite(number) else None
 
 
-def _format(value: Any) -> str:
-    number = _finite(value)
-    return "-" if number is None else f"{number:.4f}"
-
-
-@dataclass
 class CAREWSMSummaryCallback(BaseCallback):
-    """Evaluate fixed TEST after VAL and write compact per-epoch artifacts."""
+    """Evaluate fixed TEST after VAL and write one wide row per epoch."""
 
-    context: Any | None = field(default=None, repr=False)
-    filename: str = "summary.txt"
-    metrics_filename: str = "metrics_history.json"
-    _path: Path | None = field(default=None, init=False)
-    _metrics_path: Path | None = field(default=None, init=False)
-    _rows: list[dict[str, Any]] = field(default_factory=list, init=False)
-    _test_loaders: dict[str, Any] = field(default_factory=dict, init=False)
-    _corpus_mode: bool = field(default=False, init=False)
-    _corpus_test_results: dict[int, dict[str, float]] = field(
-        default_factory=dict, init=False
-    )
-    _completed_corpus_epochs: set[int] = field(default_factory=set, init=False)
+    def __init__(
+        self, context: Any | None = None, filename: str = "summary.txt"
+    ) -> None:
+        self.context = context
+        self.filename = filename
+        self._path: Path | None = None
+        self._rows: list[dict[str, Any]] = []
+        self._test_loaders: dict[str, Any] = {}
+        self._corpus_test_results: dict[int, dict[str, float]] = {}
+        self._completed_corpus_epochs: set[int] = set()
 
     def on_fit_start(self, trainer: Any) -> None:
         log_path = getattr(getattr(trainer, "logger", None), "log_path", None)
         run_dir = Path(log_path).parent if log_path else Path("logs")
         self._path = run_dir / self.filename
-        self._metrics_path = run_dir / self.metrics_filename
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
         data_module = (
             self.context.get("data.module") if self.context is not None else None
         )
-        self._corpus_mode = (
-            getattr(data_module, "evaluation_layout", "legacy") == "corpus"
-        )
         if data_module is not None:
-            self._test_loaders = normalize_loaders(
-                data_module.test_dataloader(),
-                default_name="test",
-            )
-        self._write()
+            self._test_loaders = dict(data_module.test_dataloader())
+            if set(self._test_loaders) != {"test_care", "test_wsm"}:
+                raise ValueError(
+                    "DataModule must provide test_care and test_wsm loaders"
+                )
+        self._write_corpus_summary()
 
     def on_epoch_end(self, trainer: Any, epoch: int, logs: dict[str, Any]) -> None:
-        if self._corpus_mode and epoch in self._completed_corpus_epochs:
+        if epoch in self._completed_corpus_epochs:
             combined = dict(logs)
             combined.update(self._corpus_test_results[epoch])
             self._replace_corpus_row(epoch, combined)
@@ -86,34 +72,12 @@ class CAREWSMSummaryCallback(BaseCallback):
             return
 
         test_logs = self._evaluate_test(trainer, epoch)
-        if self._corpus_mode:
-            self._corpus_test_results[epoch] = dict(test_logs)
-            combined = dict(logs)
-            combined.update(test_logs)
-            self._replace_corpus_row(epoch, combined)
-            self._write_corpus_summary()
-            self._completed_corpus_epochs.add(epoch)
-            return
+        self._corpus_test_results[epoch] = dict(test_logs)
         combined = dict(logs)
         combined.update(test_logs)
-        checkpoint = self._checkpoint_for_epoch(trainer, epoch)
-
-        record = {
-            "epoch": epoch,
-            "checkpoint": checkpoint,
-            "logs": {
-                key: (
-                    float(value)
-                    if isinstance(value, (int, float)) and math.isfinite(float(value))
-                    else None
-                )
-                for key, value in combined.items()
-                if isinstance(value, (int, float))
-            },
-        }
-        self._rows.append(record)
-        self._write()
-        self._log_compact_epoch(trainer, record)
+        self._replace_corpus_row(epoch, combined)
+        self._write_corpus_summary()
+        self._completed_corpus_epochs.add(epoch)
 
     def _evaluate_test(self, trainer: Any, epoch: int) -> dict[str, float]:
         """Evaluate TEST with no callback side effects.
@@ -131,8 +95,7 @@ class CAREWSMSummaryCallback(BaseCallback):
         scaler = torch.amp.GradScaler(device=device.type, enabled=False)
         results: dict[str, float] = {}
         for name, loader in self._test_loaders.items():
-            legacy_splits = {"CARE": "test_care", "WSM": "test_wsm"}
-            split = name if self._corpus_mode else legacy_splits.get(name, name)
+            split = name
             metrics = trainer._run_epoch(
                 loader=loader,
                 device=device,
@@ -141,14 +104,12 @@ class CAREWSMSummaryCallback(BaseCallback):
                 epoch=epoch,
                 split=split,
             )
-            prefix = name if self._corpus_mode else f"test/{name}"
+            prefix = name
             results.update(
                 {f"{prefix}/{key}": value for key, value in metrics.items()}
             )
 
-        if not self._corpus_mode:
-            self._add_test_averages(results)
-        if trainer.mlflow_logger:
+        if getattr(trainer, "mlflow_logger", None) is not None:
             mlflow_values = {
                 key: float(value)
                 for key, value in results.items()
@@ -156,74 +117,6 @@ class CAREWSMSummaryCallback(BaseCallback):
             }
             trainer.mlflow_logger.log_metrics(mlflow_values, step=epoch)
         return results
-
-    @staticmethod
-    def _add_test_averages(results: dict[str, float]) -> None:
-        for task in _TASKS:
-            care_count = results.get(
-                f"test/CARE/care/{task}/observed_count",
-                0.0,
-            )
-            wsm_count = results.get(
-                f"test/WSM/wsm/{task}/observed_count",
-                0.0,
-            )
-            for metric in _METRICS:
-                care_value = results.get(
-                    f"test/CARE/care/{task}/{metric}",
-                    float("nan"),
-                )
-                wsm_value = results.get(
-                    f"test/WSM/wsm/{task}/{metric}",
-                    float("nan"),
-                )
-                results[f"test/average/{task}/{metric}"] = (
-                    (care_value + wsm_value) / 2
-                    if care_count
-                    and wsm_count
-                    and _finite(care_value) is not None
-                    and _finite(wsm_value) is not None
-                    else float("nan")
-                )
-        care_loss = results.get("test/CARE/loss", float("nan"))
-        wsm_loss = results.get("test/WSM/loss", float("nan"))
-        results["test/average/loss"] = (
-            (care_loss + wsm_loss) / 2
-            if _finite(care_loss) is not None and _finite(wsm_loss) is not None
-            else float("nan")
-        )
-
-    def _checkpoint_for_epoch(self, trainer: Any, epoch: int) -> str | None:
-        for callback in trainer.callbacks:
-            if getattr(callback, "monitor", None) != "joint/average_macro_f1":
-                continue
-            for path in getattr(callback, "_saved", []):
-                if Path(path).name.startswith(f"epoch={epoch}_"):
-                    return str(path)
-        return None
-
-    def _log_compact_epoch(self, trainer: Any, record: dict[str, Any]) -> None:
-        values = record["logs"]
-        pieces = [
-            f"epoch={record['epoch']}",
-            f"train_loss={_format(values.get('train/loss'))}",
-            f"val_macro_f1=({_format(values.get('joint/care/depression/macro_f1'))},"
-            f"{_format(values.get('joint/wsm/depression/macro_f1'))};"
-            f"{_format(values.get('joint/care/parkinson/macro_f1'))},"
-            f"{_format(values.get('joint/wsm/parkinson/macro_f1'))})",
-            "val_patient_recall=("
-            f"{_format(values.get('joint/care/depression/patient_recall'))},"
-            f"{_format(values.get('joint/wsm/depression/patient_recall'))};"
-            f"{_format(values.get('joint/care/parkinson/patient_recall'))},"
-            f"{_format(values.get('joint/wsm/parkinson/patient_recall'))})",
-            f"val_monitor={_format(values.get('joint/average_macro_f1'))}",
-            "test_macro_f1=("
-            f"{_format(values.get('test/CARE/care/depression/macro_f1'))},"
-            f"{_format(values.get('test/WSM/wsm/depression/macro_f1'))};"
-            f"{_format(values.get('test/CARE/care/parkinson/macro_f1'))},"
-            f"{_format(values.get('test/WSM/wsm/parkinson/macro_f1'))})",
-        ]
-        trainer.logger.warning("[epoch summary] " + " ".join(pieces))
 
     def _replace_corpus_row(self, epoch: int, logs: dict[str, Any]) -> None:
         record = {"epoch": epoch, "logs": logs}
@@ -297,130 +190,15 @@ class CAREWSMSummaryCallback(BaseCallback):
         number = _finite(value)
         return "-" if number is None else str(int(number))
 
-    def _write(self) -> None:
-        if self._corpus_mode:
-            self._write_corpus_summary()
-            return
-        if self._path is None or self._metrics_path is None:
-            return
-
-        self._metrics_path.write_text(
-            json.dumps(self._rows, indent=2, sort_keys=True, allow_nan=False) + "\n",
-            encoding="utf-8",
-        )
-
-        fieldnames = [
-            "epoch",
-            "split",
-            "task",
-            "loss",
-            *_METRICS,
-            "CARE_count",
-            "WSM_count",
-            "total_count",
-        ]
-        output = io.StringIO(newline="")
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
-        writer.writeheader()
-
-        for record in self._rows:
-            for split, prefix, loss_prefix, care_prefix, wsm_prefix in (
-                self._table_splits()
-            ):
-                values = record["logs"]
-                for task in _TASKS:
-                    loss = (
-                        values.get(f"{loss_prefix}/loss")
-                        if task == "depression"
-                        else None
-                    )
-                    care_count = self._count(values, care_prefix, task)
-                    wsm_count = self._count(values, wsm_prefix, task)
-                    row = {
-                        "epoch": record["epoch"],
-                        "split": split,
-                        "task": task,
-                        "loss": _format(loss) if loss is not None else "",
-                        "CARE_count": _format(care_count),
-                        "WSM_count": _format(wsm_count),
-                        "total_count": _format(care_count + wsm_count),
-                    }
-                    row.update(
-                        {
-                            metric: _format(values.get(f"{prefix}/{task}/{metric}"))
-                            for metric in _METRICS
-                        }
-                    )
-                    writer.writerow(row)
-
-        self._path.write_text(output.getvalue(), encoding="utf-8")
-
-    @staticmethod
-    def _count(values: dict[str, Any], prefix: str | None, task: str) -> float:
-        if prefix is None:
-            return 0.0
-        return float(values.get(f"{prefix}/{task}/observed_count") or 0.0)
-
-    @staticmethod
-    def _table_splits() -> list[tuple[str, str, str, str | None, str | None]]:
-        return [
-            ("TRAIN", "train/average", "train", "train/care", "train/wsm"),
-            ("VAL CARE", "joint/care", "joint", "joint/care", None),
-            ("VAL WSM", "joint/wsm", "joint", None, "joint/wsm"),
-            ("VAL average", "joint/average", "joint", "joint/care", "joint/wsm"),
-            ("TEST CARE", "test/CARE/care", "test/CARE", "test/CARE/care", None),
-            ("TEST WSM", "test/WSM/wsm", "test/WSM", None, "test/WSM/wsm"),
-            (
-                "TEST average",
-                "test/average",
-                "test/average",
-                "test/CARE/care",
-                "test/WSM/wsm",
-            ),
-        ]
-
-    def _best_row(self) -> dict[str, Any] | None:
-        candidates = [
-            row
-            for row in self._rows
-            if _finite(row["logs"].get("joint/average_macro_f1")) is not None
-        ]
-        return max(
-            candidates,
-            key=lambda row: float(row["logs"]["joint/average_macro_f1"]),
-            default=None,
-        )
-
-    def _run_metadata(self) -> str:
-        config = self.context.config if self.context is not None else None
-        experiment = (
-            config.section("experiment_info").get("params", {}) if config else {}
-        )
-        data = config.section("data").get("params", {}) if config else {}
-        model_section = config.section("model") if config else {}
-        seed = config.get("seed", "unknown") if config else "unknown"
-        model = model_section.get("name", "unknown")
-        family = data.get("feature_family", "unknown")
-        fold = data.get("fold", "unknown")
-        return (
-            f"model: {model} | feature family: {family} | fold: {fold} | "
-            f"seed: {seed} | experiment: {experiment.get('experiment_name', 'unknown')}"
-        )
-
-
-CarewsmSummaryCallback = CAREWSMSummaryCallback
-
 
 @CALLBACKS.register("carewsm_summary_callback")
 def carewsm_summary_callback(
     context: Any | None = None,
     filename: str = "summary.txt",
-    metrics_filename: str = "metrics_history.json",
     **params: Any,
 ) -> CAREWSMSummaryCallback:
     del params
     return CAREWSMSummaryCallback(
         context=context,
         filename=filename,
-        metrics_filename=metrics_filename,
     )

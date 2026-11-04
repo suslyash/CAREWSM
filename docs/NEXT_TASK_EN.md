@@ -1,9 +1,9 @@
 # NEXT TASK
 
-## REFACTOR-004 — complete canonical YAML migration and Trainer integration
+## REFACTOR-005 — final naming, legacy removal, and architecture cleanup
 
 **Status: AUTHORIZED — implementation in progress.**
 
-Migrate all 110 canonical audio YAML configurations to the corpus-specific evaluation contract and verify the complete path with one synthetic CPU Trainer.fit integration. Preserve historical results and do not run real CARE/WSM experiments.
+Standardize active CAREWSM component names, remove obsolete runtime compatibility code, retain the direct two-file data layer, and verify the canonical 110-YAML matrix without running historical experiments.
 
-TASK-011 — multi-feature static deep fusion infrastructure — remains PAUSED. Do not resume it until the refactor sequence and final integration review are complete and the manager explicitly authorizes it.
+TASK-011 — multi-feature static deep fusion infrastructure — remains PAUSED. Do not resume it until REFACTOR-000 through REFACTOR-005 and the final integration review are independently reviewed and merged, with explicit manager authorization.

@@ -13,3 +13,4 @@ data:
     batch_size: 2
     num_workers: 8
     shuffle_train: false
+    evaluation_layout: corpus

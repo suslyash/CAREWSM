@@ -12,7 +12,7 @@ from chimera_ml.core.types import ModelOutput
 from chimera_ml.losses.base import BaseLoss
 
 
-class MaskedMultitaskBCE(BaseLoss):
+class CAREWSMMaskedBCELoss(BaseLoss):
     """Equal mean of Depression/Parkinson BCE over observed labels."""
 
     def __call__(self, output: ModelOutput, batch: Any) -> torch.Tensor:
@@ -44,5 +44,5 @@ class MaskedMultitaskBCE(BaseLoss):
 
 
 @LOSSES.register("carewsm_masked_bce")
-def carewsm_masked_bce(context: Any | None = None, **params: Any) -> MaskedMultitaskBCE:
-    return MaskedMultitaskBCE(**params)
+def carewsm_masked_bce(context: Any | None = None, **params: Any) -> CAREWSMMaskedBCELoss:
+    return CAREWSMMaskedBCELoss(**params)

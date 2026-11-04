@@ -174,18 +174,18 @@ def test_source_join_fallback_folds_limits_and_masks(tmp_path: Path) -> None:
         ("CARE", "tr_CARE_1"),
         ("WSM", "tr_WSM_1"),
     ]
-    assert [(record["corpus"], record["sample_id"]) for record in dm.views["val"]] == [
+    assert [(record["corpus"], record["sample_id"]) for record in dm.views["val_care"] + dm.views["val_wsm"]] == [
         ("CARE", "va_CARE_1"),
         ("WSM", "va_WSM_1"),
     ]
     assert len(dm.train_dataset) == 2
-    assert len(dm.val_dataset["joint"]) == 2
-    assert len(dm.test_dataset["CARE"]) == 1
-    assert len(dm.test_dataset["WSM"]) == 1
+    assert len(dm.val_dataset["val_care"]) + len(dm.val_dataset["val_wsm"]) == 2
+    assert len(dm.test_dataset["test_care"]) == 1
+    assert len(dm.test_dataset["test_wsm"]) == 1
     assert len(dm.views["train"]) == len(dm.train_dataset)
-    assert len(dm.views["val"]) == len(dm.val_dataset["joint"])
-    assert len(dm.views["care_test"]) == len(dm.test_dataset["CARE"])
-    assert len(dm.views["wsm_test"]) == len(dm.test_dataset["WSM"])
+    assert len(dm.views["val_care"] + dm.views["val_wsm"]) == len(dm.val_dataset["val_care"]) + len(dm.val_dataset["val_wsm"])
+    assert len(dm.views["test_care"]) == len(dm.test_dataset["test_care"])
+    assert len(dm.views["test_wsm"]) == len(dm.test_dataset["test_wsm"])
 
     class Context:
         def __init__(self) -> None:
@@ -197,9 +197,10 @@ def test_source_join_fallback_folds_limits_and_masks(tmp_path: Path) -> None:
     context = Context()
     dm.describe_context(context)
     assert context.values["data.train_count"] == len(dm.train_dataset)
-    assert context.values["data.val_count"] == len(dm.val_dataset["joint"])
-    assert context.values["data.care_test_count"] == len(dm.test_dataset["CARE"])
-    assert context.values["data.wsm_test_count"] == len(dm.test_dataset["WSM"])
+    assert context.values["data.val_care_count"] == len(dm.val_dataset["val_care"])
+    assert context.values["data.val_wsm_count"] == len(dm.val_dataset["val_wsm"])
+    assert context.values["data.test_care_count"] == len(dm.test_dataset["test_care"])
+    assert context.values["data.test_wsm_count"] == len(dm.test_dataset["test_wsm"])
 
     assert all(record["label_id"] == "DEPRESSION" for record in dm.views["train"])
     assert all("feature_paths" in record for record in dm.views["train"])
@@ -222,10 +223,10 @@ def test_all_folds_membership_and_profile_isolation(tmp_path: Path) -> None:
         )
         assert {r["corpus"] for r in dm.views["train"]} == {"CARE", "WSM"}
         train_profiles = {(r["corpus"], r["profile_id"]) for r in dm.views["train"]}
-        val_profiles = {(r["corpus"], r["profile_id"]) for r in dm.views["val"]}
+        val_profiles = {(r["corpus"], r["profile_id"]) for r in dm.views["val_care"] + dm.views["val_wsm"]}
         test_profiles = {
             (r["corpus"], r["profile_id"])
-            for r in dm.views["care_test"] + dm.views["wsm_test"]
+            for r in dm.views["test_care"] + dm.views["test_wsm"]
         }
         assert not train_profiles & val_profiles
         assert not train_profiles & test_profiles
@@ -334,7 +335,7 @@ def test_corpus_evaluation_layout_reuses_effective_validation_views(tmp_path: Pa
     assert len(dm.val_dataset["val_wsm"]) == 1
     assert len(dm.test_dataset["test_care"]) == 1
     assert len(dm.test_dataset["test_wsm"]) == 1
-    assert {record["corpus"] for record in dm.views["care_val"]} == {"CARE"}
-    assert {record["corpus"] for record in dm.views["wsm_val"]} == {"WSM"}
-    assert len(dm.views["care_val"]) == len(dm.val_dataset["val_care"])
-    assert len(dm.views["wsm_val"]) == len(dm.val_dataset["val_wsm"])
+    assert {record["corpus"] for record in dm.views["val_care"]} == {"CARE"}
+    assert {record["corpus"] for record in dm.views["val_wsm"]} == {"WSM"}
+    assert len(dm.views["val_care"]) == len(dm.val_dataset["val_care"])
+    assert len(dm.views["val_wsm"]) == len(dm.val_dataset["val_wsm"])

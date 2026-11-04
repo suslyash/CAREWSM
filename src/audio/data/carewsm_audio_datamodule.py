@@ -48,7 +48,7 @@ class CAREWSMAudioDataModule(DataModule):
         max_train_samples: int | None = None,
         max_val_samples: int | None = None,
         max_test_samples: int | None = None,
-        evaluation_layout: str = "legacy",
+        evaluation_layout: str = "corpus",
     ) -> None:
         if fold not in range(5):
             raise ValueError("fold must be an integer from 0 through 4")
@@ -56,8 +56,8 @@ class CAREWSMAudioDataModule(DataModule):
             raise ValueError(
                 "feature_family and feature_families cannot both be configured"
             )
-        if evaluation_layout not in {"legacy", "corpus"}:
-            raise ValueError("evaluation_layout must be 'legacy' or 'corpus'")
+        if evaluation_layout != "corpus":
+            raise ValueError("evaluation_layout must be 'corpus'")
 
         if feature_families is not None:
             selected = tuple(feature_families)
@@ -97,22 +97,14 @@ class CAREWSMAudioDataModule(DataModule):
             )
             for name, records in self.views.items()
         }
-        validation_datasets = (
-            {"joint": datasets["val"]}
-            if evaluation_layout == "legacy"
-            else {
-                "val_care": datasets["care_val"],
-                "val_wsm": datasets["wsm_val"],
-            }
-        )
-        test_datasets = (
-            {"CARE": datasets["care_test"], "WSM": datasets["wsm_test"]}
-            if evaluation_layout == "legacy"
-            else {
-                "test_care": datasets["care_test"],
-                "test_wsm": datasets["wsm_test"],
-            }
-        )
+        validation_datasets = {
+            "val_care": datasets["val_care"],
+            "val_wsm": datasets["val_wsm"],
+        }
+        test_datasets = {
+            "test_care": datasets["test_care"],
+            "test_wsm": datasets["test_wsm"],
+        }
         super().__init__(
             train_dataset=datasets["train"],
             val_dataset=validation_datasets,
@@ -262,11 +254,10 @@ class CAREWSMAudioDataModule(DataModule):
         )
         views = {
             "train": train,
-            "val": validation,
-            "care_val": [record for record in validation if record["corpus"] == "CARE"],
-            "wsm_val": [record for record in validation if record["corpus"] == "WSM"],
-            "care_test": tests["CARE"],
-            "wsm_test": tests["WSM"],
+            "val_care": [record for record in validation if record["corpus"] == "CARE"],
+            "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
+            "test_care": tests["CARE"],
+            "test_wsm": tests["WSM"],
         }
         return {
             name: [
@@ -303,14 +294,14 @@ class CAREWSMAudioDataModule(DataModule):
         max_val_samples: int | None,
         max_test_samples: int | None,
     ) -> list[dict[str, Any]]:
-        limit = max_test_samples if name in {"care_test", "wsm_test"} else None
+        limit = max_test_samples if name in {"test_care", "test_wsm"} else None
         if name == "train":
             limit = max_train_samples
-        elif name in {"val", "care_val", "wsm_val"}:
+        elif name in {"val_care", "val_wsm"}:
             limit = max_val_samples
         if limit is None:
             return records
-        if name in {"train", "val"}:
+        if name == "train":
             return [
                 record
                 for corpus in ("CARE", "WSM")

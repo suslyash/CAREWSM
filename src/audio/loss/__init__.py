@@ -1,1 +1,1 @@
-from .masked_bce import MaskedMultitaskBCE, carewsm_masked_bce
+from .masked_bce import CAREWSMMaskedBCELoss, carewsm_masked_bce

@@ -67,9 +67,9 @@ Required metrics:
 
 ## Current stage
 
-REFACTOR-003 epoch logging, wide summary, and run paths were submitted for independent manager review. REFACTOR-004 mandatory logging simplification was merged. REFACTOR-004 YAML migration and Trainer integration is currently authorized and migrates the 110 canonical configurations without running historical experiments. REFACTOR-002 is preserved, including the validation-only `dev_mean_macro_recall` monitor and legacy compatibility.
+REFACTOR-000 through REFACTOR-004 have passed independent review and are merged. REFACTOR-005 cleanup is the current authorized atomic task; it standardizes active component names, removes obsolete runtime compatibility code, and preserves the 110 canonical configurations without running historical experiments. The validation-only `dev_mean_macro_recall` monitor and historical evidence remain preserved.
 
-The next scientific question is whether the strongest static deep embeddings are complementary when combined.
+The next scientific question is whether the strongest static deep embeddings are complementary when combined; that work remains paused until REFACTOR-005 and the final integration review are complete.
 
 The immediate task does **not** run the full combination study. It first makes multi-feature loading/fusion explicit, testable and coverage-aware.
 
