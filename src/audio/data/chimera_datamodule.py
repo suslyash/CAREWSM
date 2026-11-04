@@ -141,11 +141,7 @@ class CarewsmJointDataModule(DataModule):
 
         super().__init__(
             train_dataset=dataset("train"),
-            val_dataset={
-                "joint": dataset("val"),
-                "CARE": dataset("care_val"),
-                "WSM": dataset("wsm_val"),
-            },
+            val_dataset={"joint": dataset("val")},
             test_dataset={
                 "CARE": dataset("care_test"),
                 "WSM": dataset("wsm_test"),
