@@ -14,6 +14,7 @@ def register() -> None:
         "audio.loss.masked_bce",
         "audio.metrics.classification",
         "audio.callbacks.summary",
+        "audio.callbacks.validation_monitor",
     )
     for module in modules:
         try:
