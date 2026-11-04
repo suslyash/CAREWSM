@@ -10,7 +10,7 @@ def register() -> None:
         return
     modules = (
         "audio.data.carewsm_audio_datamodule",
-        "audio.models.classifiers",
+        "audio.models.carewsm_audio_models",
         "audio.loss.carewsm_masked_bce_loss",
         "audio.metrics.carewsm_classification_metric",
         "audio.callbacks.carewsm_summary_callback",

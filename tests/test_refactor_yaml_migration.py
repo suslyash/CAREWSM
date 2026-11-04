@@ -10,7 +10,7 @@ from audio.callbacks.carewsm_summary_callback import CAREWSMSummaryCallback
 from audio.callbacks.carewsm_validation_monitor_callback import CAREWSMValidationMonitorCallback
 from audio.loss.carewsm_masked_bce_loss import CAREWSMMaskedBCELoss
 from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
-from audio.models.classifiers import PooledMLP
+from audio.models.carewsm_audio_models import CAREWSMPooledMLPModel
 from chimera_ml.callbacks.base import BaseCallback
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
 from chimera_ml.callbacks.early_stopping_callback import EarlyStoppingCallback
@@ -21,7 +21,7 @@ from chimera_ml.training.config import TrainConfig
 from chimera_ml.training.trainer import Trainer
 
 
-class _RecordingMLP(PooledMLP):
+class _RecordingMLP(CAREWSMPooledMLPModel):
     def __init__(self):
         super().__init__(input_dim=2, hidden_dim=4, dropout=0.0)
         self.train_seen_corpora = []
@@ -230,7 +230,7 @@ def test_missing_canonical_yaml_fails_full_matrix_check(tmp_path):
 
 
 def test_missing_validation_component_fails_before_checkpoint(tmp_path):
-    model = PooledMLP(input_dim=2, hidden_dim=4, dropout=0.0)
+    model = CAREWSMPooledMLPModel(input_dim=2, hidden_dim=4, dropout=0.0)
     trainer = SimpleNamespace(
         model=model,
         optimizer=torch.optim.SGD(model.parameters(), lr=0.01),

@@ -229,10 +229,10 @@ def test_registration_collate_and_model_forward_backward(tmp_path: Path) -> None
     assert tuple(batch.get_masks("sequence_mask").shape) == (2, 1)
     assert [meta["corpus"] for meta in batch.meta["sample_meta"]] == ["CARE", "CARE"]
 
-    from audio.models.classifiers import MDFormerClassifier, PooledMLP
+    from audio.models.carewsm_audio_models import CAREWSMMDFormerModel, CAREWSMPooledMLPModel
     for model in (
-        PooledMLP(input_dim=2, hidden_dim=8),
-        MDFormerClassifier(input_dim=2, hidden_dim=8, num_heads=2, num_layers=1),
+        CAREWSMPooledMLPModel(input_dim=2, hidden_dim=8),
+        CAREWSMMDFormerModel(input_dim=2, hidden_dim=8, num_heads=2, num_layers=1),
     ):
         output = model(batch)
         output.preds.sum().backward()

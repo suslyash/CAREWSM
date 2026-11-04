@@ -51,7 +51,7 @@ class TaskHeads(nn.Module):
         return torch.cat((self.depression(features), self.parkinson(features)), dim=-1)
 
 
-class SequenceClassifier(BaseModel):
+class CAREWSMSequenceModel(BaseModel):
     """Shared projection, architecture-specific encoder and task heads."""
 
     def __init__(self, input_dim: int, hidden_dim: int = 96, dropout: float = 0.1) -> None:
@@ -72,7 +72,7 @@ class SequenceClassifier(BaseModel):
         return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
 
 
-class TSCMambaClassifier(SequenceClassifier):
+class CAREWSMTSCMambaModel(CAREWSMSequenceModel):
     """Audio-only TSCMamba temporal/spectral encoder with BiMamba blocks."""
 
     def __init__(
@@ -181,7 +181,7 @@ def _reverse_valid_sequence(values: torch.Tensor, mask: torch.Tensor) -> torch.T
     return reversed_values
 
 
-class MPTSNetClassifier(SequenceClassifier):
+class CAREWSMMPTSNetModel(CAREWSMSequenceModel):
     """MPTSNet-inspired periodic multiscale local/global classifier."""
 
     def __init__(self, input_dim: int, hidden_dim: int = 96,
@@ -215,7 +215,7 @@ class MPTSNetClassifier(SequenceClassifier):
         return self.fusion(torch.cat((valid, periodic, global_view, valid + periodic), dim=-1))
 
 
-class MDFormerClassifier(SequenceClassifier):
+class CAREWSMMDFormerModel(CAREWSMSequenceModel):
     """MD-Former-inspired independent temporal and cross-channel branches."""
 
     def __init__(self, input_dim: int, hidden_dim: int = 96, num_heads: int = 4,
@@ -244,7 +244,7 @@ class MDFormerClassifier(SequenceClassifier):
         return self.fusion(torch.cat((temporal, channel), dim=-1))
 
 
-class PooledMLP(SequenceClassifier):
+class CAREWSMPooledMLPModel(CAREWSMSequenceModel):
     """Reference pooled classifier."""
 
     def encode(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -253,20 +253,20 @@ class PooledMLP(SequenceClassifier):
 
 
 @MODELS.register("carewsm_tscmamba")
-def carewsm_tscmamba(context: Any | None = None, **params: Any) -> TSCMambaClassifier:
-    return TSCMambaClassifier(**params)
+def carewsm_tscmamba(context: Any | None = None, **params: Any) -> CAREWSMTSCMambaModel:
+    return CAREWSMTSCMambaModel(**params)
 
 
 @MODELS.register("carewsm_mptsnet")
-def carewsm_mptsnet(context: Any | None = None, **params: Any) -> MPTSNetClassifier:
-    return MPTSNetClassifier(**params)
+def carewsm_mptsnet(context: Any | None = None, **params: Any) -> CAREWSMMPTSNetModel:
+    return CAREWSMMPTSNetModel(**params)
 
 
 @MODELS.register("carewsm_md_former")
-def carewsm_md_former(context: Any | None = None, **params: Any) -> MDFormerClassifier:
-    return MDFormerClassifier(**params)
+def carewsm_md_former(context: Any | None = None, **params: Any) -> CAREWSMMDFormerModel:
+    return CAREWSMMDFormerModel(**params)
 
 
 @MODELS.register("carewsm_pooled_mlp")
-def carewsm_pooled_mlp(context: Any | None = None, **params: Any) -> PooledMLP:
-    return PooledMLP(**params)
+def carewsm_pooled_mlp(context: Any | None = None, **params: Any) -> CAREWSMPooledMLPModel:
+    return CAREWSMPooledMLPModel(**params)
