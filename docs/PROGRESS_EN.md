@@ -75,6 +75,6 @@ The immediate task does **not** run the full combination study. It first makes m
 
 ## Next task
 
-REFACTOR-001 — corrective Dataset/DataModule implementation after manager authorization.
+REFACTOR-001 — corrective Dataset/DataModule implementation submitted for independent manager review.
 
 TASK-011 remains PAUSED until REFACTOR-000 through REFACTOR-005 and final integration review are independently reviewed and merged. The historical 110 runs remain preserved.
