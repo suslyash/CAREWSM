@@ -1,19 +1,33 @@
-"""Build and inspect the real joint DataModule through Chimera-ML 0.3.0."""
+"""Build and inspect the real joint DataModule through Chimera-ML."""
+
 from chimera_ml.core.config import load_yaml
 from chimera_ml.training.builders import BuildContext, build_datamodule
+
 import chimera_plugin
-chimera_plugin.register()
-cfg = load_yaml("configs/audio/joint_native_fold0.yaml")
-context = BuildContext(config=cfg, stage="smoke")
-dm = build_datamodule(cfg["data"], context=context)
-raw = {"TRAIN": dm.train_dataloader(), "VAL": dm.val_dataloader(),
-       "CARE TEST": dm.test_dataloader()["CARE"], "WSM TEST": dm.test_dataloader()["WSM"]}
-for name, loaders in raw.items():
-    items = loaders.items() if isinstance(loaders, dict) else [(name, loaders)]
-    for subname, loader in items:
+
+
+def main() -> None:
+    chimera_plugin.register()
+    config = load_yaml("configs/audio/joint_native_fold0.yaml")
+    context = BuildContext(config=config, stage="smoke")
+    data_module = build_datamodule(config["data"], context=context)
+    loaders = {"train": data_module.train_dataloader()}
+    loaders.update(data_module.val_dataloader())
+    for name, loader in loaders.items():
         batch = next(iter(loader))
-        print(name, subname if subname != name else "", "samples=", len(loader.dataset),
-              "native=", tuple(batch.inputs["native"].shape),
-              "sequence_mask=", tuple(batch.masks["sequence_mask"].shape),
-              "meta=", len(batch.meta["sample_meta"]))
-print("context=", context.values)
+        print(
+            name,
+            "samples=",
+            len(loader.dataset),
+            "native=",
+            tuple(batch.inputs["native"].shape),
+            "sequence_mask=",
+            tuple(batch.masks["sequence_mask"].shape),
+            "meta=",
+            len(batch.meta["sample_meta"]),
+        )
+    print("context=", context.values)
+
+
+if __name__ == "__main__":
+    main()

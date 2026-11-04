@@ -107,6 +107,25 @@ Follow `suslyash/WSM` (`src/chimera_plugin.py`, model/data/loss/metric/callback 
 - Before handoff, format touched Python files and check registration/config instantiation plus one representative real-data batch where feasible. A formatter and compiler passing do not replace source-code readability review.
 - Applies to **all active and future implementation tasks, including corrective refactoring**. Manager review may reject noncompliant code without requesting extra experiments.
 
+## MANDATORY: Simple Research Code
+
+**This project prioritizes simple, readable research code over defensive programming and abstraction. These rules apply to every future task.**
+
+1. **Write the smallest working implementation.** Prefer deleting code over adding code.
+2. **Use Chimera-ML directly.** If Trainer, DataModule, Dataset, metrics, or callbacks already provide the functionality, do not implement it again.
+3. **No unnecessary conditions.** Do not add checks for states already guaranteed by the configuration, input format, or established pipeline.
+4. **No speculative abstractions.** No wrapper classes, adapters, compatibility layers, generic frameworks, helper factories, or additional execution modes without a demonstrated need.
+5. **No silent fallbacks.** Use explicit required inputs instead of supporting many alternative parameter combinations.
+6. **No duplicate state or computation.** Do not cache, transform, rename, or recompute information unnecessarily.
+7. **Keep functions short and direct.** Prefer straightforward Python over several interconnected helper methods.
+8. **Use consistent filenames and class names.** Callback modules end in `_callback.py`; callback classes end in `Callback`. Apply corresponding conventions to metrics, losses, datasets, and datamodules.
+9. **Avoid excessive tests.** Test meaningful scientific behavior and integration, not every trivial branch, helper, or implementation detail. Do not create test infrastructure more complicated than the implementation.
+10. **Preserve necessary scientific correctness.** Missing-label masking, fixed folds, TRAIN/VAL/TEST separation, finite selection metrics, and validation-only checkpoint selection are requirements—not optional defensive checks.
+11. **Do not preserve obsolete code.** Remove unused functions, classes, imports, parameters, scripts, and tests rather than keeping compatibility shims.
+12. **Review complexity before every handoff.** Inspect every added condition, helper, class, and parameter. If it can be removed without changing required behavior, remove it.
+
+**The manager may reject code that works correctly but is unnecessarily complicated. Passing tests does not override these rules.**
+
 ## Feature integrity
 
 A feature artifact is not valid merely because it exists.

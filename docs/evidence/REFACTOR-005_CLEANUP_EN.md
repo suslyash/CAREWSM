@@ -61,3 +61,7 @@ Registry identifiers remain unchanged: `carewsm_joint`, `carewsm_masked_bce`, `c
 - No real CARE/WSM training or historical experiment was run.
 
 Remaining blocker: the broader repository suite still requires unavailable vendored `intervaltree` and `pyannote.*` dependencies.
+
+## Final correction
+
+`AGENTS.md` now contains the permanent mandatory simplicity rules. `scripts/smoke_chimera_datamodule.py` now uses `train_dataloader()` plus the canonical `val_dataloader()` mapping (`val_care`, `val_wsm`, `test_care`, `test_wsm`) under a normal `main()` guard.
