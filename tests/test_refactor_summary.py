@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from audio.callbacks.summary import CAREWSMSummaryCallback, _TrainerEpochFilter
+from audio.callbacks.summary import CAREWSMSummaryCallback
 import chimera_plugin
 from chimera_ml.core.registry import CALLBACKS
 
@@ -94,8 +94,10 @@ def test_corpus_summary_evaluates_real_test_flow_once_per_epoch(tmp_path):
     calls: list[str] = []
 
     def run_epoch(**kwargs):
-        calls.append(kwargs["split"])
-        return _test_metrics(0.91 if kwargs["split"] == "test_care" else 0.83)
+        split = kwargs["split"]
+        calls.append(split)
+        logger.info(f"[{split} epoch 1] native")
+        return _test_metrics(0.91 if split == "test_care" else 0.83)
 
     trainer._run_epoch = run_epoch
     callback.on_fit_start(trainer)
@@ -104,6 +106,9 @@ def test_corpus_summary_evaluates_real_test_flow_once_per_epoch(tmp_path):
         for key, value in _logs().items()
         if not key.startswith("test_")
     }
+    logger.info("[train epoch 1] native")
+    logger.info("[val_care epoch 1] native")
+    logger.info("[val_wsm epoch 1] native")
     callback.on_epoch_end(trainer, 1, logs)
     assert calls == ["test_care", "test_wsm"]
     first_messages = list(logger.messages)
@@ -124,18 +129,17 @@ def test_corpus_summary_evaluates_real_test_flow_once_per_epoch(tmp_path):
     assert rows[0]["test_care_depression_macro_f1"] == "0.9100"
     assert rows[0]["test_wsm_parkinson_healthy_recall"] == "0.8300"
     assert "test/average/loss" not in callback._corpus_test_results[1]
-    assert [message.split("split=")[1].split()[0] for level, message in logger.messages if level == "info"] == [
+    assert [message.split("]")[0][1:].split()[0] for level, message in logger.messages if level == "info"] == [
         "train",
         "val_care",
         "val_wsm",
         "test_care",
         "test_wsm",
     ]
-    callback.on_fit_end(trainer)
 
 
 
-def test_corpus_test_mapping_restores_logger_and_uses_corpus_keys(tmp_path):
+def test_corpus_test_mapping_uses_original_logger_and_corpus_keys(tmp_path):
     original_logger = _Logger(tmp_path)
     callback = CAREWSMSummaryCallback()
     callback._corpus_mode = True
@@ -174,31 +178,7 @@ def _real_logger(tmp_path, name: str):
     return logger, handler, stream
 
 
-def test_real_logging_handler_filter_and_cleanup(tmp_path):
-    logger, handler, stream = _real_logger(tmp_path, "carewsm-summary-filter")
-    data_module = SimpleNamespace(evaluation_layout="corpus", test_dataloader=lambda: {})
-    callback = CAREWSMSummaryCallback(context=_Context(data_module))
-    trainer = SimpleNamespace(logger=logger)
-
-    callback.on_fit_start(trainer)
-    logger.info("[train epoch 1] verbose")
-    logger.info("[epoch summary] concise")
-    logger.warning("[val_care epoch 1] warning")
-    before_cleanup = stream.getvalue()
-    assert "verbose" not in before_cleanup
-    assert "concise" in before_cleanup
-    assert "warning" in before_cleanup
-    assert len(handler.filters) == 1
-
-    callback.on_fit_end(trainer)
-    assert not handler.filters
-    logger.info("[val_care epoch 2] after cleanup")
-    assert "after cleanup" in stream.getvalue()
-    logger.removeHandler(handler)
-    handler.close()
-
-
-def test_test_failure_restores_logger_and_removes_filter(tmp_path):
+def test_test_failure_leaves_logger_and_handlers_unchanged(tmp_path):
     logger, handler, stream = _real_logger(tmp_path, "carewsm-summary-failure")
     data_module = SimpleNamespace(
         evaluation_layout="corpus",
@@ -227,25 +207,6 @@ def test_test_failure_restores_logger_and_removes_filter(tmp_path):
     assert "test error" in stream.getvalue()
     logger.removeHandler(handler)
     handler.close()
-
-
-def test_trainer_epoch_filter_suppresses_only_new_stock_info_lines():
-    epoch_filter = _TrainerEpochFilter()
-    assert not epoch_filter.filter(
-        logging.LogRecord(
-            "chimera", logging.INFO, "", 0, "[val_care epoch 1] verbose", (), None
-        )
-    )
-    assert epoch_filter.filter(
-        logging.LogRecord(
-            "chimera", logging.INFO, "", 0, "[epoch summary] concise", (), None
-        )
-    )
-    assert epoch_filter.filter(
-        logging.LogRecord(
-            "chimera", logging.WARNING, "", 0, "[val_care epoch 1] warning", (), None
-        )
-    )
 
 
 def test_summary_factory_keeps_registry_name_and_new_class_name():
