@@ -24,10 +24,13 @@ from chimera_ml.training.trainer import Trainer
 class _RecordingMLP(PooledMLP):
     def __init__(self):
         super().__init__(input_dim=2, hidden_dim=4, dropout=0.0)
-        self.seen_corpora = []
+        self.train_seen_corpora = []
 
     def forward(self, batch):
-        self.seen_corpora.extend(item["corpus"] for item in batch.meta["sample_meta"])
+        if self.training:
+            self.train_seen_corpora.extend(
+                item["corpus"] for item in batch.meta["sample_meta"]
+            )
         return super().forward(batch)
 
 
@@ -57,7 +60,7 @@ def _samples(corpus, count=4, flip=False):
             target = 1.0 - target
         samples.append(
             {
-                "inputs": {"native": torch.tensor([[1.0, -1.0]])},
+                "inputs": {"native": torch.tensor([[0.0, 0.0]] if flip and index % 2 else [[-1.0, 1.0]] if flip else [[1.0, -1.0]])},
                 "targets": target,
                 "meta": {
                     "corpus": corpus,
@@ -152,6 +155,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         "CAREWSMSummaryCallback",
     ]
 
+    torch.manual_seed(0)
     model = _RecordingMLP()
     trainer = Trainer(
         model=model,
@@ -179,13 +183,29 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     assert len(epoch_lines) == 5
     assert [next(split for split in ("train", "val_care", "val_wsm", "test_care", "test_wsm") if f"[{split} epoch 1]" in line) for line in epoch_lines] == ["train", "val_care", "val_wsm", "test_care", "test_wsm"]
     assert "[epoch summary]" not in log_text
-    assert set(model.seen_corpora) == {"CARE", "WSM"}
+    assert model.train_seen_corpora.count("CARE") == 2
+    assert model.train_seen_corpora.count("WSM") == 2
     assert capture.logs is not None
     assert capture.logs["train/num_samples"] == 4
     assert log_text.index("[val_wsm epoch 1]") < log_text.index("[test_care epoch 1]")
 
     validation_values = [capture.logs[name] for name in CarewsmValidationMonitor.components]
     assert capture.logs["dev_mean_macro_recall"] == sum(validation_values) / 4
+    test_recall_pairs = [
+        (
+            capture.logs[f"val_{corpus}/depression/macro_recall"],
+            summary._corpus_test_results[1][f"test_{corpus}/depression/macro_recall"],
+        )
+        for corpus in ("care", "wsm")
+    ]
+    test_recall_pairs.extend(
+        (
+            capture.logs[f"val_{corpus}/parkinson/macro_recall"],
+            summary._corpus_test_results[1][f"test_{corpus}/parkinson/macro_recall"],
+        )
+        for corpus in ("care", "wsm")
+    )
+    assert any(validation != test for validation, test in test_recall_pairs)
     assert summary._corpus_test_results[1]["test_care/loss"] >= 0.0
     assert summary._corpus_test_results[1]["test_wsm/loss"] >= 0.0
     assert checkpoint._best == capture.logs["dev_mean_macro_recall"]

@@ -25,7 +25,7 @@ For example, the former `joint/average_macro_f1` checkpoint and `summary.csv` se
 - joint TRAIN contains both corpus identities, both contribute to the actual model batches, and `train/num_samples` is 4;
 - four validation Macro Recall values and their arithmetic `dev_mean_macro_recall`;
 - checkpoint and early stopping consumption of the validation monitor;
-- TEST evaluation after selection, with deliberately flipped synthetic TEST targets and unchanged validation populations;
+- TEST evaluation after selection, with deliberately non-identical synthetic TEST features and flipped targets; actual VAL Macro Recall was 0.5000 for both tasks in both corpora, while TEST Macro Recall was 0.5000 for Depression and 0.0000 for Parkinson in both corpora;
 - exactly five native named epoch records and no `[epoch summary]` duplicates;
 - one wide summary row with all six metrics for both tasks and all five populations;
 - expected `train.log`, `summary.txt`, and checkpoint artifacts;
