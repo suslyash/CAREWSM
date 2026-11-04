@@ -2,7 +2,7 @@
 
 ## REFACTOR-001 — corrective Dataset/DataModule implementation
 
-**Status: PAUSED pending manager review and authorization of REFACTOR-000.**
+**Status: SUBMITTED — pending independent manager review.**
 
 The implementation must follow the two-file active data-layer contract in `AGENTS.md` and the active documentation.
 

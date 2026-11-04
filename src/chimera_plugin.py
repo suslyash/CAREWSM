@@ -9,7 +9,7 @@ def register() -> None:
     if _REGISTERED:
         return
     modules = (
-        "audio.data.chimera_datamodule",
+        "audio.data.carewsm_audio_datamodule",
         "audio.models.classifiers",
         "audio.loss.masked_bce",
         "audio.metrics.classification",
