@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import io
 import json
-import logging
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -26,42 +25,6 @@ _METRICS = (
     "patient_recall",
     "healthy_recall",
 )
-
-
-class _TrainerEpochFilter(logging.Filter):
-    """Suppress only stock Trainer epoch INFO lines in corpus mode."""
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        message = record.getMessage()
-        return not (
-            record.levelno == logging.INFO
-            and any(
-                message.startswith(f"[{split} epoch ")
-                for split in ("train", "val_care", "val_wsm")
-            )
-        )
-
-
-class _EvaluationLogger:
-    """Suppress INFO during TEST while preserving warnings and errors."""
-
-    def __init__(self, original: Any) -> None:
-        self._original = original
-
-    def info(self, *args: Any, **kwargs: Any) -> None:
-        del args, kwargs
-
-    def warning(self, *args: Any, **kwargs: Any) -> None:
-        self._original.warning(*args, **kwargs)
-
-    def error(self, *args: Any, **kwargs: Any) -> None:
-        self._original.error(*args, **kwargs)
-
-    def exception(self, *args: Any, **kwargs: Any) -> None:
-        self._original.exception(*args, **kwargs)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._original, name)
 
 
 def _finite(value: Any) -> float | None:
@@ -89,7 +52,6 @@ class CAREWSMSummaryCallback(BaseCallback):
     _rows: list[dict[str, Any]] = field(default_factory=list, init=False)
     _test_loaders: dict[str, Any] = field(default_factory=dict, init=False)
     _corpus_mode: bool = field(default=False, init=False)
-    _epoch_filter: _TrainerEpochFilter | None = field(default=None, init=False)
     _corpus_test_results: dict[int, dict[str, float]] = field(
         default_factory=dict, init=False
     )
@@ -113,9 +75,6 @@ class CAREWSMSummaryCallback(BaseCallback):
                 data_module.test_dataloader(),
                 default_name="test",
             )
-        if self._corpus_mode:
-            self._install_epoch_filter(trainer)
-
         self._write()
 
     def on_epoch_end(self, trainer: Any, epoch: int, logs: dict[str, Any]) -> None:
@@ -126,18 +85,13 @@ class CAREWSMSummaryCallback(BaseCallback):
             self._write_corpus_summary()
             return
 
-        try:
-            test_logs = self._evaluate_test(trainer, epoch)
-        except Exception:
-            self._remove_epoch_filter(trainer)
-            raise
+        test_logs = self._evaluate_test(trainer, epoch)
         if self._corpus_mode:
             self._corpus_test_results[epoch] = dict(test_logs)
             combined = dict(logs)
             combined.update(test_logs)
             self._replace_corpus_row(epoch, combined)
             self._write_corpus_summary()
-            self._log_corpus_lines(trainer, epoch, combined)
             self._completed_corpus_epochs.add(epoch)
             return
         combined = dict(logs)
@@ -166,7 +120,7 @@ class CAREWSMSummaryCallback(BaseCallback):
 
         Chimera-ML 0.3.0 exposes no per-epoch TEST hook. Its public
         evaluate method executes all callbacks, so this callback uses the
-        private epoch primitive and restores the logger in a finally block.
+        private epoch primitive and keeps the Trainer logger unchanged.
         """
         if not self._test_loaders:
             return {}
@@ -175,30 +129,22 @@ class CAREWSMSummaryCallback(BaseCallback):
             trainer.config.device if torch.cuda.is_available() else "cpu"
         )
         scaler = torch.amp.GradScaler(device=device.type, enabled=False)
-        original_logger = trainer.logger
-        trainer.logger = _EvaluationLogger(original_logger)
         results: dict[str, float] = {}
-        try:
-            for name, loader in self._test_loaders.items():
-                split = (
-                    name
-                    if self._corpus_mode and name.startswith("test_")
-                    else f"test_{name.lower()}"
-                )
-                metrics = trainer._run_epoch(
-                    loader=loader,
-                    device=device,
-                    scaler=scaler,
-                    train=False,
-                    epoch=epoch,
-                    split=split,
-                )
-                prefix = name if self._corpus_mode else f"test/{name}"
-                results.update(
-                    {f"{prefix}/{key}": value for key, value in metrics.items()}
-                )
-        finally:
-            trainer.logger = original_logger
+        for name, loader in self._test_loaders.items():
+            legacy_splits = {"CARE": "test_care", "WSM": "test_wsm"}
+            split = name if self._corpus_mode else legacy_splits.get(name, name)
+            metrics = trainer._run_epoch(
+                loader=loader,
+                device=device,
+                scaler=scaler,
+                train=False,
+                epoch=epoch,
+                split=split,
+            )
+            prefix = name if self._corpus_mode else f"test/{name}"
+            results.update(
+                {f"{prefix}/{key}": value for key, value in metrics.items()}
+            )
 
         if not self._corpus_mode:
             self._add_test_averages(results)
@@ -279,25 +225,6 @@ class CAREWSMSummaryCallback(BaseCallback):
         ]
         trainer.logger.warning("[epoch summary] " + " ".join(pieces))
 
-
-    def _install_epoch_filter(self, trainer: Any) -> None:
-        logger = getattr(trainer.logger, "logger", trainer.logger)
-        handlers = getattr(logger, "handlers", [])
-        self._epoch_filter = _TrainerEpochFilter()
-        for handler in handlers:
-            handler.addFilter(self._epoch_filter)
-
-    def _remove_epoch_filter(self, trainer: Any) -> None:
-        if self._epoch_filter is None:
-            return
-        logger = getattr(trainer.logger, "logger", trainer.logger)
-        for handler in getattr(logger, "handlers", []):
-            handler.removeFilter(self._epoch_filter)
-        self._epoch_filter = None
-
-    def on_fit_end(self, trainer: Any) -> None:
-        self._remove_epoch_filter(trainer)
-
     def _replace_corpus_row(self, epoch: int, logs: dict[str, Any]) -> None:
         record = {"epoch": epoch, "logs": logs}
         self._rows = [row for row in self._rows if row.get("epoch") != epoch]
@@ -369,42 +296,6 @@ class CAREWSMSummaryCallback(BaseCallback):
     def _count_text(value: Any) -> str:
         number = _finite(value)
         return "-" if number is None else str(int(number))
-
-    def _log_corpus_lines(
-        self,
-        trainer: Any,
-        epoch: int,
-        logs: dict[str, Any],
-    ) -> None:
-        for population in ("train", "val_care", "val_wsm", "test_care", "test_wsm"):
-            values = [f"epoch={epoch}", f"split={population}"]
-            values.append(f"loss={self._text_value(logs.get(f'{population}/loss'))}")
-            values.append(
-                f"num_samples={self._count_text(logs.get(f'{population}/num_samples'))}"
-            )
-            for task in _TASKS:
-                prefix = f"{population}/{task}"
-                values.extend(
-                    [
-                        (
-                            f"{task}_observed="
-                            f"{self._count_text(logs.get(f'{prefix}/observed_count'))}"
-                        ),
-                        (
-                            f"{task}_macro_recall="
-                            f"{self._text_value(logs.get(f'{prefix}/macro_recall'))}"
-                        ),
-                        (
-                            f"{task}_patient_recall="
-                            f"{self._text_value(logs.get(f'{prefix}/patient_recall'))}"
-                        ),
-                        (
-                            f"{task}_healthy_recall="
-                            f"{self._text_value(logs.get(f'{prefix}/healthy_recall'))}"
-                        ),
-                    ]
-                )
-            trainer.logger.info("[epoch summary] " + " ".join(values))
 
     def _write(self) -> None:
         if self._corpus_mode:

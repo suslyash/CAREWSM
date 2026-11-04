@@ -63,7 +63,7 @@ class _Logger:
         self.messages.append(("exception", args, kwargs))
 
 
-def test_per_epoch_test_restores_logger_and_does_not_touch_val_callbacks():
+def test_per_epoch_test_keeps_logger_and_does_not_touch_val_callbacks():
     logger = _Logger()
     selection = SimpleNamespace(
         monitor="joint/average_macro_f1", _saved=["epoch=1.ckpt"], best=0.9
@@ -85,7 +85,7 @@ def test_per_epoch_test_restores_logger_and_does_not_touch_val_callbacks():
     calls = []
 
     def run_epoch(**kwargs):
-        assert trainer.logger is not logger
+        assert trainer.logger is logger
         assert kwargs["train"] is False
         calls.append(kwargs["split"])
         prefix = "care/depression" if kwargs["split"] == "test_care" else "wsm/depression"
