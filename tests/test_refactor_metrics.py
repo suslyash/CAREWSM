@@ -82,9 +82,62 @@ def test_validation_monitor_calculates_all_equal_weight_averages():
                 logs[f"{split}_{corpus}/{task}/healthy_recall"] = 0.5 + offset + task_offset
     CAREWSMValidationMonitorCallback().on_epoch_end(SimpleNamespace(logger=None), 1, logs)
     assert logs["dev_mean_macro_recall"] == 0.5
-    assert logs["test_mean_macro_recall"] == 0.6
-    assert logs["val_average/depression/macro_recall"] == 0.4
-    assert logs["test_average/parkinson/macro_recall"] == 0.7
+    assert logs["test_mean_corpora_tasks/macro_recall"] == 0.6
+    assert logs["val_mean_corpora/depression/macro_recall"] == 0.4
+    assert logs["test_mean_corpora/parkinson/macro_recall"] == 0.7
+
+
+class _RecordingMLflow:
+    def __init__(self) -> None:
+        self.calls: list[tuple[dict[str, float], int]] = []
+
+    def log_metrics(self, metrics: dict[str, float], step: int) -> None:
+        self.calls.append((metrics, step))
+
+
+def test_validation_monitor_logs_only_finite_canonical_aggregates_to_mlflow():
+    logs = _valid_logs()
+    for split, values in (("val", (0.2, 0.4, 0.6, 0.8)), ("test", (0.3, 0.5, 0.7, 0.9))):
+        for corpus, offset in (("care", 0), ("wsm", 2)):
+            for task, task_offset in (("depression", 0), ("parkinson", 1)):
+                for metric_offset, metric in enumerate((
+                    "macro_f1",
+                    "weighted_f1",
+                    "macro_recall",
+                    "weighted_recall",
+                    "patient_recall",
+                    "healthy_recall",
+                )):
+                    logs[f"{split}_{corpus}/{task}/{metric}"] = (
+                        values[offset + task_offset]
+                        if metric == "macro_recall"
+                        else 0.1 * (metric_offset + 1)
+                    )
+    logs["test_wsm/depression/weighted_f1"] = float("nan")
+    mlflow = _RecordingMLflow()
+
+    CAREWSMValidationMonitorCallback().on_epoch_end(
+        SimpleNamespace(logger=None, mlflow_logger=mlflow), 7, logs
+    )
+
+    assert len(mlflow.calls) == 1
+    metrics, step = mlflow.calls[0]
+    assert step == 7
+    assert all(
+        key.startswith((
+            "val_mean_corpora/",
+            "test_mean_corpora/",
+            "val_mean_corpora_tasks/",
+            "test_mean_corpora_tasks/",
+        ))
+        for key in metrics
+    )
+    assert "val_mean_corpora_tasks/macro_recall" in metrics
+    assert "test_mean_corpora/depression/weighted_f1" not in metrics
+    assert "dev_mean_macro_recall" not in metrics
+    assert "val_care/depression/macro_recall" not in metrics
+    assert logs["dev_mean_macro_recall"] == logs["val_mean_corpora_tasks/macro_recall"]
+
 
 
 def test_validation_monitor_requires_all_finite_components():
@@ -124,12 +177,12 @@ def test_real_callbacks_consume_monitor_in_trainer_order(tmp_path):
         log_path=str(tmp_path),
         experiment_name="integration",
         run_name="selection",
-        monitor="dev_mean_macro_recall",
+        monitor="val_mean_corpora_tasks/macro_recall",
         mode="max",
         save_last=False,
     )
     early_stopping = EarlyStoppingCallback(
-        monitor="dev_mean_macro_recall", mode="max", patience=2
+        monitor="val_mean_corpora_tasks/macro_recall", mode="max", patience=2
     )
     callbacks = [monitor, checkpoint, early_stopping]
     callback_names = [callback.__class__.__name__ for callback in callbacks]
@@ -146,9 +199,9 @@ def test_real_callbacks_consume_monitor_in_trainer_order(tmp_path):
         callback.on_epoch_end(trainer, 1, logs)
 
     assert logs["dev_mean_macro_recall"] == 0.5
-    assert checkpoint._best == logs["dev_mean_macro_recall"]
+    assert checkpoint._best == logs["val_mean_corpora_tasks/macro_recall"]
     assert len(checkpoint._saved) == 1
-    assert early_stopping._best == logs["dev_mean_macro_recall"]
+    assert early_stopping._best == logs["val_mean_corpora_tasks/macro_recall"]
     assert not trainer.stop_training
     assert checkpoint._saved[0].exists()
 
@@ -160,7 +213,7 @@ def test_invalid_monitor_fails_before_real_checkpoint_selection(tmp_path):
         log_path=str(tmp_path),
         experiment_name="integration",
         run_name="invalid",
-        monitor="dev_mean_macro_recall",
+        monitor="val_mean_corpora_tasks/macro_recall",
         mode="max",
         save_last=False,
     )

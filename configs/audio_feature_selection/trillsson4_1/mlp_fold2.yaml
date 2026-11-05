@@ -6,14 +6,14 @@ callbacks:
     filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
     log_path: logs
     mode: max
-    monitor: dev_mean_macro_recall
+    monitor: val_mean_corpora_tasks/macro_recall
     save_last: true
     save_top_k: 1
 - name: early_stopping_callback
   params:
     min_delta: 0.0
     mode: max
-    monitor: dev_mean_macro_recall
+    monitor: val_mean_corpora_tasks/macro_recall
     patience: 7
 - name: carewsm_summary_callback
   params:

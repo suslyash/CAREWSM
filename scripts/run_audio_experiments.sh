@@ -75,9 +75,9 @@ for raw_path in sys.argv[1:]:
     if callback_names != required_callbacks:
         raise SystemExit(f"{path}: callback order mismatch: {callback_names}")
     callback_map = {item["name"]: item.get("params", {}) for item in callback_items}
-    if callback_map["checkpoint_callback"].get("monitor") != "dev_mean_macro_recall" or callback_map["checkpoint_callback"].get("mode") != "max" or callback_map["checkpoint_callback"].get("save_top_k") != 1 or callback_map["checkpoint_callback"].get("log_path") != "logs":
+    if callback_map["checkpoint_callback"].get("monitor") != "val_mean_corpora_tasks/macro_recall" or callback_map["checkpoint_callback"].get("mode") != "max" or callback_map["checkpoint_callback"].get("save_top_k") != 1 or callback_map["checkpoint_callback"].get("log_path") != "logs":
         raise SystemExit(f"{path}: invalid checkpoint contract")
-    if callback_map["early_stopping_callback"].get("monitor") != "dev_mean_macro_recall" or callback_map["early_stopping_callback"].get("mode") != "max":
+    if callback_map["early_stopping_callback"].get("monitor") != "val_mean_corpora_tasks/macro_recall" or callback_map["early_stopping_callback"].get("mode") != "max":
         raise SystemExit(f"{path}: invalid early-stopping contract")
     if callback_map["carewsm_summary_callback"].get("filename") != "summary.txt" or callback_map["snapshot_callback"].get("log_path") != "logs":
         raise SystemExit(f"{path}: invalid summary/snapshot contract")

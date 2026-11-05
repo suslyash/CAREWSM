@@ -22,7 +22,7 @@ _CORPORA = ("care", "wsm")
 
 
 class CAREWSMValidationMonitorCallback(BaseCallback):
-    """Add equal-weight CARE/WSM validation and TEST averages to epoch logs."""
+    """Add equal-weight corpus/task aggregates to epoch logs and MLflow."""
 
     components = (
         "val_care/depression/macro_recall",
@@ -40,44 +40,64 @@ class CAREWSMValidationMonitorCallback(BaseCallback):
         ]
         if invalid:
             raise ValueError(
-                "dev_mean_macro_recall is unavailable; required validation "
-                f"components are missing or invalid: {', '.join(invalid)}"
+                "val_mean_corpora_tasks/macro_recall is unavailable; required "
+                f"validation components are missing or invalid: {', '.join(invalid)}"
             )
 
-        for split, prefix in (("val", "val_average"), ("test", "test_average")):
+        derived: dict[str, float] = {}
+        for split in ("val", "test"):
             for task in _TASKS:
                 for metric in _METRICS:
                     values = [
                         logs.get(f"{split}_{corpus}/{task}/{metric}")
                         for corpus in _CORPORA
                     ]
-                    logs[f"{prefix}/{task}/{metric}"] = self._mean(values)
+                    key = f"{split}_mean_corpora/{task}/{metric}"
+                    derived[key] = self._mean(values)
 
         for metric in _METRICS:
-            values = [
+            validation_values = [
                 logs.get(f"{corpus}/{task}/{metric}")
                 for corpus in ("val_care", "val_wsm")
                 for task in _TASKS
             ]
-            logs[f"dev_mean_{metric}"] = (
-                self._required_mean(values, metric)
+            validation_key = f"val_mean_corpora_tasks/{metric}"
+            derived[validation_key] = (
+                self._required_mean(validation_values, validation_key)
                 if metric == "macro_recall"
-                else self._mean(values)
+                else self._mean(validation_values)
             )
             test_values = [
                 logs.get(f"test_{corpus}/{task}/{metric}")
                 for corpus in _CORPORA
                 for task in _TASKS
             ]
-            logs[f"test_mean_{metric}"] = self._mean(test_values)
+            derived[f"test_mean_corpora_tasks/{metric}"] = self._mean(test_values)
+
+        logs.update(derived)
+        logs["dev_mean_macro_recall"] = derived[
+            "val_mean_corpora_tasks/macro_recall"
+        ]
+
+        mlflow_logger = getattr(trainer, "mlflow_logger", None)
+        if mlflow_logger is not None:
+            mlflow_logger.log_metrics(
+                {
+                    key: value
+                    for key, value in derived.items()
+                    if math.isfinite(value)
+                },
+                step=epoch,
+            )
 
         values = []
-        for key, value in logs.items():
-            if key.startswith(
-                ("val_average/", "test_average/", "dev_mean_", "test_mean_")
-            ):
-                formatted = f"{key}={value:.6f}" if math.isfinite(value) else f"{key}=nan"
-                values.append(formatted)
+        for key, value in derived.items():
+            formatted = (
+                f"{key}={value:.6f}"
+                if math.isfinite(value)
+                else f"{key}=nan"
+            )
+            values.append(formatted)
         self._info(trainer, f"[carewsm_combined epoch {epoch}] " + " | ".join(values))
 
     @staticmethod
@@ -91,7 +111,7 @@ class CAREWSMValidationMonitorCallback(BaseCallback):
         result = cls._mean(values)
         if not math.isfinite(result):
             raise ValueError(
-                f"dev_mean_{metric} is unavailable; required validation "
+                f"{metric} is unavailable; required validation "
                 "components are missing or invalid"
             )
         return result
