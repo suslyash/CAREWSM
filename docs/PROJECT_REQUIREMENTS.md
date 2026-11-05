@@ -231,25 +231,17 @@ Required evaluation names are `train`, `val_care`, `val_wsm`, `test_care`, and `
 
 ## Logging and selection
 
-Epoch INFO output in console and `train.log` includes sample counts, observed-label counts where relevant, loss, Macro Recall, Patient Recall, and Healthy Recall. All six approved metrics remain calculated: Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall. Additional metrics belong in `summary.txt` and optionally MLflow.
+Epoch INFO output in console and `train.log` includes native Chimera sample counts, loss, Macro Recall, Patient Recall, and Healthy Recall. All six approved metrics remain calculated: Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall. Label masks and support counts remain internal and are not emitted in new epoch logs or summaries. The `[carewsm_combined epoch N]` record reports equal-weight VAL and TEST averages; additional metrics also belong in `summary.txt` and optionally MLflow.
 
-The new selection monitor is `dev_mean_macro_recall`, the equal-weight arithmetic mean of CARE Depression Macro Recall, CARE Parkinson Macro Recall, WSM Depression Macro Recall, and WSM Parkinson Macro Recall. Missing components are reported as unavailable; they are not zero-filled or renormalized. TEST remains descriptive only.
+The new selection monitor is `dev_mean_macro_recall`, the equal-weight arithmetic mean of CARE Depression Macro Recall, CARE Parkinson Macro Recall, WSM Depression Macro Recall, and WSM Parkinson Macro Recall. The combined monitor also calculates equal-weight VAL and TEST averages for all six metrics. Missing components are reported as unavailable; they are not zero-filled or renormalized. Checkpoint and early stopping use only `dev_mean_macro_recall`; TEST remains descriptive only.
 
 The historical 110 canonical fold-runs used `joint/average_macro_f1`. They are preserved historical results and must not be reinterpreted as selected by `dev_mean_macro_recall`.
 
 ## Active refactor sequence
 
-- REFACTOR-000: documentation and coding contract.
-- REFACTOR-001: corrective Dataset/DataModule implementation after manager authorization.
-- REFACTOR-002: metrics and epoch logging.
-- REFACTOR-003: summary and paths.
-- REFACTOR-004: configuration migration.
-- REFACTOR-005: repository cleanup.
-- Final integration review.
-
-TASK-011 remains paused until this sequence is independently reviewed and merged.
+REFACTOR-000 through REFACTOR-006 and LAUNCH-001 are complete. REFACTOR-007 is implemented and awaiting manager review, followed by final integration review. TASK-011 remains paused until this sequence is independently reviewed and merged.
 
 
 ## Deferred repository cleanup
 
-REFACTOR-005 may remove the obsolete `configs/audio/audio_mptsnet_native_egemaps_lld_joint_care_wsm_fold0_smoke.yaml`, `configs/audio/joint_native_fold0.yaml`, `configs/audio/task004_models.yaml`, `scripts/runs/`, and obsolete `smoke_*` scripts only with reference updates. REFACTOR-000 does not delete them.
+REFACTOR-007 removed the obsolete `configs/audio_feature_selection/joint_native_fold0.yaml` and `configs/audio_feature_selection/task004_models.yaml`; the remaining obsolete smoke configuration, `scripts/runs/`, and `smoke_*` scripts may be removed only with reference updates.

@@ -38,7 +38,7 @@ models = {"mptsnet": "carewsm_mptsnet", "mdformer": "carewsm_md_former", "mlp": 
 required_callbacks = ["carewsm_validation_monitor", "checkpoint_callback", "early_stopping_callback", "carewsm_summary_callback", "snapshot_callback"]
 identities = set()
 if os.environ.get("CAREWSM_FULL_MATRIX") == "1":
-    root = Path("configs/audio")
+    root = Path("configs/audio_feature_selection")
     actual_dirs = {path.name for path in root.iterdir() if path.is_dir()}
     if actual_dirs != set(expected):
         raise SystemExit(f"Expected feature directories {sorted(expected)}, found {sorted(actual_dirs)}")
@@ -102,9 +102,9 @@ PY2
 
 list_features() {
   local directory
-  for directory in configs/audio/*/; do
+  for directory in configs/audio_feature_selection/*/; do
     [[ -d "$directory" ]] || continue
-    printf '%s:' "${directory%/}" | sed 's#configs/audio/##'
+    printf '%s:' "${directory%/}" | sed 's#configs/audio_feature_selection/##'
     printf ' %s' "${directory}"*_fold[0-4].yaml
     printf '\n'
   done
@@ -113,7 +113,7 @@ list_features() {
 run_feature() {
   local feature="$1"
   local model="${2:-}"
-  local directory="configs/audio/${feature}"
+  local directory="configs/audio_feature_selection/${feature}"
   [[ -d "$directory" ]] || { printf 'Unknown feature folder: %s\n' "$feature" >&2; return 2; }
   if [[ -n "$model" ]]; then
     if [[ "$feature" == "egemaps" || "$feature" == *dynamic ]]; then
@@ -167,7 +167,7 @@ if "$list_only"; then
 fi
 if "$check_only"; then
   [[ "$all_features" == true || -n "$feature" ]] || { usage >&2; exit 2; }
-  [[ -z "$feature" || -d "configs/audio/${feature}" ]] || { printf 'Unknown feature folder: %s\n' "$feature" >&2; exit 2; }
+  [[ -z "$feature" || -d "configs/audio_feature_selection/${feature}" ]] || { printf 'Unknown feature folder: %s\n' "$feature" >&2; exit 2; }
   if [[ -n "$model" ]]; then
     if [[ "$feature" == "egemaps" || "$feature" == *dynamic ]]; then
       [[ "$model" == "mptsnet" || "$model" == "mdformer" ]] || { printf 'Model %s is not allowed for temporal feature %s\n' "$model" "$feature" >&2; exit 2; }
@@ -178,9 +178,9 @@ if "$check_only"; then
   configs=()
   if "$all_features"; then
     [[ -z "$feature" && -z "$model" ]] || { usage >&2; exit 2; }
-    for directory in configs/audio/*/; do [[ -d "$directory" ]] || continue; configs+=("${directory}"*_fold[0-4].yaml); done
+    for directory in configs/audio_feature_selection/*/; do [[ -d "$directory" ]] || continue; configs+=("${directory}"*_fold[0-4].yaml); done
   else
-    directory="configs/audio/${feature}"
+    directory="configs/audio_feature_selection/${feature}"
     if [[ -n "$model" ]]; then for fold in 0 1 2 3 4; do configs+=("${directory}/${model}_fold${fold}.yaml"); done
     else configs+=("${directory}"/*_fold[0-4].yaml); fi
   fi
@@ -193,9 +193,9 @@ if "$check_only"; then
 fi
 if "$all_features"; then
   [[ -z "$feature" && -z "$model" ]] || { usage >&2; exit 2; }
-  for directory in configs/audio/*/; do
+  for directory in configs/audio_feature_selection/*/; do
     [[ -d "$directory" ]] || continue
-    run_feature "${directory#configs/audio/}"
+    run_feature "${directory#configs/audio_feature_selection/}"
   done
   if (( ${#failed_configs[@]} > 0 )); then
     printf '\nFailed configurations (%d):\n' "${#failed_configs[@]}" >&2

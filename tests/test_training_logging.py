@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
+from audio.metrics.carewsm_audio_metrics import CAREWSMAudioClassificationMetric
 from chimera_ml.data.masking_collate import MaskingCollate
 
 
@@ -22,7 +22,7 @@ def _batch(targets, observed):
 
 
 def test_active_metric_reports_six_metrics_and_masked_counts():
-    metric = CAREWSMClassificationMetric()
+    metric = CAREWSMAudioClassificationMetric()
     metric.update(
         SimpleNamespace(
             preds=torch.tensor([[2, 2], [2, -2], [-2, -2], [2, 2]], dtype=torch.float32)
@@ -39,16 +39,13 @@ def test_active_metric_reports_six_metrics_and_masked_counts():
             "weighted_recall", "patient_recall", "healthy_recall",
         ):
             assert f"{task}/{name}" in result
-    assert result["depression/observed_count"] == 4.0
-    assert result["parkinson/observed_count"] == 3.0
 
 
 def test_active_metric_marks_single_class_task_unavailable():
-    metric = CAREWSMClassificationMetric()
+    metric = CAREWSMAudioClassificationMetric()
     metric.update(
         SimpleNamespace(preds=torch.tensor([[1.0, 1.0], [1.0, -1.0]])),
         _batch([[1, 0], [1, 0]], [[False, True], [False, True]]),
     )
     result = metric.compute()
     assert torch.isnan(torch.tensor(result["parkinson/macro_recall"]))
-    assert result["parkinson/positive_support"] == 0.0

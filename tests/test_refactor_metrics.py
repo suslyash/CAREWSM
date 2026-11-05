@@ -8,7 +8,7 @@ import torch
 from audio.callbacks.carewsm_validation_monitor_callback import CAREWSMValidationMonitorCallback
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
 from chimera_ml.callbacks.early_stopping_callback import EarlyStoppingCallback
-from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
+from audio.metrics.carewsm_audio_metrics import CAREWSMAudioClassificationMetric
 from chimera_ml.data.masking_collate import MaskingCollate
 
 
@@ -25,7 +25,7 @@ def _batch(targets: list[list[float]], observed: list[list[bool]]):
 
 
 def test_masked_metric_uses_collated_masks_and_all_six_formulas():
-    metric = CAREWSMClassificationMetric()
+    metric = CAREWSMAudioClassificationMetric()
     batch = _batch(
         [[1, 1], [1, 0], [1, 1], [0, 0]],
         [[True, True], [True, False], [True, True], [True, True]],
@@ -36,33 +36,27 @@ def test_masked_metric_uses_collated_masks_and_all_six_formulas():
     metric.update(output, batch)
     result = metric.compute()
 
-    assert result["depression/observed_count"] == 4.0
-    assert result["depression/positive_support"] == 3.0
-    assert result["depression/negative_support"] == 1.0
+    assert not any(
+        name.endswith(("observed_count", "positive_support", "negative_support"))
+        for name in result
+    )
     assert result["depression/patient_recall"] == 1.0
     assert result["depression/healthy_recall"] == 0.0
     assert result["depression/macro_recall"] == 0.5
     assert result["depression/weighted_recall"] == 0.75
     assert result["depression/macro_f1"] == pytest.approx(3 / 7)
     assert result["depression/weighted_f1"] == pytest.approx(9 / 14)
-    assert result["parkinson/observed_count"] == 3.0
-    assert result["parkinson/positive_support"] == 2.0
-    assert result["parkinson/negative_support"] == 1.0
 
 
 def test_masked_metric_marks_empty_and_single_class_tasks_unavailable():
-    metric = CAREWSMClassificationMetric()
+    metric = CAREWSMAudioClassificationMetric()
     metric.update(
         SimpleNamespace(preds=torch.tensor([[1.0, 1.0], [1.0, -1.0]])),
         _batch([[1, 0], [1, 0]], [[False, True], [False, True]]),
     )
     result = metric.compute()
 
-    assert result["depression/observed_count"] == 0.0
     assert torch.isnan(torch.tensor(result["depression/macro_recall"]))
-    assert result["parkinson/observed_count"] == 2.0
-    assert result["parkinson/positive_support"] == 0.0
-    assert result["parkinson/negative_support"] == 2.0
     assert torch.isnan(torch.tensor(result["parkinson/macro_f1"]))
 
 
@@ -75,11 +69,22 @@ def _valid_logs():
     }
 
 
-def test_validation_monitor_is_equal_weight_and_validation_only():
+def test_validation_monitor_calculates_all_equal_weight_averages():
     logs = _valid_logs()
+    for split, values in (("val", (0.2, 0.4, 0.6, 0.8)), ("test", (0.3, 0.5, 0.7, 0.9))):
+        for corpus, offset in (("care", 0), ("wsm", 2)):
+            for task, task_offset in (("depression", 0), ("parkinson", 1)):
+                logs[f"{split}_{corpus}/{task}/macro_recall"] = values[offset + task_offset]
+                logs[f"{split}_{corpus}/{task}/macro_f1"] = 0.1 + offset + task_offset
+                logs[f"{split}_{corpus}/{task}/weighted_f1"] = 0.2 + offset + task_offset
+                logs[f"{split}_{corpus}/{task}/weighted_recall"] = 0.3 + offset + task_offset
+                logs[f"{split}_{corpus}/{task}/patient_recall"] = 0.4 + offset + task_offset
+                logs[f"{split}_{corpus}/{task}/healthy_recall"] = 0.5 + offset + task_offset
     CAREWSMValidationMonitorCallback().on_epoch_end(SimpleNamespace(logger=None), 1, logs)
     assert logs["dev_mean_macro_recall"] == 0.5
-    assert "test_care/depression/macro_recall" not in logs
+    assert logs["test_mean_macro_recall"] == 0.6
+    assert logs["val_average/depression/macro_recall"] == 0.4
+    assert logs["test_average/parkinson/macro_recall"] == 0.7
 
 
 def test_validation_monitor_requires_all_finite_components():

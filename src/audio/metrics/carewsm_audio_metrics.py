@@ -19,7 +19,8 @@ _METRICS = (
     "healthy_recall",
 )
 
-class CAREWSMClassificationMetric(BaseMetric):
+
+class CAREWSMAudioClassificationMetric(BaseMetric):
     """Compute masked six-metric classification results for one loader."""
 
     def __init__(self) -> None:
@@ -70,24 +71,14 @@ class CAREWSMClassificationMetric(BaseMetric):
         mask = observed.bool()
         count = int(mask.sum())
         if count == 0:
-            return {
-                **{name: float("nan") for name in _METRICS},
-                "observed_count": 0.0,
-                "positive_support": 0.0,
-                "negative_support": 0.0,
-            }
+            return {name: float("nan") for name in _METRICS}
 
         prediction = predictions[mask].int()
         target = targets[mask].int()
         positive_support = int((target == 1).sum())
         negative_support = int((target == 0).sum())
         if positive_support == 0 or negative_support == 0:
-            return {
-                **{name: float("nan") for name in _METRICS},
-                "observed_count": float(count),
-                "positive_support": float(positive_support),
-                "negative_support": float(negative_support),
-            }
+            return {name: float("nan") for name in _METRICS}
 
         true_positive = int(((prediction == 1) & (target == 1)).sum())
         true_negative = int(((prediction == 0) & (target == 0)).sum())
@@ -102,9 +93,6 @@ class CAREWSMClassificationMetric(BaseMetric):
             2 * true_negative + false_positive + false_negative, 1
         )
         return {
-            "observed_count": float(count),
-            "positive_support": float(positive_support),
-            "negative_support": float(negative_support),
             "macro_f1": (patient_f1 + healthy_f1) / 2,
             "weighted_f1": (
                 patient_f1 * positive_support + healthy_f1 * negative_support
@@ -125,9 +113,6 @@ class CAREWSMClassificationMetric(BaseMetric):
         result: dict[str, float] = {}
         for task, _ in _TASKS:
             result.update({f"{task}/{name}": float("nan") for name in _METRICS})
-            result[f"{task}/observed_count"] = 0.0
-            result[f"{task}/positive_support"] = 0.0
-            result[f"{task}/negative_support"] = 0.0
         return result
 
 
@@ -135,6 +120,6 @@ class CAREWSMClassificationMetric(BaseMetric):
 def carewsm_masked_multitask_classification(
     context: Any | None = None,
     **params: Any,
-) -> CAREWSMClassificationMetric:
+) -> CAREWSMAudioClassificationMetric:
     del context, params
-    return CAREWSMClassificationMetric()
+    return CAREWSMAudioClassificationMetric()

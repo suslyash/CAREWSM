@@ -8,7 +8,7 @@ import chimera_plugin
 
 def main() -> None:
     chimera_plugin.register()
-    config = load_yaml("configs/audio/joint_native_fold0.yaml")
+    config = load_yaml("configs/audio_feature_selection/emotionmsp_embeds/mlp_fold0.yaml")
     context = BuildContext(config=config, stage="smoke")
     data_module = build_datamodule(config["data"], context=context)
     loaders = {"train": data_module.train_dataloader()}
