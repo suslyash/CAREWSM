@@ -246,4 +246,4 @@ The historical 110 fold-runs were selected using `joint/average_macro_f1`; prese
 
 ## Active refactor sequence
 
-REFACTOR-000 through REFACTOR-006 and LAUNCH-001 are complete. REFACTOR-007 establishes the simplified metric outputs and config directory and is awaiting manager review, followed by final integration review. TASK-011 remains paused.
+REFACTOR-000 through REFACTOR-007 are complete and merged. LAUNCH-001 completed one successful real CUDA training epoch. FINAL-INTEGRATION-001 is complete and merged through PR #40 with an approved PASS result and two non-blocking cleanup findings. The active audio-only Chimera pipeline and canonical 110-config matrix are integration-ready. No real training run after REFACTOR-007 has been performed. TASK-011 remains PAUSED. No new experiments, cleanup implementation, or research tasks are authorized by the completed audit.
