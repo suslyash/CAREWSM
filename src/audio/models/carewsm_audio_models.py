@@ -22,9 +22,7 @@ def _unpack(batch: Any) -> tuple[torch.Tensor, torch.Tensor]:
         raise ValueError("inputs['native'] must have shape [batch, time, features]")
     mask = batch.get_masks("sequence_mask")
     if mask is None:
-        mask = batch.get_masks("native_mask")
-    if mask is None:
-        mask = torch.ones(values.shape[:2], dtype=torch.bool, device=values.device)
+        raise ValueError("inputs must include the 'sequence_mask' mask")
     return values, mask.to(device=values.device, dtype=torch.bool)
 
 
@@ -80,17 +78,13 @@ class CAREWSMTSCMambaModel(CAREWSMSequenceModel):
         input_dim: int,
         hidden_dim: int = 96,
         num_layers: int = 2,
-        num_heads: int = 4,
         dropout: float = 0.1,
-        mamba_required: bool = True,
     ) -> None:
         super().__init__(input_dim, hidden_dim, dropout)
         self.temporal_encoder = MaskSafeTemporalEncoder(
             hidden_dim=hidden_dim,
             num_layers=num_layers,
-            num_heads=num_heads,
             dropout=dropout,
-            mamba_required=mamba_required,
         )
         self.spectral_projection = nn.Linear(hidden_dim, hidden_dim)
         self.spectral_norm = nn.LayerNorm(hidden_dim)
@@ -110,28 +104,21 @@ class MaskSafeTemporalEncoder(nn.Module):
         self,
         hidden_dim: int,
         num_layers: int,
-        num_heads: int,
         dropout: float,
-        mamba_required: bool,
     ) -> None:
         super().__init__()
         if Mamba is None:
             raise ModuleNotFoundError(
                 "TSCMamba is BLOCKED: mamba_ssm is required; no fallback is used"
             )
-        self.encoder_type = "mamba"
         self.layers = nn.ModuleList(
             [BiMambaBlock(hidden_dim, dropout) for _ in range(num_layers)]
         )
 
     def forward(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         mask = mask.to(device=values.device, dtype=torch.bool)
-        if self.encoder_type == "mamba":
-            for layer in self.layers:
-                values = layer(values, mask)
-            return values * mask.unsqueeze(-1).to(values.dtype)
-        safe_mask = safe_valid_mask(mask)
-        values = self.layers(values, src_key_padding_mask=~safe_mask)
+        for layer in self.layers:
+            values = layer(values, mask)
         return values * mask.unsqueeze(-1).to(values.dtype)
 
 
@@ -164,13 +151,6 @@ class BiMambaBlock(nn.Module):
         mixed = self.output(torch.cat((forward, backward), dim=-1))
         values = (values + self.dropout(mixed)) * mask_float
         return (values + self.ffn(values)) * mask_float
-
-
-def safe_valid_mask(mask: torch.Tensor) -> torch.Tensor:
-    """Ensure Transformer receives one unmasked token for all-padding rows."""
-    safe = mask.clone().bool()
-    safe[:, 0] = True
-    return safe
 
 
 def _reverse_valid_sequence(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
