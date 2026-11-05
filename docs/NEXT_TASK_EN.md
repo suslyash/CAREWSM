@@ -1,9 +1,9 @@
 # NEXT TASK
 
-## REFACTOR-007 — metrics simplification and feature-selection config directory
+## Completed integration sequence
 
-**Status: IMPLEMENTED — awaiting manager review.**
+**Status: COMPLETE AND MERGED.**
 
-REFACTOR-000 through REFACTOR-006 and LAUNCH-001 are complete. REFACTOR-007 removes obsolete metric outputs from new logging, adds equal-weight VAL/TEST averages, renames the metrics module and class, and moves the 110 canonical YAMLs to `configs/audio_feature_selection/`.
+REFACTOR-000 through REFACTOR-007 are complete and merged. LAUNCH-001 completed one successful real CUDA training epoch. FINAL-INTEGRATION-001 is complete and merged through PR #40 with an approved PASS result and two non-blocking cleanup findings. The active audio-only Chimera pipeline and canonical 110-config matrix are integration-ready.
 
-Do not start further training or final integration until REFACTOR-007 receives manager review. TASK-011 remains PAUSED.
+No real training run after REFACTOR-007 has been performed. TASK-011 remains PAUSED. No new experiments, cleanup implementation, or research tasks are authorized by the completed audit; further research work requires a new owner-approved task.

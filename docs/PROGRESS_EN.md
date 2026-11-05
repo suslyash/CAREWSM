@@ -67,12 +67,12 @@ Required metrics:
 
 ## Current stage
 
-REFACTOR-000 through REFACTOR-006 and LAUNCH-001 are complete. REFACTOR-007 is implemented and awaiting manager review. It preserves the validation-only `dev_mean_macro_recall` selection policy, adds equal-weight VAL/TEST averages, removes obsolete support/count outputs from new logs and summaries, and preserves the 110 canonical configurations under `configs/audio_feature_selection/`.
+REFACTOR-000 through REFACTOR-007 are complete and merged. LAUNCH-001 completed one successful real CUDA training epoch. FINAL-INTEGRATION-001 is complete and merged through PR #40 with two non-blocking cleanup findings and an approved PASS result. The active audio-only Chimera pipeline and canonical 110-config matrix are integration-ready. REFACTOR-007 preserves the validation-only `dev_mean_macro_recall` selection policy, adds equal-weight VAL/TEST averages, removes obsolete support/count outputs from new logs and summaries, and preserves the 110 canonical configurations under `configs/audio_feature_selection/`. No real training run after REFACTOR-007 has been performed.
 
-No further training, final integration, or combination study is authorized before REFACTOR-007 review. Historical evidence and the original 110 runs remain preserved.
+No new experiments, cleanup implementation, or research tasks are authorized by the completed audit. Historical evidence and the original 110 runs remain preserved.
 
 ## Next task
 
-Manager review of REFACTOR-007.
+No next implementation task is authorized. Further research work requires a new owner-approved task.
 
-TASK-011 remains PAUSED until the approved refactor sequence and final integration review are independently reviewed and merged.
+TASK-011 remains PAUSED.

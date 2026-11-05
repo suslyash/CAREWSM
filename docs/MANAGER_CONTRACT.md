@@ -45,8 +45,8 @@ Codex does not change scientific policy merely because an implementation is conv
 
 ## Durable manager gates
 
-The manager authorizes and reviews exactly one atomic task at a time. The active refactor sequence is REFACTOR-000 through REFACTOR-005, followed by a final integration review.
+The manager authorizes and reviews exactly one atomic task at a time. REFACTOR-000 through REFACTOR-007 and FINAL-INTEGRATION-001 are complete and merged; FINAL-INTEGRATION-001 passed with two non-blocking cleanup findings. The active audio-only Chimera pipeline and canonical 110-config matrix are integration-ready. No real training run after REFACTOR-007 has been performed, and no new experiments, cleanup implementation, or research tasks are authorized by the completed audit without a new owner-approved task.
 
-`docs/NEXT_TASK_EN.md` identifies the currently proposed task, but Codex still requires explicit manager authorization before implementation. REFACTOR-001 is not authorized until REFACTOR-000 passes independent review and is merged. TASK-011 remains paused until the approved refactor sequence is completed and reviewed.
+`docs/NEXT_TASK_EN.md` identifies the current authorization state, but Codex still requires explicit manager authorization before implementation. TASK-011 remains PAUSED.
 
 TASK-001 is historical; its feature-audit evidence remains preserved.
