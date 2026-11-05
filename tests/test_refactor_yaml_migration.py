@@ -3,13 +3,14 @@ import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 import torch
 from torch.utils.data import DataLoader
 
 from audio.callbacks.carewsm_summary_callback import CAREWSMSummaryCallback
 from audio.callbacks.carewsm_validation_monitor_callback import CAREWSMValidationMonitorCallback
 from audio.loss.carewsm_masked_bce_loss import CAREWSMMaskedBCELoss
-from audio.metrics.carewsm_classification_metric import CAREWSMClassificationMetric
+from audio.metrics.carewsm_audio_metrics import CAREWSMAudioClassificationMetric
 from audio.models.carewsm_audio_models import CAREWSMPooledMLPModel
 from chimera_ml.callbacks.base import BaseCallback
 from chimera_ml.callbacks.checkpoint_callback import CheckpointCallback
@@ -83,7 +84,7 @@ def _loader(corpus, count=4, flip=False):
 def test_canonical_yaml_inventory_is_110_and_unique():
     paths = sorted(
         path
-        for directory in Path("configs/audio").iterdir()
+        for directory in Path("configs/audio_feature_selection").iterdir()
         if directory.is_dir()
         for path in directory.glob("*_fold[0-4].yaml")
     )
@@ -145,7 +146,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         model=model,
         loss_fn=CAREWSMMaskedBCELoss(),
         optimizer=torch.optim.SGD(model.parameters(), lr=0.01),
-        metrics=[CAREWSMClassificationMetric()],
+        metrics=[CAREWSMAudioClassificationMetric()],
         config=TrainConfig(epochs=1, device="cpu", mixed_precision=False),
         logger=logger,
         callbacks=callbacks,
@@ -172,6 +173,8 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     assert len(epoch_lines) == 5
     assert [next(split for split in ("train", "val_care", "val_wsm", "test_care", "test_wsm") if f"[{split} epoch 1]" in line) for line in epoch_lines] == ["train", "val_care", "val_wsm", "test_care", "test_wsm"]
     assert "[epoch summary]" not in log_text
+    assert log_text.count("[carewsm_combined epoch 1]") == 1
+    assert "observed_count" not in log_text
     assert model.train_seen_corpora.count("CARE") == 2
     assert model.train_seen_corpora.count("WSM") == 2
     assert capture.logs is not None
@@ -181,6 +184,26 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
 
     validation_values = [capture.logs[name] for name in CAREWSMValidationMonitorCallback.components]
     assert capture.logs["dev_mean_macro_recall"] == sum(validation_values) / 4
+    assert capture.logs["dev_mean_macro_f1"] == pytest.approx(
+        sum(
+            capture.logs[f"{corpus}/{task}/macro_f1"]
+            for corpus in ("val_care", "val_wsm")
+            for task in ("depression", "parkinson")
+        )
+        / 4
+    )
+    assert capture.logs["test_mean_macro_recall"] == pytest.approx(
+        sum(
+            capture.logs[f"test_{corpus}/{task}/macro_recall"]
+            for corpus in ("care", "wsm")
+            for task in ("depression", "parkinson")
+        )
+        / 4
+    )
+    assert capture.logs["val_average/depression/macro_recall"] == pytest.approx(
+        (capture.logs["val_care/depression/macro_recall"]
+         + capture.logs["val_wsm/depression/macro_recall"]) / 2
+    )
     test_recall_pairs = [
         (
             capture.logs[f"val_{corpus}/{task}/macro_recall"],
@@ -204,6 +227,12 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     assert len(rows) == 2
     header = rows[0].split(";")
     assert len(rows[1].split(";")) == len(header)
+    assert not any(
+        key.endswith(("observed_count", "positive_support", "negative_support"))
+        for key in header
+    )
+    assert "val_average_depression_macro_recall" in header
+    assert "test_mean_macro_recall" in header
     for population in ("train", "val_care", "val_wsm", "test_care", "test_wsm"):
         for task in ("depression", "parkinson"):
             for metric in ("macro_f1", "weighted_f1", "macro_recall", "weighted_recall", "patient_recall", "healthy_recall"):
@@ -213,8 +242,8 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
 
 
 def test_missing_canonical_yaml_fails_full_matrix_check(tmp_path):
-    source = Path("configs/audio")
-    fixture = tmp_path / "configs" / "audio"
+    source = Path("configs/audio_feature_selection")
+    fixture = tmp_path / "configs" / "audio_feature_selection"
     shutil.copytree(source, fixture)
     missing = fixture / "emotionmsp_embeds" / "mlp_fold0.yaml"
     missing.unlink()

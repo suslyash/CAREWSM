@@ -252,4 +252,4 @@ TASK-011 remains paused until this sequence is independently reviewed and merged
 
 ## Deferred repository cleanup
 
-REFACTOR-005 may remove the obsolete `configs/audio/audio_mptsnet_native_egemaps_lld_joint_care_wsm_fold0_smoke.yaml`, `configs/audio/joint_native_fold0.yaml`, `configs/audio/task004_models.yaml`, `scripts/runs/`, and obsolete `smoke_*` scripts only with reference updates. REFACTOR-000 does not delete them.
+REFACTOR-007 removed the obsolete `configs/audio_feature_selection/joint_native_fold0.yaml` and `configs/audio_feature_selection/task004_models.yaml`; the remaining obsolete smoke configuration, `scripts/runs/`, and `smoke_*` scripts may be removed only with reference updates.

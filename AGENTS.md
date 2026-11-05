@@ -88,7 +88,7 @@ All active Chimera-related Python code belongs under `src/audio/`:
 - `src/audio/callbacks/`
 - `src/audio/utils/`
 
-Experiment configs belong under `configs/audio/`.
+Experiment configs belong under `configs/audio_feature_selection/`.
 
 Repository launch wrappers may live under `scripts/`, but dataset/model/loss/metric/training logic belongs under `src/audio/`.
 
@@ -333,9 +333,7 @@ logs/
 
 Audio-specific utilities belong under `scripts/audio/python/` and `scripts/audio/shell/`. Do not add one-off smoke wrappers or unnecessary script abstraction layers. The later cleanup task may remove these obsolete artifacts only after updating references; this task does not delete them:
 
-- `configs/audio/audio_mptsnet_native_egemaps_lld_joint_care_wsm_fold0_smoke.yaml`
-- `configs/audio/joint_native_fold0.yaml`
-- `configs/audio/task004_models.yaml`
+- `configs/audio_feature_selection/audio_mptsnet_native_egemaps_lld_joint_care_wsm_fold0_smoke.yaml`
 - `scripts/runs/`
 - obsolete `smoke_*` scripts
 
