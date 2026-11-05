@@ -19,6 +19,7 @@ def test_summary_writes_one_dynamic_wide_row_and_is_idempotent(tmp_path: Path) -
         "val_wsm/depression/macro_recall": 0.75,
         "test_care/depression/macro_recall": 0.25,
         "test_wsm/depression/macro_recall": 0.125,
+        "val_mean_corpora_tasks/macro_recall": 0.625,
         "dev_mean_macro_recall": 0.625,
     }
     callback.on_epoch_end(SimpleNamespace(), 1, logs)
@@ -28,6 +29,7 @@ def test_summary_writes_one_dynamic_wide_row_and_is_idempotent(tmp_path: Path) -
     assert len(rows) == 1
     assert rows[0]["val_care_depression_macro_recall"] == "0.5000"
     assert rows[0]["test_wsm_depression_macro_recall"] == "0.1250"
+    assert rows[0]["val_mean_corpora_tasks_macro_recall"] == "0.6250"
     assert len(path.read_text(encoding="utf-8").splitlines()) == 2
 
 

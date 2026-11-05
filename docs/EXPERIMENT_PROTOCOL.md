@@ -240,7 +240,7 @@ The canonical evaluation names are `train`, `val_care`, `val_wsm`, `test_care`, 
 
 Per-epoch console and `train.log` lines use INFO and show native sample counts, loss, Macro Recall, Patient Recall, and Healthy Recall. The run still calculates Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall; label masks and support counts remain internal. The combined `[carewsm_combined epoch N]` record and summary contain equal-weight VAL/TEST averages for all six metrics.
 
-`dev_mean_macro_recall` is the selection monitor: the arithmetic mean of exactly CARE Depression Macro Recall, CARE Parkinson Macro Recall, WSM Depression Macro Recall, and WSM Parkinson Macro Recall. If a component is unavailable, record the monitor as unavailable and explain why; never use zero or silent renormalization. TEST is descriptive only.
+`val_mean_corpora_tasks/macro_recall` is the canonical selection monitor: the unweighted arithmetic mean of exactly CARE Depression Macro Recall, CARE Parkinson Macro Recall, WSM Depression Macro Recall, and WSM Parkinson Macro Recall. `dev_mean_macro_recall` is a deprecated numerical alias with identical value. `val_mean_corpora/<task>/<metric>` and `test_mean_corpora/<task>/<metric>` are unweighted CARE/WSM means for one task; `val_mean_corpora_tasks/<metric>` and `test_mean_corpora_tasks/<metric>` are unweighted means across the four corpus/task combinations. If a required validation component is unavailable, raise/report the monitor as unavailable; never use zero or silent renormalization. TEST is descriptive only.
 
 The historical 110 fold-runs were selected using `joint/average_macro_f1`; preserve and label them as historical.
 

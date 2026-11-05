@@ -108,13 +108,13 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         log_path=str(run_root),
         experiment_name="synthetic_audio",
         run_name="pooled_mlp_fold0",
-        monitor="dev_mean_macro_recall",
+        monitor="val_mean_corpora_tasks/macro_recall",
         mode="max",
         save_top_k=1,
         save_last=False,
     )
     early_stopping = EarlyStoppingCallback(
-        monitor="dev_mean_macro_recall",
+        monitor="val_mean_corpora_tasks/macro_recall",
         mode="max",
         patience=2,
     )
@@ -184,7 +184,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
 
     validation_values = [capture.logs[name] for name in CAREWSMValidationMonitorCallback.components]
     assert capture.logs["dev_mean_macro_recall"] == sum(validation_values) / 4
-    assert capture.logs["dev_mean_macro_f1"] == pytest.approx(
+    assert capture.logs["val_mean_corpora_tasks/macro_f1"] == pytest.approx(
         sum(
             capture.logs[f"{corpus}/{task}/macro_f1"]
             for corpus in ("val_care", "val_wsm")
@@ -192,7 +192,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         )
         / 4
     )
-    assert capture.logs["test_mean_macro_recall"] == pytest.approx(
+    assert capture.logs["test_mean_corpora_tasks/macro_recall"] == pytest.approx(
         sum(
             capture.logs[f"test_{corpus}/{task}/macro_recall"]
             for corpus in ("care", "wsm")
@@ -200,7 +200,7 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         )
         / 4
     )
-    assert capture.logs["val_average/depression/macro_recall"] == pytest.approx(
+    assert capture.logs["val_mean_corpora/depression/macro_recall"] == pytest.approx(
         (capture.logs["val_care/depression/macro_recall"]
          + capture.logs["val_wsm/depression/macro_recall"]) / 2
     )
@@ -215,11 +215,11 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
     assert any(validation != test for validation, test in test_recall_pairs)
     assert capture.logs["test_care/loss"] >= 0.0
     assert capture.logs["test_wsm/loss"] >= 0.0
-    assert checkpoint._best == capture.logs["dev_mean_macro_recall"]
-    assert early_stopping._best == capture.logs["dev_mean_macro_recall"]
+    assert checkpoint._best == capture.logs["val_mean_corpora_tasks/macro_recall"]
+    assert early_stopping._best == capture.logs["val_mean_corpora_tasks/macro_recall"]
     assert checkpoint._saved
     checkpoint_name = checkpoint._saved[0].name
-    assert "dev_mean_macro_recall" in checkpoint_name
+    assert "val_mean_corpora_tasks_macro_recall" in checkpoint_name
     assert "test_" not in checkpoint_name
 
     summary_path = run_dir / "summary.txt"
@@ -231,8 +231,8 @@ def test_real_trainer_fit_uses_joint_train_and_native_logging(tmp_path):
         key.endswith(("observed_count", "positive_support", "negative_support"))
         for key in header
     )
-    assert "val_average_depression_macro_recall" in header
-    assert "test_mean_macro_recall" in header
+    assert "val_mean_corpora_depression_macro_recall" in header
+    assert "test_mean_corpora_tasks_macro_recall" in header
     for population in ("train", "val_care", "val_wsm", "test_care", "test_wsm"):
         for task in ("depression", "parkinson"):
             for metric in ("macro_f1", "weighted_f1", "macro_recall", "weighted_recall", "patient_recall", "healthy_recall"):
@@ -273,7 +273,7 @@ def test_missing_validation_component_fails_before_checkpoint(tmp_path):
         log_path=str(tmp_path),
         experiment_name="invalid",
         run_name="missing-val",
-        monitor="dev_mean_macro_recall",
+        monitor="val_mean_corpora_tasks/macro_recall",
         mode="max",
         save_last=False,
     )
