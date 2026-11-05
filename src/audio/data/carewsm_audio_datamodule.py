@@ -38,24 +38,22 @@ class CAREWSMAudioDataModule(DataModule):
         wsm_root: str,
         manifest: str,
         registry: str,
-        feature_family: str,
+        feature_family: str | list[str],
         fold: int = 0,
         batch_size: int = 32,
         num_workers: int = 0,
         shuffle_train: bool = False,
     ) -> None:
-        if not feature_family:
-            raise ValueError("CAREWSMAudioDataModule requires feature_family")
-
+        self.feature_families = self._validate_selection(feature_family)
         self.fold_index = fold
         self.feature_family = feature_family
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
         self.feature_specs = self._read_registry(Path(registry))
-        unknown = {feature_family} - set(self.feature_specs)
+        unknown = set(self.feature_families) - set(self.feature_specs)
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
         self.records = self._read_and_join_manifest(Path(manifest))
-        self.views = self._build_views(feature_family)
+        self.views = self._build_views(self.feature_families)
 
         datasets = {
             name: CAREWSMAudioDataset(
@@ -84,6 +82,22 @@ class CAREWSMAudioDataModule(DataModule):
             pin_memory=False,
             shuffle_train=shuffle_train,
         )
+
+    @staticmethod
+    def _validate_selection(feature_family: str | list[str]) -> tuple[str, ...]:
+        if isinstance(feature_family, str):
+            if not feature_family:
+                raise ValueError("CAREWSMAudioDataModule requires feature_family")
+            return (feature_family,)
+        if not isinstance(feature_family, list) or not feature_family:
+            raise ValueError("feature_family must be a string or non-empty list")
+        if len(feature_family) not in (2, 3, 4):
+            raise ValueError("fused feature_family lists must contain two to four families")
+        if any(not isinstance(family, str) or not family for family in feature_family):
+            raise ValueError("feature_family selections must contain non-empty names")
+        if len(set(feature_family)) != len(feature_family):
+            raise ValueError("feature_family selections must not contain duplicates")
+        return tuple(feature_family)
 
     @staticmethod
     def _read_registry(path: Path) -> dict[str, dict[str, Any]]:
@@ -197,11 +211,8 @@ class CAREWSMAudioDataModule(DataModule):
         return records
 
     def _build_views(
-        self, selected: str
+        self, selected: tuple[str, ...]
     ) -> dict[str, list[dict[str, Any]]]:
-        unknown = {selected} - set(self.feature_specs)
-        if unknown:
-            raise ValueError(f"unknown feature family: {sorted(unknown)}")
 
         train = self._fold_records("CARE", "train") + self._fold_records("WSM", "train")
         validation = self._fold_records("CARE", "val") + self._fold_records(
@@ -231,7 +242,10 @@ class CAREWSMAudioDataModule(DataModule):
                 for record in sorted(
                     records, key=lambda item: (item["corpus"], item["sample_id"])
                 )
-                if record.get(f"{selected}_status") == "VALID"
+                if all(
+                    record.get(f"{family}_status") == "VALID"
+                    for family in selected
+                )
             ]
             for name, records in views.items()
         }

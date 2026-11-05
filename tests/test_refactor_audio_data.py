@@ -47,6 +47,13 @@ def make_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
             "format": "npz",
             "embedding_keys": ["embed"],
         },
+        "static_d": {
+            "modality": "audio",
+            "file": "static_d.npz",
+            "format": "npz",
+            "embedding_keys": ["embed"],
+            "metadata": ["turn_ids"],
+        },
         "temporal": {
             "modality": "audio",
             "file": "temporal.npz",
@@ -68,6 +75,7 @@ def make_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
         "static_a_status",
         "static_b_status",
         "static_c_status",
+        "static_d_status",
         "temporal_status",
     ]
     manifest_rows: list[dict[str, str]] = []
@@ -107,6 +115,7 @@ def make_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
                         "static_a_status": "VALID",
                         "static_b_status": "VALID",
                         "static_c_status": "VALID",
+                        "static_d_status": "VALID",
                         "temporal_status": "VALID",
                     }
                 )
@@ -123,16 +132,29 @@ def make_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
                     directory = root / "legacy" / profile_id / f"VIDEO_{sample_id}"
                 directory.mkdir(parents=True, exist_ok=True)
                 np.savez(
-                    directory / "static_a.npz", embed=np.ones((1, 2), dtype=np.float32)
+                    directory / "static_a.npz",
+                    embed=np.array([[1.0, 2.0]], dtype=np.float32),
+                    turn_ids=np.array([1], dtype=np.int64),
                 )
                 np.savez(
-                    directory / "static_b.npz", embed=np.ones((1, 3), dtype=np.float32)
+                    directory / "static_b.npz",
+                    embed=np.array([[10.0, 11.0, 12.0]], dtype=np.float32),
+                    turn_ids=np.array([1], dtype=np.int64),
                 )
                 np.savez(
-                    directory / "static_c.npz", embed=np.ones((1, 4), dtype=np.float32)
+                    directory / "static_c.npz",
+                    embed=np.array([[20.0, 21.0, 22.0, 23.0]], dtype=np.float32),
+                    turn_ids=np.array([1], dtype=np.int64),
                 )
                 np.savez(
-                    directory / "temporal.npz", embed=np.ones((5, 2), dtype=np.float32)
+                    directory / "static_d.npz",
+                    embed=np.array([[30.0, 31.0, 32.0, 33.0, 34.0]], dtype=np.float32),
+                    turn_ids=np.array([1], dtype=np.int64),
+                )
+                np.savez(
+                    directory / "temporal.npz",
+                    embed=np.ones((5, 2), dtype=np.float32),
+                    turn_ids=np.arange(1, 6, dtype=np.int64),
                 )
             split_rows[split] = rows
             write_csv(root / "splits" / f"{split}.csv", source_fields, rows)
@@ -222,18 +244,103 @@ def test_registration_collate_and_model_forward_backward(tmp_path: Path) -> None
     chimera_plugin.register()
     dm = CAREWSMAudioDataModule(
         str(care), str(wsm), str(manifest), str(registry),
-        feature_family="static_a", batch_size=2,
+        feature_family=["static_a", "static_b"], batch_size=2,
     )
     batch = next(iter(dm.train_dataloader()))
-    assert tuple(batch.inputs["native"].shape) == (2, 1, 2)
+    assert tuple(batch.inputs["native"].shape) == (2, 1, 5)
     assert tuple(batch.get_masks("sequence_mask").shape) == (2, 1)
     assert [meta["corpus"] for meta in batch.meta["sample_meta"]] == ["CARE", "CARE"]
 
     from audio.models.carewsm_audio_models import CAREWSMMDFormerModel, CAREWSMPooledMLPModel
     for model in (
-        CAREWSMPooledMLPModel(input_dim=2, hidden_dim=8),
-        CAREWSMMDFormerModel(input_dim=2, hidden_dim=8, num_heads=2, num_layers=1),
+        CAREWSMPooledMLPModel(input_dim=5, hidden_dim=8),
+        CAREWSMMDFormerModel(input_dim=5, hidden_dim=8, num_heads=2, num_layers=1),
     ):
         output = model(batch)
         output.preds.sum().backward()
         assert output.preds.shape == (2, 2)
+
+
+def test_two_three_and_four_family_fusion_preserves_order_and_metadata(tmp_path: Path) -> None:
+    pair = build_dm(tmp_path / "pair", feature_family=["static_a", "static_b"])
+    triple = build_dm(
+        tmp_path / "triple",
+        feature_family=["static_a", "static_b", "static_c"],
+    )
+    four = build_dm(
+        tmp_path / "four",
+        feature_family=["static_a", "static_b", "static_c", "static_d"],
+    )
+
+    pair_sample = pair.train_dataset[0]
+    triple_sample = triple.train_dataset[0]
+    four_sample = four.train_dataset[0]
+    assert pair_sample["inputs"]["native"].tolist() == [[1.0, 2.0, 10.0, 11.0, 12.0]]
+    assert tuple(triple_sample["inputs"]["native"].shape) == (1, 9)
+    assert tuple(four_sample["inputs"]["native"].shape) == (1, 14)
+    assert four_sample["meta"]["feature_families"] == [
+        "static_a", "static_b", "static_c", "static_d"
+    ]
+    assert four_sample["meta"]["feature_dimensions"] == {
+        "static_a": 2, "static_b": 3, "static_c": 4, "static_d": 5
+    }
+    assert four_sample["meta"]["turn_alignment"]["turn_ids"] == ["1"]
+
+
+def test_fused_variable_t_preserves_sequence_mask(tmp_path: Path) -> None:
+    dm = build_dm(tmp_path, feature_family=["static_a", "static_b"])
+    record = dm.train_dataset.records[0]
+    for family, dimension in (("static_a", 2), ("static_b", 3)):
+        np.savez(
+            record["feature_paths"][family],
+            embed=np.arange(5 * dimension, dtype=np.float32).reshape(5, dimension),
+            turn_ids=np.arange(1, 6, dtype=np.int64),
+        )
+    sample = dm.train_dataset[0]
+    assert tuple(sample["inputs"]["native"].shape) == (5, 5)
+    assert sample["meta"]["masks"]["sequence_mask"].tolist() == [True] * 5
+
+
+def test_same_length_mismatched_turn_ids_fail(tmp_path: Path) -> None:
+    dm = build_dm(tmp_path, feature_family=["static_a", "static_b"])
+    record = dm.train_dataset.records[0]
+    np.savez(
+        record["feature_paths"]["static_b"],
+        embed=np.array([[10.0, 11.0, 12.0]], dtype=np.float32),
+        turn_ids=np.array([2], dtype=np.int64),
+    )
+    with pytest.raises(ValueError, match="not aligned"):
+        dm.train_dataset[0]
+
+
+@pytest.mark.parametrize("ids", ([1, 1], [""], None))
+def test_missing_duplicate_or_malformed_turn_ids_fail(tmp_path: Path, ids) -> None:
+    dm = build_dm(tmp_path, feature_family=["static_a", "static_b"])
+    record = dm.train_dataset.records[0]
+    path = Path(record["feature_paths"]["static_b"])
+    values = np.array([[10.0, 11.0, 12.0]], dtype=np.float32)
+    if ids is None:
+        np.savez(path, embed=values)
+    else:
+        np.savez(path, embed=values, turn_ids=np.asarray(ids))
+    with pytest.raises(ValueError, match="turn"):
+        dm.train_dataset[0]
+
+
+def test_fusion_filters_rows_missing_any_selected_family(tmp_path: Path) -> None:
+    care, wsm, manifest, registry = make_fixture(tmp_path)
+    with manifest.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    rows[0]["static_b_status"] = "MISSING"
+    write_csv(manifest, list(rows[0]), rows)
+    dm = CAREWSMAudioDataModule(
+        str(care), str(wsm), str(manifest), str(registry),
+        feature_family=["static_a", "static_b"],
+    )
+    assert len(dm.train_dataset) == 3
+
+
+@pytest.mark.parametrize("selection", ([], ["static_a"], ["static_a", "static_a"], ["unknown", "static_b"]))
+def test_invalid_fusion_selections_fail(tmp_path: Path, selection: list[str]) -> None:
+    with pytest.raises(ValueError):
+        build_dm(tmp_path, feature_family=selection)
