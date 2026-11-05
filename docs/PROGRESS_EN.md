@@ -67,14 +67,12 @@ Required metrics:
 
 ## Current stage
 
-REFACTOR-000 through REFACTOR-004 have passed independent review and are merged. REFACTOR-005 cleanup is the current authorized atomic task; it standardizes active module/class names, removes redundant TEST and parallel-data architecture, and preserves the 110 canonical configurations without running historical experiments. The validation-only `dev_mean_macro_recall` monitor and historical evidence remain preserved.
+REFACTOR-000 through REFACTOR-006 and LAUNCH-001 are complete. REFACTOR-007 is implemented and awaiting manager review. It preserves the validation-only `dev_mean_macro_recall` selection policy, adds equal-weight VAL/TEST averages, removes obsolete support/count outputs from new logs and summaries, and preserves the 110 canonical configurations under `configs/audio_feature_selection/`.
 
-The next scientific question is whether the strongest static deep embeddings are complementary when combined; that work remains paused until REFACTOR-005 and the final integration review are complete.
-
-The immediate task does **not** run the full combination study. It first makes multi-feature loading/fusion explicit, testable and coverage-aware.
+No further training, final integration, or combination study is authorized before REFACTOR-007 review. Historical evidence and the original 110 runs remain preserved.
 
 ## Next task
 
-REFACTOR-003 — epoch logging, wide summary, and run paths submitted for independent manager review.
+Manager review of REFACTOR-007.
 
-TASK-011 remains PAUSED until REFACTOR-000 through REFACTOR-005 and final integration review are independently reviewed and merged. The historical 110 runs remain preserved.
+TASK-011 remains PAUSED until the approved refactor sequence and final integration review are independently reviewed and merged.

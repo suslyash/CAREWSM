@@ -238,7 +238,7 @@ Every run must record:
 
 The canonical evaluation names are `train`, `val_care`, `val_wsm`, `test_care`, and `test_wsm`. CARE and WSM may be mixed for joint training, but every validation and TEST result retains its corpus identity.
 
-Per-epoch console and `train.log` lines use INFO and show sample counts, observed-label counts where relevant, loss, Macro Recall, Patient Recall, and Healthy Recall. The run still calculates Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall; the additional metrics are written to the summary and may be logged to MLflow.
+Per-epoch console and `train.log` lines use INFO and show native sample counts, loss, Macro Recall, Patient Recall, and Healthy Recall. The run still calculates Macro F1, Weighted F1, Macro Recall, Weighted Recall, Patient Recall, and Healthy Recall; label masks and support counts remain internal. The combined `[carewsm_combined epoch N]` record and summary contain equal-weight VAL/TEST averages for all six metrics.
 
 `dev_mean_macro_recall` is the selection monitor: the arithmetic mean of exactly CARE Depression Macro Recall, CARE Parkinson Macro Recall, WSM Depression Macro Recall, and WSM Parkinson Macro Recall. If a component is unavailable, record the monitor as unavailable and explain why; never use zero or silent renormalization. TEST is descriptive only.
 
@@ -246,4 +246,4 @@ The historical 110 fold-runs were selected using `joint/average_macro_f1`; prese
 
 ## Active refactor sequence
 
-REFACTOR-000 establishes this contract. REFACTOR-001 addresses the corrective Dataset/DataModule implementation, REFACTOR-002 metrics and epoch logging, REFACTOR-003 summary and paths, REFACTOR-004 configuration migration, REFACTOR-005 repository cleanup, and final integration review. TASK-011 remains paused.
+REFACTOR-000 through REFACTOR-006 and LAUNCH-001 are complete. REFACTOR-007 establishes the simplified metric outputs and config directory and is awaiting manager review, followed by final integration review. TASK-011 remains paused.
