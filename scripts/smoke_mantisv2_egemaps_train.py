@@ -172,7 +172,9 @@ def temporalize(frames: list[dict[str, Any]], channels: int) -> list[dict[str, A
                     }
                 )
             index += 1
-    return windows[:2]
+    if len(windows) <= 2:
+        return windows
+    return [windows[0], windows[-1]]
 
 
 def synthetic_checks(channels: int) -> None:
