@@ -44,13 +44,25 @@ class CAREWSMAudioDataModule(DataModule):
         num_workers: int = 0,
         shuffle_train: bool = False,
         pooling: str = "native",
+        mantis_cache_manifest: str | None = None,
     ) -> None:
         self.feature_families = self._validate_selection(feature_family)
         self.fold_index = fold
         self.feature_family = feature_family
         self.pooling = pooling
+        self.mantis_cache_manifest = (
+            Path(mantis_cache_manifest) if mantis_cache_manifest else None
+        )
+        self.mantis_cache_index = self._read_mantis_cache()
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
         self.feature_specs = self._read_registry(Path(registry))
+        if "mantisv2_egemaps" in self.feature_families:
+            self.feature_specs["mantisv2_egemaps"] = {
+                "format": "npz",
+                "embedding_keys": ["features"],
+                "modality": "audio",
+                "file": "",
+            }
         unknown = set(self.feature_families) - set(self.feature_specs)
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
@@ -147,8 +159,23 @@ class CAREWSMAudioDataModule(DataModule):
                 record[target] = value
                 record[f"{target}_observed"] = observed
             record["feature_paths"] = self._feature_paths(key[0], source)
+            if "mantisv2_egemaps" in self.feature_families:
+                cache = self.mantis_cache_index.get(key)
+                record["mantisv2_egemaps_status"] = (
+                    cache["status"] if cache is not None else "MISSING"
+                )
+                if cache is not None:
+                    record["feature_paths"]["mantisv2_egemaps"] = cache["path"]
             manifest[key] = record
         return manifest
+
+    def _read_mantis_cache(self) -> dict[tuple[str, str], dict[str, Any]]:
+        if self.mantis_cache_manifest is None:
+            return {}
+        data = json.loads(self.mantis_cache_manifest.read_text(encoding="utf-8"))
+        return {
+            (row["corpus"], row["sample_id"]): row for row in data["records"]
+        }
 
     def _source_metadata(self, corpus: str, source: dict[str, str]) -> dict[str, str]:
         profile_id = source.get("profile_id", "")
