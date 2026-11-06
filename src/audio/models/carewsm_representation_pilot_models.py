@@ -9,11 +9,21 @@ from torch import nn
 
 from chimera_ml.core.registry import MODELS
 from chimera_ml.core.types import ModelOutput
-from audio.models.carewsm_audio_models import (
-    CAREWSMSequenceModel,
-    TaskHeads,
-    _unpack,
-)
+
+
+def _shared_components(
+    input_dim: int, hidden_dim: int, dropout: float
+) -> tuple[nn.Module, nn.Module]:
+    from audio.models.carewsm_audio_models import CAREWSMSequenceModel
+
+    shared = CAREWSMSequenceModel(input_dim, hidden_dim, dropout)
+    return shared.projection, shared.heads
+
+
+def _unpack(batch: Any) -> tuple[torch.Tensor, torch.Tensor]:
+    from audio.models.carewsm_audio_models import _unpack as unpack
+
+    return unpack(batch)
 
 
 class MaskedAttentionPool(nn.Module):
@@ -29,13 +39,16 @@ class MaskedAttentionPool(nn.Module):
         return (values * weights).sum(dim=1)
 
 
-class CAREWSMAttentiveMLPModel(CAREWSMSequenceModel):
+class CAREWSMAttentiveMLPModel(nn.Module):
     """Reference MLP with learned mask-safe attentive sequence pooling."""
 
     def __init__(
         self, input_dim: int, hidden_dim: int = 64, dropout: float = 0.1
     ) -> None:
-        super().__init__(input_dim, hidden_dim, dropout)
+        super().__init__()
+        self.projection, self.heads = _shared_components(
+            input_dim, hidden_dim, dropout
+        )
         self.pool = MaskedAttentionPool(hidden_dim)
 
     def forward(self, batch: Any) -> ModelOutput:
@@ -43,10 +56,6 @@ class CAREWSMAttentiveMLPModel(CAREWSMSequenceModel):
         features = self.pool(self.projection(values), mask)
         logits = self.heads(features)
         return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
-
-    def encode(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        del mask
-        return values
 
 
 class CAREWSMGatedFusionModel(nn.Module):
@@ -64,18 +73,25 @@ class CAREWSMGatedFusionModel(nn.Module):
         super().__init__()
         self.family_dims = family_dims
         self.projections = nn.ModuleList(
-            [nn.Sequential(nn.LayerNorm(dim), nn.Linear(dim, hidden_dim), nn.GELU())
-             for dim in family_dims]
+            [
+                nn.Sequential(
+                    nn.LayerNorm(dim), nn.Linear(dim, hidden_dim), nn.GELU()
+                )
+                for dim in family_dims
+            ]
         )
-        self.gates = nn.ModuleList([nn.Linear(dim, hidden_dim) for dim in family_dims])
-        self.heads = TaskHeads(hidden_dim, dropout)
+        self.gates = nn.ModuleList(
+            [nn.Linear(dim, hidden_dim) for dim in family_dims]
+        )
+        _, self.heads = _shared_components(input_dim, hidden_dim, dropout)
 
     def forward(self, batch: Any) -> ModelOutput:
         values, mask = _unpack(batch)
         family_values = torch.split(values, self.family_dims, dim=-1)
         fused = torch.zeros(
             values.shape[0], values.shape[1], self.projections[0][1].out_features,
-            device=values.device, dtype=values.dtype,
+            device=values.device,
+            dtype=values.dtype,
         )
         for family, projection, gate in zip(
             family_values, self.projections, self.gates
