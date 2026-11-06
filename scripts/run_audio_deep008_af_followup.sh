@@ -67,7 +67,7 @@ experiment = client.get_experiment_by_name("audio_representation_pilot_deep008")
 if experiment is None:
     print("NONE")
     raise SystemExit
-runs = client.search_runs([experiment.experiment_id], filter_string=f'tags.mlflow.runName = "{sys.argv[1]}"')
+runs = [run for run in client.search_runs([experiment.experiment_id]) if (run.data.tags.get("mlflow.runName") or "").startswith(sys.argv[1] + "_")]
 if len(runs) != 1:
     print(f"COUNT:{len(runs)}")
 else:
