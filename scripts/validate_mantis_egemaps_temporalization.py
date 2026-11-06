@@ -16,6 +16,8 @@ from typing import Any
 WINDOW_SECONDS = 1.0
 WINDOW_HOP_SECONDS = 0.5
 TIMESTAMP_TOLERANCE = 1e-6
+SAMPLE_RATE = 16000
+MAX_TERMINAL_EXCESS = 1 / SAMPLE_RATE + TIMESTAMP_TOLERANCE
 QUALITY_THRESHOLDS = (0.80, 0.95)
 CACHE_FIELDS = (
     "embeddings",
@@ -23,6 +25,8 @@ CACHE_FIELDS = (
     "window_end_sec",
     "validity_mask",
     "valid_observation_fraction",
+    "frame_exclusion_mask",
+    "frame_exclusion_reason",
 )
 REQUIRED_METADATA = (
     "turn_id",
@@ -170,31 +174,49 @@ def empty_diagnostics(status: str = "VALID") -> dict[str, Any]:
     return {
         "status": status,
         "rows": 0,
+        "original_rows": 0,
+        "retained_rows": 0,
+        "excluded_frame_count": 0,
+        "excluded_terminal_frame_count": 0,
+        "exclusion_reasons": Counter(),
         "turns": 0,
         "invalid_timestamp_rows": 0,
         "nonfinite_feature_rows": 0,
         "duplicate_timestamp_rows": 0,
         "out_of_order_rows": 0,
         "out_of_turn_rows": 0,
+        "original_out_of_turn_rows": 0,
         "inconsistent_turn_boundaries": 0,
         "interval_gap_count": 0,
         "interval_overlap_count": 0,
         "missing_expected_frame_starts": 0,
         "irregular_cadence_count": 0,
+        "policy_rejected_boundary_count": 0,
         "frame_duration_counts": Counter(),
         "frame_hop_counts": Counter(),
         "candidate_windows": 0,
         "valid_windows_80": 0,
         "valid_windows_95": 0,
+        "candidate_windows_before_exclusion": 0,
+        "valid_windows_80_before_exclusion": 0,
+        "valid_windows_95_before_exclusion": 0,
         "density_sum": 0.0,
         "density_min": None,
         "density_max": None,
         "density_count": 0,
+        "density_sum_before_exclusion": 0.0,
+        "density_min_before_exclusion": None,
+        "density_max_before_exclusion": None,
+        "density_count_before_exclusion": 0,
     }
 
 
 def inspect_artifact(
-    path: Path, channels: list[str], nominal_hop: float
+    path: Path,
+    channels: list[str],
+    nominal_hop: float,
+    corpus: str = "CARE",
+    boundary_policy: str = "strict",
 ) -> dict[str, Any]:
     result = empty_diagnostics()
     try:
@@ -202,6 +224,7 @@ def inspect_artifact(
     except (OSError, UnicodeError):
         return empty_diagnostics("UNREADABLE")
     result["rows"] = len(rows)
+    result["original_rows"] = len(rows)
     if not rows:
         return empty_diagnostics("EMPTY")
 
@@ -210,8 +233,8 @@ def inspect_artifact(
         return empty_diagnostics("SCHEMA_MISMATCH")
 
     grouped: dict[str, list[dict[str, float]]] = defaultdict(list)
-    for row in rows:
-        parsed: dict[str, float] = {}
+    for row_order, row in enumerate(rows):
+        parsed: dict[str, float] = {"row_order": float(row_order)}
         timestamp_valid = True
         for name in REQUIRED_METADATA[1:]:
             value = finite_float(row.get(name))
@@ -235,29 +258,30 @@ def inspect_artifact(
         grouped[row["turn_id"]].append(parsed)
 
     result["turns"] = len(grouped)
+    exclusions: set[float] = set()
     for frames in grouped.values():
         frames_sorted = sorted(frames, key=lambda item: item["frame_start_sec"])
         turn_starts = {frame["turn_start_sec"] for frame in frames}
         turn_ends = {frame["turn_end_sec"] for frame in frames}
-        if (
+        inconsistent = (
             max(turn_starts) - min(turn_starts) > TIMESTAMP_TOLERANCE
             or max(turn_ends) - min(turn_ends) > TIMESTAMP_TOLERANCE
-        ):
+        )
+        if inconsistent:
             result["inconsistent_turn_boundaries"] += 1
         turn_start = frames_sorted[0]["turn_start_sec"]
         turn_end = frames_sorted[0]["turn_end_sec"]
-        intervals = [
-            (frame["frame_start_sec"], frame["frame_end_sec"])
-            for frame in frames_sorted
-        ]
-        frame_starts = [frame["frame_start_sec"] for frame in frames_sorted]
+
         for previous, current in zip(frames, frames[1:]):
             if current["frame_start_sec"] < previous["frame_start_sec"] - TIMESTAMP_TOLERANCE:
                 result["out_of_order_rows"] += 1
+
+        for frame in frames_sorted:
+            duration = frame["frame_end_sec"] - frame["frame_start_sec"]
+            result["frame_duration_counts"][f"{duration:.6f}"] += 1
         for previous, current in zip(frames_sorted, frames_sorted[1:]):
             duration = previous["frame_end_sec"] - previous["frame_start_sec"]
             delta = current["frame_start_sec"] - previous["frame_start_sec"]
-            result["frame_duration_counts"][f"{duration:.6f}"] += 1
             result["frame_hop_counts"][f"{delta:.6f}"] += 1
             if delta <= TIMESTAMP_TOLERANCE:
                 result["duplicate_timestamp_rows"] += 1
@@ -270,16 +294,85 @@ def inspect_artifact(
                 result["missing_expected_frame_starts"] += expected_steps - 1
             if delta > duration + TIMESTAMP_TOLERANCE:
                 result["interval_gap_count"] += 1
-            if current["frame_start_sec"] < previous["frame_end_sec"] - TIMESTAMP_TOLERANCE:
+            if (
+                current["frame_start_sec"]
+                < previous["frame_end_sec"] - TIMESTAMP_TOLERANCE
+            ):
                 result["interval_overlap_count"] += 1
-        for frame in frames_sorted:
+
+        boundary_indices = [
+            index
+            for index, frame in enumerate(frames_sorted)
             if (
                 frame["frame_start_sec"] < turn_start - TIMESTAMP_TOLERANCE
                 or frame["frame_end_sec"] > turn_end + TIMESTAMP_TOLERANCE
+            )
+        ]
+        result["original_out_of_turn_rows"] += len(boundary_indices)
+        allowed_indices: list[int] = []
+        if boundary_indices:
+            if (
+                boundary_policy == "terminal-exclude"
+                and corpus == "CARE"
+                and not inconsistent
+                and len(boundary_indices) == 1
+                and boundary_indices[0] == len(frames_sorted) - 1
             ):
-                result["out_of_turn_rows"] += 1
+                frame = frames_sorted[boundary_indices[0]]
+                excess = frame["frame_end_sec"] - turn_end
+                start_inside = (
+                    turn_start - TIMESTAMP_TOLERANCE
+                    <= frame["frame_start_sec"]
+                    <= turn_end + TIMESTAMP_TOLERANCE
+                )
+                if (
+                    frame["frame_end_sec"] > turn_end + TIMESTAMP_TOLERANCE
+                    and start_inside
+                    and excess <= MAX_TERMINAL_EXCESS
+                ):
+                    allowed_indices = boundary_indices
+            if not allowed_indices:
+                result["policy_rejected_boundary_count"] += len(boundary_indices)
+
+        exclusions.update(
+            frames_sorted[index]["row_order"]
+            for index in allowed_indices
+        )
+        retained = [
+            frame
+            for index, frame in enumerate(frames_sorted)
+            if index not in allowed_indices
+        ]
+        result["out_of_turn_rows"] += len(boundary_indices) - len(allowed_indices)
+
+        original_windows = candidate_windows(
+            turn_start,
+            turn_end,
+            [
+                (frame["frame_start_sec"], frame["frame_end_sec"])
+                for frame in frames_sorted
+            ],
+            [frame["frame_start_sec"] for frame in frames_sorted],
+            nominal_hop,
+        )
         windows = candidate_windows(
-            turn_start, turn_end, intervals, frame_starts, nominal_hop
+            turn_start,
+            turn_end,
+            [
+                (frame["frame_start_sec"], frame["frame_end_sec"])
+                for frame in retained
+            ],
+            [frame["frame_start_sec"] for frame in retained],
+            nominal_hop,
+        )
+        result["candidate_windows_before_exclusion"] += len(original_windows)
+        result["valid_windows_80_before_exclusion"] += sum(
+            window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[0]
+            for window in original_windows
+        )
+        result["valid_windows_95_before_exclusion"] += sum(
+            window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[1]
+            for window in original_windows
         )
         result["candidate_windows"] += len(windows)
         result["valid_windows_80"] += sum(
@@ -290,20 +383,30 @@ def inspect_artifact(
             window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[1]
             for window in windows
         )
-        densities = [window["expected_frame_density"] for window in windows]
-        if densities:
-            result["density_sum"] += sum(densities)
-            result["density_min"] = (
+        for key, selected in (("_before_exclusion", original_windows), ("", windows)):
+            densities = [window["expected_frame_density"] for window in selected]
+            if not densities:
+                continue
+            if key == "":
+                result["density_sum"] += sum(densities)
+                result["density_count"] += len(densities)
+                minimum_key = "density_min"
+                maximum_key = "density_max"
+            else:
+                result["density_sum_before_exclusion"] += sum(densities)
+                result["density_count_before_exclusion"] += len(densities)
+                minimum_key = "density_min_before_exclusion"
+                maximum_key = "density_max_before_exclusion"
+            result[minimum_key] = (
                 min(densities)
-                if result["density_min"] is None
-                else min(result["density_min"], min(densities))
+                if result[minimum_key] is None
+                else min(result[minimum_key], min(densities))
             )
-            result["density_max"] = (
+            result[maximum_key] = (
                 max(densities)
-                if result["density_max"] is None
-                else max(result["density_max"], max(densities))
+                if result[maximum_key] is None
+                else max(result[maximum_key], max(densities))
             )
-            result["density_count"] += len(densities)
 
     invalid_fields = (
         "invalid_timestamp_rows",
@@ -316,7 +419,19 @@ def inspect_artifact(
         "irregular_cadence_count",
     )
     if any(result[field] for field in invalid_fields):
+        if exclusions:
+            result["out_of_turn_rows"] = result["original_out_of_turn_rows"]
+            exclusions.clear()
         result["status"] = "INVALID_TEMPORAL_DATA"
+    result["excluded_frame_count"] = len(exclusions)
+    result["excluded_terminal_frame_count"] = len(exclusions)
+    if exclusions:
+        result["exclusion_reasons"][
+            "excluded_terminal_out_of_turn_1sample"
+        ] = len(exclusions)
+    result["retained_rows"] = sum(
+        len(frames) for frames in grouped.values()
+    ) - len(exclusions)
     return result
 
 
@@ -394,10 +509,58 @@ def synthetic_checks(channels: list[str]) -> None:
         assert good["missing_expected_frame_starts"] == 0
         assert good["density_min"] == 1.0
 
+        permitted = list(good_rows)
+        permitted[-1] = dict(permitted[-1], frame_end_sec="1.0100625")
+        permitted_path = root / "permitted_terminal.csv"
+        write_fixture(permitted_path, permitted, channels)
+        assert inspect_artifact(
+            permitted_path, channels, 0.01, "CARE", "strict"
+        )["status"] == "INVALID_TEMPORAL_DATA"
+        policy_result = inspect_artifact(
+            permitted_path, channels, 0.01, "CARE", "terminal-exclude"
+        )
+        assert policy_result["status"] == "VALID"
+        assert policy_result["excluded_frame_count"] == 1
+        assert policy_result["original_out_of_turn_rows"] == 1
+        assert policy_result["out_of_turn_rows"] == 0
+        assert policy_result["retained_rows"] == 99
+        assert policy_result["exclusion_reasons"][
+            "excluded_terminal_out_of_turn_1sample"
+        ] == 1
+        assert policy_result["density_min"] == 0.99
+
+        large_excess = list(good_rows)
+        large_excess[-1] = dict(large_excess[-1], frame_end_sec="1.0101")
+        large_path = root / "large_excess.csv"
+        write_fixture(large_path, large_excess, channels)
+        assert inspect_artifact(
+            large_path, channels, 0.01, "CARE", "terminal-exclude"
+        )["status"] == "INVALID_TEMPORAL_DATA"
+
+        nonterminal = list(good_rows)
+        nonterminal[50] = dict(nonterminal[50], frame_end_sec="1.02")
+        nonterminal_path = root / "nonterminal.csv"
+        write_fixture(nonterminal_path, nonterminal, channels)
+        assert inspect_artifact(
+            nonterminal_path, channels, 0.01, "CARE", "terminal-exclude"
+        )["status"] == "INVALID_TEMPORAL_DATA"
+
+        multiple = list(good_rows)
+        multiple[-2] = dict(multiple[-2], frame_end_sec="1.0100625")
+        multiple[-1] = dict(multiple[-1], frame_end_sec="1.0100625")
+        multiple_path = root / "multiple_boundary.csv"
+        write_fixture(multiple_path, multiple, channels)
+        assert inspect_artifact(
+            multiple_path, channels, 0.01, "CARE", "terminal-exclude"
+        )["status"] == "INVALID_TEMPORAL_DATA"
+
         def check_invalid(name: str, rows: list[dict[str, str]], expected: str) -> None:
             path = root / f"{name}.csv"
             write_fixture(path, rows, channels)
             assert inspect_artifact(path, channels, 0.01)["status"] == expected
+            assert inspect_artifact(
+                path, channels, 0.01, "CARE", "terminal-exclude"
+            )["status"] == expected
 
         missing = good_rows[:50] + good_rows[51:]
         check_invalid("missing_frame", missing, "INVALID_TEMPORAL_DATA")
@@ -453,6 +616,11 @@ def main() -> int:
     parser.add_argument("--wsm-root", type=Path, default=Path("/media/maxim/Databases/WSM_NEW"))
     parser.add_argument("--manifest", type=Path, default=Path("reports/feature_audit/sample_feature_availability.csv"))
     parser.add_argument("--registry", type=Path, default=Path("/media/maxim/Databases/CARE/splits/features.json"))
+    parser.add_argument(
+        "--boundary-policy",
+        choices=("strict", "terminal-exclude"),
+        default="strict",
+    )
     args = parser.parse_args()
 
     try:
@@ -490,7 +658,7 @@ def main() -> int:
         if nominal is None:
             failures.append(f"{corpus}: ambiguous nominal frame-start hop")
 
-    artifact_cache: dict[tuple[Path, float], dict[str, Any]] = {}
+    artifact_cache: dict[tuple[Path, float, str, str], dict[str, Any]] = {}
     population_summary: dict[str, dict[str, Any]] = {}
     duration_distributions: dict[str, Counter[str]] = defaultdict(Counter)
     hop_distributions: dict[str, Counter[str]] = defaultdict(Counter)
@@ -508,59 +676,187 @@ def main() -> int:
             if nominal_hop is None:
                 diagnostics.append(empty_diagnostics("AMBIGUOUS_TIME_COORDINATES"))
                 continue
-            key = (path, nominal_hop)
+            key = (path, nominal_hop, corpus, args.boundary_policy)
             if key not in artifact_cache:
-                artifact_cache[key] = inspect_artifact(path, channels, nominal_hop)
+                artifact_cache[key] = inspect_artifact(
+                    path,
+                    channels,
+                    nominal_hop,
+                    corpus,
+                    args.boundary_policy,
+                )
             diagnostics.append(artifact_cache[key])
 
         for diagnostic in diagnostics:
             merge_counter(duration_distributions[corpus], diagnostic["frame_duration_counts"])
             merge_counter(hop_distributions[corpus], diagnostic["frame_hop_counts"])
-        fully_valid = [diagnostic for diagnostic in diagnostics if diagnostic["status"] == "VALID"]
+        fully_valid = [
+            diagnostic for diagnostic in diagnostics if diagnostic["status"] == "VALID"
+        ]
+        audited = [
+            diagnostic
+            for diagnostic in diagnostics
+            if diagnostic["status"]
+            not in {
+                "MANIFEST_INVALID",
+                "UNREADABLE",
+                "EMPTY",
+                "SCHEMA_MISMATCH",
+                "AMBIGUOUS_TIME_COORDINATES",
+            }
+        ]
         readable = [
             diagnostic
             for diagnostic in diagnostics
             if diagnostic["status"] not in {"MANIFEST_INVALID", "UNREADABLE"}
         ]
-        invalid = [diagnostic for diagnostic in diagnostics if diagnostic["status"] not in {"VALID", "MANIFEST_INVALID"}]
+        invalid = [
+            diagnostic
+            for diagnostic in diagnostics
+            if diagnostic["status"] not in {"VALID", "MANIFEST_INVALID"}
+        ]
         if invalid:
             failures.append(f"{population}: {len(invalid)} invalid artifacts")
         candidate = sum(diagnostic["candidate_windows"] for diagnostic in fully_valid)
         valid_80 = sum(diagnostic["valid_windows_80"] for diagnostic in fully_valid)
         valid_95 = sum(diagnostic["valid_windows_95"] for diagnostic in fully_valid)
+        candidate_before = sum(
+            diagnostic["candidate_windows_before_exclusion"]
+            for diagnostic in audited
+        )
+        valid_80_before = sum(
+            diagnostic["valid_windows_80_before_exclusion"]
+            for diagnostic in audited
+        )
+        valid_95_before = sum(
+            diagnostic["valid_windows_95_before_exclusion"]
+            for diagnostic in audited
+        )
         density_count = sum(diagnostic["density_count"] for diagnostic in fully_valid)
         density_sum = sum(diagnostic["density_sum"] for diagnostic in fully_valid)
         density_min = min(
-            (diagnostic["density_min"] for diagnostic in fully_valid if diagnostic["density_min"] is not None),
+            (
+                diagnostic["density_min"]
+                for diagnostic in fully_valid
+                if diagnostic["density_min"] is not None
+            ),
             default=None,
         )
         density_max = max(
-            (diagnostic["density_max"] for diagnostic in fully_valid if diagnostic["density_max"] is not None),
+            (
+                diagnostic["density_max"]
+                for diagnostic in fully_valid
+                if diagnostic["density_max"] is not None
+            ),
             default=None,
         )
+        density_before_count = sum(
+            diagnostic["density_count_before_exclusion"] for diagnostic in audited
+        )
+        density_before_sum = sum(
+            diagnostic["density_sum_before_exclusion"] for diagnostic in audited
+        )
+        density_before_min = min(
+            (
+                diagnostic["density_min_before_exclusion"]
+                for diagnostic in audited
+                if diagnostic["density_min_before_exclusion"] is not None
+            ),
+            default=None,
+        )
+        density_before_max = max(
+            (
+                diagnostic["density_max_before_exclusion"]
+                for diagnostic in audited
+                if diagnostic["density_max_before_exclusion"] is not None
+            ),
+            default=None,
+        )
+        exclusion_reasons: Counter[str] = Counter()
+        for diagnostic in diagnostics:
+            exclusion_reasons.update(diagnostic["exclusion_reasons"])
         population_summary[population] = {
             "source_samples": len(rows),
             "manifest_valid_artifacts": manifest_valid,
             "readable_files": len(readable),
             "fully_valid_artifacts": len(fully_valid),
-            "usable_samples_80": sum(diagnostic["valid_windows_80"] > 0 for diagnostic in fully_valid),
-            "usable_samples_95": sum(diagnostic["valid_windows_95"] > 0 for diagnostic in fully_valid),
+            "usable_samples_80": sum(
+                diagnostic["valid_windows_80"] > 0 for diagnostic in fully_valid
+            ),
+            "usable_samples_95": sum(
+                diagnostic["valid_windows_95"] > 0 for diagnostic in fully_valid
+            ),
             "candidate_windows": candidate,
             "valid_windows_80": valid_80,
             "valid_windows_95": valid_95,
             "rejected_windows_80": candidate - valid_80,
             "rejected_windows_95": candidate - valid_95,
-            "expected_frame_density": density_stats(density_sum, density_count, density_min, density_max),
-            "invalid_timestamp_rows": sum(diagnostic["invalid_timestamp_rows"] for diagnostic in diagnostics),
-            "nonfinite_feature_rows": sum(diagnostic["nonfinite_feature_rows"] for diagnostic in diagnostics),
-            "duplicate_timestamp_rows": sum(diagnostic["duplicate_timestamp_rows"] for diagnostic in diagnostics),
-            "out_of_order_rows": sum(diagnostic["out_of_order_rows"] for diagnostic in diagnostics),
-            "inconsistent_turn_boundaries": sum(diagnostic["inconsistent_turn_boundaries"] for diagnostic in diagnostics),
-            "out_of_turn_rows": sum(diagnostic["out_of_turn_rows"] for diagnostic in diagnostics),
-            "missing_expected_frame_starts": sum(diagnostic["missing_expected_frame_starts"] for diagnostic in diagnostics),
-            "irregular_cadence_count": sum(diagnostic["irregular_cadence_count"] for diagnostic in diagnostics),
-            "interval_gap_count": sum(diagnostic["interval_gap_count"] for diagnostic in diagnostics),
-            "interval_overlap_count": sum(diagnostic["interval_overlap_count"] for diagnostic in diagnostics),
+            "candidate_windows_before_exclusion": candidate_before,
+            "valid_windows_80_before_exclusion": valid_80_before,
+            "valid_windows_95_before_exclusion": valid_95_before,
+            "expected_frame_density": density_stats(
+                density_sum, density_count, density_min, density_max
+            ),
+            "expected_frame_density_before_exclusion": density_stats(
+                density_before_sum,
+                density_before_count,
+                density_before_min,
+                density_before_max,
+            ),
+            "excluded_frame_count": sum(
+                diagnostic["excluded_frame_count"] for diagnostic in diagnostics
+            ),
+            "excluded_terminal_frame_count": sum(
+                diagnostic["excluded_terminal_frame_count"]
+                for diagnostic in diagnostics
+            ),
+            "original_frame_rows": sum(
+                diagnostic["original_rows"] for diagnostic in diagnostics
+            ),
+            "retained_frame_rows": sum(
+                diagnostic["retained_rows"] for diagnostic in diagnostics
+            ),
+            "exclusion_reasons": dict(exclusion_reasons),
+            "invalid_timestamp_rows": sum(
+                diagnostic["invalid_timestamp_rows"] for diagnostic in diagnostics
+            ),
+            "nonfinite_feature_rows": sum(
+                diagnostic["nonfinite_feature_rows"] for diagnostic in diagnostics
+            ),
+            "duplicate_timestamp_rows": sum(
+                diagnostic["duplicate_timestamp_rows"] for diagnostic in diagnostics
+            ),
+            "out_of_order_rows": sum(
+                diagnostic["out_of_order_rows"] for diagnostic in diagnostics
+            ),
+            "inconsistent_turn_boundaries": sum(
+                diagnostic["inconsistent_turn_boundaries"]
+                for diagnostic in diagnostics
+            ),
+            "original_out_of_turn_rows": sum(
+                diagnostic["original_out_of_turn_rows"]
+                for diagnostic in diagnostics
+            ),
+            "out_of_turn_rows": sum(
+                diagnostic["out_of_turn_rows"] for diagnostic in diagnostics
+            ),
+            "missing_expected_frame_starts": sum(
+                diagnostic["missing_expected_frame_starts"]
+                for diagnostic in diagnostics
+            ),
+            "irregular_cadence_count": sum(
+                diagnostic["irregular_cadence_count"] for diagnostic in diagnostics
+            ),
+            "policy_rejected_boundary_count": sum(
+                diagnostic["policy_rejected_boundary_count"]
+                for diagnostic in diagnostics
+            ),
+            "interval_gap_count": sum(
+                diagnostic["interval_gap_count"] for diagnostic in diagnostics
+            ),
+            "interval_overlap_count": sum(
+                diagnostic["interval_overlap_count"] for diagnostic in diagnostics
+            ),
         }
 
     for population, overlap in profile_overlaps.items():
@@ -577,6 +873,8 @@ def main() -> int:
             "frame_assignment": "interval overlap for observation coverage; frame starts for density",
             "quality_thresholds": QUALITY_THRESHOLDS,
             "cache_fields": CACHE_FIELDS,
+            "boundary_policy": args.boundary_policy,
+            "terminal_excess_limit_seconds": MAX_TERMINAL_EXCESS,
             "synthetic_checks": "PASS",
         },
         "nominal_hop_seconds": nominal_hops,
