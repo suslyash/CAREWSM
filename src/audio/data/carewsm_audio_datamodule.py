@@ -43,10 +43,12 @@ class CAREWSMAudioDataModule(DataModule):
         batch_size: int = 32,
         num_workers: int = 0,
         shuffle_train: bool = False,
+        pooling: str = "native",
     ) -> None:
         self.feature_families = self._validate_selection(feature_family)
         self.fold_index = fold
         self.feature_family = feature_family
+        self.pooling = pooling
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
         self.feature_specs = self._read_registry(Path(registry))
         unknown = set(self.feature_families) - set(self.feature_specs)
@@ -60,6 +62,7 @@ class CAREWSMAudioDataModule(DataModule):
                 records,
                 self.feature_family,
                 self.feature_specs,
+                pooling=pooling,
             )
             for name, records in self.views.items()
         }
@@ -257,6 +260,7 @@ class CAREWSMAudioDataModule(DataModule):
         context.set("data.feature_family", self.feature_family)
         for name, records in self.views.items():
             context.set(f"data.{name}_count", len(records))
+        context.set("data.pooling", self.pooling)
 
 
 @DATAMODULES.register("carewsm_joint")
