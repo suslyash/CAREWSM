@@ -129,6 +129,7 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
         records: list[dict[str, Any]] | tuple[dict[str, Any], ...],
         feature_family: str | list[str],
         feature_specs: Mapping[str, Mapping[str, Any]],
+        pooling: str = "native",
     ) -> None:
         if isinstance(feature_family, str):
             families = [feature_family]
@@ -149,6 +150,11 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
         self.feature_family = feature_family
         self.feature_families = tuple(families)
         self.feature_specs = feature_specs
+        if pooling not in ("native", "mean", "mean_std"):
+            raise ValueError("pooling must be native, mean, or mean_std")
+        if pooling == "mean_std" and len(self.feature_families) != 1:
+            raise ValueError("mean_std pooling supports one feature family")
+        self.pooling = pooling
 
     def __len__(self) -> int:
         return len(self.records)
@@ -190,6 +196,13 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
                 for family, component in zip(self.feature_families, components)
             }
 
+        if self.pooling == "mean":
+            values = values.mean(axis=0, keepdims=True)
+        elif self.pooling == "mean_std":
+            values = np.concatenate(
+                (values.mean(axis=0, keepdims=True), values.std(axis=0, keepdims=True)),
+                axis=1,
+            )
         tensor = torch.from_numpy(values.astype(np.float32, copy=False))
         observed = torch.tensor(
             [record["depression_observed"], record["parkinson_observed"]],

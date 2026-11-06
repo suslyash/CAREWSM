@@ -31,6 +31,19 @@ def _masked_mean(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     return (values * weights).sum(dim=1) / weights.sum(dim=1).clamp_min(1.0)
 
 
+class MaskedAttentionPool(nn.Module):
+    """Learn a scalar attention weight for each valid input position."""
+
+    def __init__(self, hidden_dim: int) -> None:
+        super().__init__()
+        self.score = nn.Linear(hidden_dim, 1)
+
+    def forward(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        scores = self.score(values).squeeze(-1).masked_fill(~mask, -torch.inf)
+        weights = torch.softmax(scores, dim=1).unsqueeze(-1)
+        return (values * weights).sum(dim=1)
+
+
 class TaskHeads(nn.Module):
     """Independent Depression and Parkinson binary heads."""
 
@@ -232,6 +245,63 @@ class CAREWSMPooledMLPModel(CAREWSMSequenceModel):
         return values
 
 
+class CAREWSMAttentiveMLPModel(CAREWSMSequenceModel):
+    """Reference MLP with learned mask-safe attentive sequence pooling."""
+
+    def __init__(self, input_dim: int, hidden_dim: int = 64, dropout: float = 0.1) -> None:
+        super().__init__(input_dim, hidden_dim, dropout)
+        self.pool = MaskedAttentionPool(hidden_dim)
+
+    def forward(self, batch: Any) -> ModelOutput:
+        values, mask = _unpack(batch)
+        features = self.pool(self.projection(values), mask)
+        logits = self.heads(features)
+        return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
+
+    def encode(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        del mask
+        return values
+
+
+class CAREWSMGatedFusionModel(CAREWSMSequenceModel):
+    """Static family fusion with a learned gate per family projection."""
+
+    def __init__(
+        self,
+        input_dim: int,
+        family_dims: list[int],
+        hidden_dim: int = 64,
+        dropout: float = 0.1,
+    ) -> None:
+        if sum(family_dims) != input_dim:
+            raise ValueError("family_dims must sum to input_dim")
+        super().__init__(input_dim, hidden_dim, dropout)
+        self.family_dims = family_dims
+        self.family_projections = nn.ModuleList(
+            [nn.Linear(dim, hidden_dim) for dim in family_dims]
+        )
+        self.family_gates = nn.ModuleList(
+            [nn.Linear(dim, hidden_dim) for dim in family_dims]
+        )
+
+    def forward(self, batch: Any) -> ModelOutput:
+        values, _ = _unpack(batch)
+        chunks = torch.split(values[:, 0], self.family_dims, dim=-1)
+        fused = torch.zeros_like(self.family_projections[0].bias).expand(
+            values.shape[0], -1
+        )
+        for chunk, projection, gate in zip(
+            chunks, self.family_projections, self.family_gates
+        ):
+            fused = fused + torch.sigmoid(gate(chunk)) * projection(chunk)
+        logits = self.heads(fused)
+        return ModelOutput(preds=logits, aux={"features": fused, "logits": logits})
+
+    def encode(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        del mask
+        return values
+
+
 @MODELS.register("carewsm_tscmamba")
 def carewsm_tscmamba(context: Any | None = None, **params: Any) -> CAREWSMTSCMambaModel:
     return CAREWSMTSCMambaModel(**params)
@@ -250,3 +320,17 @@ def carewsm_md_former(context: Any | None = None, **params: Any) -> CAREWSMMDFor
 @MODELS.register("carewsm_pooled_mlp")
 def carewsm_pooled_mlp(context: Any | None = None, **params: Any) -> CAREWSMPooledMLPModel:
     return CAREWSMPooledMLPModel(**params)
+
+
+@MODELS.register("carewsm_attentive_mlp")
+def carewsm_attentive_mlp(
+    context: Any | None = None, **params: Any
+) -> CAREWSMAttentiveMLPModel:
+    return CAREWSMAttentiveMLPModel(**params)
+
+
+@MODELS.register("carewsm_gated_fusion")
+def carewsm_gated_fusion(
+    context: Any | None = None, **params: Any
+) -> CAREWSMGatedFusionModel:
+    return CAREWSMGatedFusionModel(**params)
