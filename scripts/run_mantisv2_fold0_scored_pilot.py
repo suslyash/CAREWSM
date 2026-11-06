@@ -76,6 +76,7 @@ def build_population(
     temporalizer: Any,
     channels: list[str],
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    validator = temporalizer.load_validator()
     rows = read_csv(root / "splits" / "folds" / f"fold_0_{split}.csv")
     records: list[dict[str, Any]] = []
     summary = {
@@ -92,8 +93,8 @@ def build_population(
         if record is None or record.get("egemaps_lld_status") != "VALID":
             continue
         summary["manifest_valid_records"] += 1
-        path = temporalizer.artifact_path(root, row)
-        diagnostic = temporalizer.inspect_artifact(
+        path = validator.artifact_path(root, row)
+        diagnostic = validator.inspect_artifact(
             path,
             channels,
             temporalizer.NOMINAL_HOP_SECONDS,
@@ -232,7 +233,8 @@ def main() -> int:
     args = parser.parse_args()
     seed_everything()
     temporalizer = load_temporalizer()
-    channels = temporalizer.registry_channels(args.registry)
+    validator = temporalizer.load_validator()
+    channels = validator.registry_channels(args.registry)
     sentinel_check(temporalizer, channels)
     manifest = {(row["corpus"], row["sample_id"]): row for row in read_csv(args.manifest)}
     populations = {}
