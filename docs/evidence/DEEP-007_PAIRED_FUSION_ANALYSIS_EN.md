@@ -33,9 +33,10 @@ explicit.
 The four families agree on turn cardinality and NPZ turn IDs in the inspected
 samples. This establishes turn correspondence, not a shared frame rate or a
 shared 1-second temporal grid. Only the trajectory family supplies explicit
-timestamps. Therefore raw temporal axes are not independently verified as
-aligned, and no raw temporal concatenation is scientifically justified by these
-artifacts alone. CARE has variable `T`; WSM is single-turn in the live artifacts.
+timestamps. Therefore the approved native turn alignment must not be interpreted
+as frame-synchronous or second-level timestamp alignment. Native turn concatenation
+is justified by identical ordered turn IDs; a separate frame-level contract is not
+established by these artifacts. CARE has variable `T`; WSM is single-turn in the live artifacts.
 
 ## Coverage of all 15 nonempty subsets
 
@@ -108,28 +109,28 @@ mean. `SD` is the sample standard deviation of the five paired differences.
 
 | Fusion subset | Model | Fusion mean | Strongest constituent (mean) | Diff mean / SD pp | Min..max pp | Improved folds | Fold differences pp |
 |---|---|---:|---|---:|---:|---:|---|
-| embeds__trajectories | Pooled MLP | .7906 | embeds (.7919) | -0.13 / 0.58 | -0.76..+0.97 | 1/5 | +0.97/-0.30/-0.14/-0.76/-0.40 |
-| embeds__trajectories | MD-Former | .7919 | embeds (.7944) | -0.25 / 1.83 | -2.62..+2.28 | 2/5 | +1.09/-2.62/-1.94/-0.04/+2.28 |
-| embeds__trajectories__trillsson | Pooled MLP | .7467 | embeds (.7919) | -4.52 / 3.95 | -8.84..+1.79 | 1/5 | +1.79/-7.57/-8.84/-1.77/-6.20 |
-| embeds__trajectories__trillsson | MD-Former | .7539 | embeds (.7944) | -4.05 / 5.28 | -10.44..+4.19 | 1/5 | -0.43/-7.90/-10.44/+4.19/-5.66 |
-| embeds__trajectories__trillsson__wav | Pooled MLP | .7681 | embeds (.7919) | -2.38 / 2.79 | -7.07..+0.74 | 1/5 | -0.05/-3.64/-7.07/-1.86/+0.74 |
-| embeds__trajectories__trillsson__wav | MD-Former | .7207 | embeds (.7944) | -7.37 / 7.28 | -19.50..-1.07 | 1/5 | +0.35/-19.50/-11.19/-5.44/-1.07 |
-| embeds__trajectories__wav | Pooled MLP | .7338 | embeds (.7919) | -5.81 / 2.21 | -9.07..-2.87 | 0/5 | -2.87/-7.07/-6.08/-9.07/-3.94 |
-| embeds__trajectories__wav | MD-Former | .6795 | embeds (.7944) | -11.49 / 4.67 | -20.47..-8.16 | 0/5 | -8.16/-20.47/-11.68/-8.82/-8.32 |
-| embeds__trillsson | Pooled MLP | .7952 | embeds (.7919) | +0.33 / 5.99 | -9.05..+8.32 | 3/5 | +8.32/-2.73/-9.05/+4.56/+0.55 |
-| embeds__trillsson | MD-Former | .7788 | embeds (.7944) | -1.56 / 6.70 | -10.28..+8.04 | 3/5 | +1.74/-7.94/-10.28/+8.04/+0.62 |
-| embeds__trillsson__wav | Pooled MLP | .7662 | embeds (.7919) | -2.57 / 3.93 | -8.76..+3.24 | 1/5 | +3.24/-4.25/-8.76/-1.10/-1.99 |
-| embeds__trillsson__wav | MD-Former | .7010 | embeds (.7944) | -9.34 / 5.40 | -17.86..-3.43 | 0/5 | -4.22/-17.86/-12.69/-3.43/-8.52 |
-| embeds__wav | Pooled MLP | .7128 | embeds (.7919) | -7.91 / 2.16 | -11.73..-6.00 | 0/5 | -6.56/-6.39/-11.73/-6.00/-8.85 |
-| embeds__wav | MD-Former | .6723 | embeds (.7944) | -12.21 / 1.56 | -13.99..-10.04 | 0/5 | -11.01/-13.99/-13.90/-12.09/-10.04 |
-| trajectories__trillsson | Pooled MLP | .7712 | trillsson (.7802) | -0.90 / 1.09 | -2.25..+0.24 | 2/5 | -2.17/+0.24/+0.08/-2.25/-0.39 |
-| trajectories__trillsson | MD-Former | .7547 | trillsson (.7601) | -0.54 / 2.54 | -4.44..+2.11 | 3/5 | +1.14/+2.11/+1.14/-4.44/-2.64 |
-| trajectories__trillsson__wav | Pooled MLP | .7622 | trillsson (.7802) | -1.80 / 1.74 | -4.16..+1.00 | 1/5 | -4.16/-0.92/+1.00/-2.22/-2.69 |
-| trajectories__trillsson__wav | MD-Former | .7526 | trillsson (.7601) | -0.75 / 2.38 | -2.80..+3.66 | 1/5 | -2.08/+3.66/-0.16/-2.80/-2.35 |
-| trajectories__wav | Pooled MLP | .7018 | wav (.6832) | +1.87 / 4.27 | -3.71..+7.64 | 3/5 | +7.64/-3.71/+0.03/-0.63/+6.01 |
-| trajectories__wav | MD-Former | .6571 | wav (.6791) | -2.21 / 2.91 | -6.44..+1.96 | 1/5 | -3.10/-6.44/+1.96/-3.44/-0.01 |
-| trillsson__wav | Pooled MLP | .7785 | trillsson (.7802) | -0.17 / 2.69 | -3.98..+2.93 | 3/5 | -3.98/+1.85/+1.07/-2.71/+2.93 |
-| trillsson__wav | MD-Former | .7304 | trillsson (.7601) | -2.96 / 3.64 | -9.81..+0.94 | 1/5 | +0.94/-2.54/-1.11/-9.81/-2.30 |
+| embeds__trajectories | Pooled MLP | .7906 | embeds (.7919) | -0.13 / 0.65 | -0.76..+0.97 | 1/5 | +0.97/-0.30/-0.14/-0.76/-0.40 |
+| embeds__trajectories | MD-Former | .7919 | embeds (.7944) | -0.25 / 2.04 | -2.62..+2.28 | 2/5 | +1.09/-2.62/-1.94/-0.04/+2.28 |
+| embeds__trajectories__trillsson | Pooled MLP | .7467 | embeds (.7919) | -4.52 / 4.42 | -8.84..+1.79 | 1/5 | +1.79/-7.57/-8.84/-1.77/-6.20 |
+| embeds__trajectories__trillsson | MD-Former | .7539 | embeds (.7944) | -4.05 / 5.90 | -10.44..+4.19 | 1/5 | -0.43/-7.90/-10.44/+4.19/-5.66 |
+| embeds__trajectories__trillsson__wav | Pooled MLP | .7681 | embeds (.7919) | -2.38 / 3.12 | -7.07..+0.74 | 1/5 | -0.05/-3.64/-7.07/-1.86/+0.74 |
+| embeds__trajectories__trillsson__wav | MD-Former | .7207 | embeds (.7944) | -7.37 / 8.14 | -19.50..-1.07 | 1/5 | +0.35/-19.50/-11.19/-5.44/-1.07 |
+| embeds__trajectories__wav | Pooled MLP | .7338 | embeds (.7919) | -5.81 / 2.47 | -9.07..-2.87 | 0/5 | -2.87/-7.07/-6.08/-9.07/-3.94 |
+| embeds__trajectories__wav | MD-Former | .6795 | embeds (.7944) | -11.49 / 5.22 | -20.47..-8.16 | 0/5 | -8.16/-20.47/-11.68/-8.82/-8.32 |
+| embeds__trillsson | Pooled MLP | .7952 | embeds (.7919) | +0.33 / 6.69 | -9.05..+8.32 | 3/5 | +8.32/-2.73/-9.05/+4.56/+0.55 |
+| embeds__trillsson | MD-Former | .7788 | embeds (.7944) | -1.56 / 7.49 | -10.28..+8.04 | 3/5 | +1.74/-7.94/-10.28/+8.04/+0.62 |
+| embeds__trillsson__wav | Pooled MLP | .7662 | embeds (.7919) | -2.57 / 4.40 | -8.76..+3.24 | 1/5 | +3.24/-4.25/-8.76/-1.10/-1.99 |
+| embeds__trillsson__wav | MD-Former | .7010 | embeds (.7944) | -9.34 / 6.03 | -17.86..-3.43 | 0/5 | -4.22/-17.86/-12.69/-3.43/-8.52 |
+| embeds__wav | Pooled MLP | .7128 | embeds (.7919) | -7.91 / 2.41 | -11.73..-6.00 | 0/5 | -6.56/-6.39/-11.73/-6.00/-8.85 |
+| embeds__wav | MD-Former | .6723 | embeds (.7944) | -12.21 / 1.75 | -13.99..-10.04 | 0/5 | -11.01/-13.99/-13.90/-12.09/-10.04 |
+| trajectories__trillsson | Pooled MLP | .7712 | trillsson (.7802) | -0.90 / 1.22 | -2.25..+0.24 | 2/5 | -2.17/+0.24/+0.08/-2.25/-0.39 |
+| trajectories__trillsson | MD-Former | .7547 | trillsson (.7601) | -0.54 / 2.84 | -4.44..+2.11 | 3/5 | +1.14/+2.11/+1.14/-4.44/-2.64 |
+| trajectories__trillsson__wav | Pooled MLP | .7622 | trillsson (.7802) | -1.80 / 1.95 | -4.16..+1.00 | 1/5 | -4.16/-0.92/+1.00/-2.22/-2.69 |
+| trajectories__trillsson__wav | MD-Former | .7526 | trillsson (.7601) | -0.75 / 2.66 | -2.80..+3.66 | 1/5 | -2.08/+3.66/-0.16/-2.80/-2.35 |
+| trajectories__wav | Pooled MLP | .7018 | wav (.6832) | +1.87 / 4.78 | -3.71..+7.64 | 3/5 | +7.64/-3.71/+0.03/-0.63/+6.01 |
+| trajectories__wav | MD-Former | .6571 | wav (.6791) | -2.21 / 3.26 | -6.44..+1.96 | 1/5 | -3.10/-6.44/+1.96/-3.44/-0.01 |
+| trillsson__wav | Pooled MLP | .7785 | trillsson (.7802) | -0.17 / 3.01 | -3.98..+2.93 | 3/5 | -3.98/+1.85/+1.07/-2.71/+2.93 |
+| trillsson__wav | MD-Former | .7304 | trillsson (.7601) | -2.96 / 4.07 | -9.81..+0.94 | 1/5 | +0.94/-2.54/-1.11/-9.81/-2.30 |
 
 ### Every constituent comparison
 
@@ -198,98 +199,108 @@ by their five-fold mean.
 
 ## Diagnostic metric audit
 
-For diagnostic review, the three highest fusion groups by five-fold validation
-mean were inspected against their strongest constituent: `embeds__trillsson /`
-Pooled MLP (`.7952` vs embeds), `embeds__trajectories /` MD-Former (`.7919` vs
-embeds), and `embeds__trajectories /` Pooled MLP (`.7906` vs embeds). At each
-selected epoch, the exact per-corpus/per-task metrics were checked for CARE and
-WSM, Depression and Parkinson: Macro Recall, Patient Recall, Healthy Recall, and
-Macro F1. The audit found no missing or non-finite values.
+The three leading fusion groups by five-fold validation mean were inspected at
+selected epochs against their strongest matched single-family baseline. The
+following table contains all 60 required corpus/task/fold comparisons. Values are
+ordered `Macro Recall / Patient Recall / Healthy Recall / Macro F1`; both sides
+are the actual selected-epoch validation values from the runtime summaries.
 
-The principal exact diagnostic observations are:
+| Fusion group / model | Fold | Corpus/task | Fusion MR/PR/HR/F1 | Matched baseline MR/PR/HR/F1 |
+|---|---:|---|---|---|
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 0 | CARE Depression | 0.8097/0.7209/0.8985/0.8061 | 0.8439/0.7442/0.9436/0.8536 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 0 | CARE Parkinson | 0.8331/0.7353/0.9308/0.7838 | 0.6266/0.2941/0.9591/0.6468 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 0 | WSM Depression | 0.7511/0.7778/0.7244/0.7447 | 0.7768/0.7425/0.8110/0.7767 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 0 | WSM Parkinson | 0.9232/0.9083/0.9381/0.9235 | 0.7371/0.5764/0.8978/0.7435 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 1 | CARE Depression | 0.7991/0.7912/0.8071/0.7685 | 0.8825/0.8791/0.8858/0.8592 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 1 | CARE Parkinson | 0.7750/0.6154/0.9346/0.7603 | 0.8683/0.7692/0.9673/0.8642 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 1 | WSM Depression | 0.7308/0.7159/0.7456/0.7271 | 0.7030/0.6348/0.7712/0.7039 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 1 | WSM Parkinson | 0.9135/0.9035/0.9235/0.9127 | 0.8741/0.8246/0.9235/0.8777 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 2 | CARE Depression | 0.6591/0.3908/0.9274/0.6777 | 0.7741/0.6207/0.9274/0.7897 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 2 | CARE Parkinson | 0.5612/0.1290/0.9934/0.5852 | 0.8305/0.6774/0.9836/0.8562 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 2 | WSM Depression | 0.6771/0.5610/0.7932/0.6800 | 0.7092/0.6192/0.7992/0.7117 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 2 | WSM Parkinson | 0.9063/0.8559/0.9567/0.9111 | 0.8517/0.8428/0.8607/0.8497 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 3 | CARE Depression | 0.9111/0.9146/0.9076/0.8855 | 0.8420/0.7683/0.9157/0.8392 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 3 | CARE Parkinson | 0.6942/0.4688/0.9197/0.6766 | 0.6172/0.2812/0.9532/0.6332 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 3 | WSM Depression | 0.7182/0.7297/0.7067/0.7113 | 0.7391/0.7558/0.7224/0.7317 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 3 | WSM Parkinson | 0.8966/0.9277/0.8654/0.8915 | 0.8394/0.8715/0.8073/0.8340 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 4 | CARE Depression | 0.8955/0.8333/0.9577/0.9013 | 0.8058/0.7000/0.9115/0.8102 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 4 | CARE Parkinson | 0.8297/0.7353/0.9241/0.7745 | 0.8595/0.8235/0.8956/0.7625 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 4 | WSM Depression | 0.7619/0.6948/0.8291/0.7641 | 0.7792/0.7529/0.8055/0.7773 |
+| emotionmsp_embeds__trillsson4_1 / Pooled MLP | 4 | WSM Parkinson | 0.8571/0.8509/0.8634/0.8548 | 0.8780/0.8772/0.8789/0.8753 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 0 | CARE Depression | 0.8692/0.8023/0.9361/0.8692 | 0.8790/0.8256/0.9323/0.8745 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 0 | CARE Parkinson | 0.6603/0.4118/0.9088/0.6427 | 0.6466/0.3529/0.9403/0.6525 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 0 | WSM Depression | 0.7915/0.7995/0.7835/0.7873 | 0.7624/0.7886/0.7362/0.7561 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 0 | WSM Parkinson | 0.7825/0.7074/0.8576/0.7860 | 0.7720/0.7205/0.8235/0.7732 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 1 | CARE Depression | 0.9159/0.9341/0.8976/0.8880 | 0.9084/0.9231/0.8937/0.8810 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 1 | CARE Parkinson | 0.8105/0.6667/0.9542/0.8070 | 0.9163/0.8718/0.9608/0.8860 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 1 | WSM Depression | 0.7224/0.6145/0.8304/0.7265 | 0.7312/0.6261/0.8363/0.7354 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 1 | WSM Parkinson | 0.8479/0.8333/0.8624/0.8462 | 0.8458/0.7895/0.9021/0.8494 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 2 | CARE Depression | 0.8019/0.7126/0.8911/0.7996 | 0.8525/0.7816/0.9234/0.8525 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 2 | CARE Parkinson | 0.7508/0.5806/0.9211/0.7156 | 0.8012/0.6452/0.9572/0.7927 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 2 | WSM Depression | 0.7619/0.7326/0.7913/0.7603 | 0.7246/0.6599/0.7893/0.7257 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 2 | WSM Parkinson | 0.8511/0.9127/0.7895/0.8395 | 0.8648/0.8690/0.8607/0.8613 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 3 | CARE Depression | 0.8122/0.8171/0.8072/0.7724 | 0.7766/0.5854/0.9679/0.8077 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 3 | CARE Parkinson | 0.5927/0.2188/0.9666/0.6143 | 0.6289/0.2812/0.9766/0.6631 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 3 | WSM Depression | 0.7207/0.7878/0.6535/0.7062 | 0.7393/0.6657/0.8130/0.7415 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 3 | WSM Parkinson | 0.8340/0.8514/0.8165/0.8300 | 0.8165/0.8072/0.8257/0.8151 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 4 | CARE Depression | 0.8028/0.7556/0.8500/0.7845 | 0.8152/0.7111/0.9192/0.8210 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 4 | CARE Parkinson | 0.8580/0.8235/0.8924/0.7586 | 0.7455/0.6176/0.8734/0.6773 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 4 | WSM Depression | 0.7729/0.7442/0.8016/0.7712 | 0.7633/0.7151/0.8114/0.7635 |
+| emotionmsp_embeds__emotionmsp_trajectories / MD-Former | 4 | WSM Parkinson | 0.8795/0.8553/0.9037/0.8800 | 0.8981/0.8553/0.9410/0.9017 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 0 | CARE Depression | 0.8249/0.7326/0.9173/0.8262 | 0.8439/0.7442/0.9436/0.8536 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 0 | CARE Parkinson | 0.6319/0.3235/0.9403/0.6391 | 0.6266/0.2941/0.9591/0.6468 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 0 | WSM Depression | 0.7712/0.6802/0.8622/0.7754 | 0.7768/0.7425/0.8110/0.7767 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 0 | WSM Parkinson | 0.7952/0.6987/0.8916/0.8009 | 0.7371/0.5764/0.8978/0.7435 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 1 | CARE Depression | 0.8868/0.8681/0.9055/0.8709 | 0.8825/0.8791/0.8858/0.8592 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 1 | CARE Parkinson | 0.8203/0.6667/0.9739/0.8391 | 0.8683/0.7692/0.9673/0.8642 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 1 | WSM Depression | 0.7391/0.6696/0.8087/0.7409 | 0.7030/0.6348/0.7712/0.7039 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 1 | WSM Parkinson | 0.8693/0.8333/0.9052/0.8710 | 0.8741/0.8246/0.9235/0.8777 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 2 | CARE Depression | 0.7551/0.5747/0.9355/0.7755 | 0.7741/0.6207/0.9274/0.7897 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 2 | CARE Parkinson | 0.7916/0.6129/0.9704/0.8048 | 0.8305/0.6774/0.9836/0.8562 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 2 | WSM Depression | 0.7271/0.6192/0.8350/0.7313 | 0.7092/0.6192/0.7992/0.7117 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 2 | WSM Parkinson | 0.8862/0.8777/0.8947/0.8848 | 0.8517/0.8428/0.8607/0.8497 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 3 | CARE Depression | 0.8321/0.7927/0.8715/0.8124 | 0.8420/0.7683/0.9157/0.8392 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 3 | CARE Parkinson | 0.6099/0.2500/0.9699/0.6363 | 0.6172/0.2812/0.9532/0.6332 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 3 | WSM Depression | 0.7386/0.7645/0.7126/0.7299 | 0.7391/0.7558/0.7224/0.7317 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 3 | WSM Parkinson | 0.8266/0.8795/0.7737/0.8188 | 0.8394/0.8715/0.8073/0.8340 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 4 | CARE Depression | 0.7624/0.6556/0.8692/0.7595 | 0.8058/0.7000/0.9115/0.8102 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 4 | CARE Parkinson | 0.8878/0.9118/0.8639/0.7482 | 0.8595/0.8235/0.8956/0.7625 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 4 | WSM Depression | 0.7834/0.7180/0.8487/0.7859 | 0.7792/0.7529/0.8055/0.7773 |
+| emotionmsp_embeds__emotionmsp_trajectories / Pooled MLP | 4 | WSM Parkinson | 0.8726/0.8509/0.8944/0.8726 | 0.8780/0.8772/0.8789/0.8753 |
 
-| Fusion/model/fold | Corpus/task | Fusion MR/PR/HR/F1 | Paired baseline MR/PR/HR/F1 |
-|---|---|---|---|
-| embeds__trillsson / MLP / 0 | CARE Depression | .8097/.7209/.8985/.8061 | .8439/.7442/.9436/.8536 |
-| embeds__trillsson / MLP / 0 | CARE Parkinson | .8331/.7353/.9308/.7838 | .6266/.2941/.9591/.6468 |
-| embeds__trillsson / MLP / 0 | WSM Depression | .7511/.7778/.7244/.7447 | .7768/.7425/.8110/.7767 |
-| embeds__trillsson / MLP / 0 | WSM Parkinson | .9232/.9083/.9381/.9235 | .7371/.5764/.8978/.7435 |
-| embeds__trillsson / MLP / 1 | CARE Depression | .7991/.7912/.8071/.7685 | .8825/.8791/.8858/.8592 |
-| embeds__trillsson / MLP / 1 | CARE Parkinson | .7750/.6154/.9346/.7603 | .8683/.7692/.9673/.8642 |
-| embeds__trillsson / MLP / 2 | CARE Depression | .6591/.3908/.9274/.6777 | .7741/.6207/.9274/.7897 |
-| embeds__trillsson / MLP / 2 | CARE Parkinson | .5612/.1290/.9934/.5852 | .8305/.6774/.9836/.8562 |
-| embeds__trillsson / MLP / 3 | CARE Depression | .9111/.9146/.9076/.8855 | .8420/.7683/.9157/.8392 |
-| embeds__trillsson / MLP / 3 | CARE Parkinson | .6942/.4688/.9197/.6766 | .6172/.2812/.9532/.6332 |
-| embeds__trillsson / MLP / 4 | CARE Depression | .8955/.8333/.9577/.9013 | .8058/.7000/.9115/.8102 |
-| embeds__trillsson / MLP / 4 | CARE Parkinson | .8297/.7353/.9241/.7745 | .8595/.8235/.8956/.7625 |
-| embeds__trillsson / MLP / 0..4 | WSM tasks | exact values checked | exact values checked |
-| embeds__trajectories / MD / 0 | CARE Depression | .8692/.8023/.9361/.8692 | .8790/.8256/.9323/.8745 |
-| embeds__trajectories / MD / 0 | CARE Parkinson | .6603/.4118/.9088/.6427 | .6466/.3529/.9403/.6525 |
-| embeds__trajectories / MD / 1 | CARE Parkinson | .8105/.6667/.9542/.8070 | .9163/.8718/.9608/.8860 |
-| embeds__trajectories / MD / 2 | CARE Parkinson | .7508/.5806/.9211/.7156 | .8012/.6452/.9572/.7927 |
-| embeds__trajectories / MD / 3 | CARE Parkinson | .5927/.2188/.9666/.6143 | .6289/.2812/.9766/.6631 |
-| embeds__trajectories / MD / 4 | CARE Parkinson | .8580/.8235/.8924/.7586 | .7455/.6176/.8734/.6773 |
-
-For the remaining WSM rows and the third diagnostic group, the same four metrics
-were present and finite in both sides of every selected fold; the full runtime
-summary rows are the source of record. The compact diagnostic table above retains
-the exact low-recall cases that determine the scientific interpretation.
-
-Before evaluating diagnostics, the following descriptive flags were fixed:
-
-* `patient-collapse`: Patient Recall `< 0.50`;
-* `healthy-collapse`: Healthy Recall `< 0.50`;
-* `class-imbalance`: `abs(Patient Recall - Healthy Recall) >= 0.40`.
-
-These are audit flags, not selection criteria. The fusion examples include
-patient-collapse and class-imbalance: for example, CARE Parkinson fold 2 of
-`embeds__trillsson / MLP` has PR `.1290`, HR `.9934`, and MR `.5612`; CARE
-Parkinson fold 3 of `embeds__trajectories / MD` has PR `.2188`, HR `.9666`, and
-MR `.5927`. Thus a higher aggregate recall cannot be interpreted as uniformly
-balanced disease performance.
+The descriptive imbalance flags were fixed before evaluation and were not used
+for selection: `patient-collapse` means Patient Recall `< 0.50`,
+`healthy-collapse` means Healthy Recall `< 0.50`, and `class-imbalance` means
+`abs(Patient Recall - Healthy Recall) >= 0.40`. For example, CARE Parkinson fold
+2 of `embeds__trillsson / Pooled MLP` has PR `.1290`, HR `.9934`, and MR `.5612`;
+CARE Parkinson fold 3 of `embeds__trajectories / MD-Former` has PR `.2188`, HR
+`.9666`, and MR `.5927`. These are descriptive warnings, not feature-selection
+criteria.
 
 ## Representation and model readiness
 
-The minimal defensible static contract is independent arithmetic mean pooling of
-each observed `[T,D]` family over its valid turns, producing `[1,D]`, followed by
-ordered concatenation. It is a pooled-static representation, not raw-native
-fusion. The proposed component dimensions are:
+The completed DEEP-004 through DEEP-006 experiments use native turn-aligned
+fusion. For each family the Dataset loads `[T,D]` values and ordered `turn_ids`,
+requires identical ordered turn-ID sequences, and concatenates corresponding
+turns to `[T,D1+D2]`. This is turn-level alignment, not frame-synchronous or
+second-level timestamp alignment. The audited artifacts support matching turn
+IDs, but do not claim a common frame rate or shared wall-clock timestamps.
 
-| Component | Dimension |
-|---|---:|
-| `emotionmsp_embeds_mean` | 1,024 |
-| `emotionmsp_trajectories_mean` | 3 |
-| `trillsson4_1_mean` | 1,024 |
-| `wav2vec_xlsr300m_mean` | 1,024 |
+The Dataset already implements this alignment and variable-length batching. Both
+Pooled MLP and MD-Former completed real experiments on the resulting fused
+native-turn sequences. The 110-run comparison is therefore scientifically
+interpretable as native turn-aligned feature fusion and must not be retrospectively
+reclassified as invalid.
 
-Under this explicit contract, proposed names and dimensions are:
+A static control could independently pool each family over its turns and then
+concatenate the pooled vectors, with dimensions 1,024, 3, 1,024, and 1,024 and
+subset dimensions 1,027, 2,048, 2,051, 3,072, or 3,075 as applicable. That is a
+distinct future pooled-static experiment, not the representation used here and
+not an authorized replacement. Raw turn alignment and frame-level timestamp
+synchronization remain different scientific claims.
 
-| Name | Dimension |
-|---|---:|
-| `emotionmsp_embeds` | 1,024 |
-| `emotionmsp_trajectories` | 3 |
-| `trillsson4_1` | 1,024 |
-| `wav2vec_xlsr300m` | 1,024 |
-| `emotionmsp_embeds__emotionmsp_trajectories` | 1,027 |
-| `emotionmsp_embeds__trillsson4_1` | 2,048 |
-| `emotionmsp_embeds__wav2vec_xlsr300m` | 2,048 |
-| `emotionmsp_trajectories__trillsson4_1` | 1,027 |
-| `emotionmsp_trajectories__wav2vec_xlsr300m` | 1,027 |
-| `trillsson4_1__wav2vec_xlsr300m` | 2,048 |
-| `emotionmsp_embeds__emotionmsp_trajectories__trillsson4_1` | 2,051 |
-| `emotionmsp_embeds__emotionmsp_trajectories__wav2vec_xlsr300m` | 2,051 |
-| `emotionmsp_embeds__trillsson4_1__wav2vec_xlsr300m` | 3,072 |
-| `emotionmsp_trajectories__trillsson4_1__wav2vec_xlsr300m` | 2,051 |
-| `emotionmsp_embeds__emotionmsp_trajectories__trillsson4_1__wav2vec_xlsr300m` | 3,075 |
-
-Existing Pooled MLP and MD-Former can consume this representation through their
-existing static input path, subject to the existing config/data contract. No
-source change is justified by the audit. They cannot consume raw variable-length
-four-family sequences as a single static vector without a new temporal batching
-and alignment contract. Therefore no temporal-native model comparison is
-justified at this stage. A future temporal comparison requires timestamp evidence
-or an explicitly authorized turn-alignment contract and must not repeat static
-vectors along a fabricated time axis.
+Existing Pooled MLP and MD-Former consumed the approved native-turn fused input
+without source changes in DEEP-006. No model-readiness blocker was identified.
 
 ## Integrity checks and ambiguities
 
@@ -306,13 +317,13 @@ vectors along a fabricated time axis.
 * Profiles, split identities, fold identities, corpus identities, and observed
   label masks were retained from the canonical metadata. The fixed CARE TEST and
   WSM TEST populations were unchanged.
-* The main scientific ambiguity is temporal: equal turn IDs do not prove equal
-  timestamps across all families. A second ambiguity is whether future work wants
+* Turn IDs establish the approved native turn alignment, but they do not establish
+  frame-level timestamp synchronization across all families. A second ambiguity is whether future work wants
   `mean` only or the registry's `mean+std`; these are different representation
   contracts and dimensions.
 * The paired results do not establish a performance claim. `embeds__trillsson /
   Pooled MLP` is only `+0.33 pp` over its strongest constituent on average and
-  improves 3/5 folds, with a 5-fold SD of `5.99 pp`; it is not a consistent
+  improves 3/5 folds, with the corrected sample SD of `6.69 pp`; it is not a consistent
   improvement. Adding trajectories to the strong embeds baseline is generally
   neutral-to-negative, while combinations involving the weak trajectories-only
   baseline can look positive without demonstrating incremental value over the
