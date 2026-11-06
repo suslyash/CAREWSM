@@ -115,13 +115,19 @@ def build_population(
             summary["records_without_valid_window"] += 1
             continue
         summary["valid_records_with_windows"] += 1
-        labels = np.asarray(
-            [float(record["depression"]), float(record["parkinson"])],
-            dtype=np.float32,
-        )
         observed = np.asarray(
-            [record["depression_observed"] == "True", record["parkinson_observed"] == "True"],
+            [
+                record["depression_observed"].lower() == "true",
+                record["parkinson_observed"].lower() == "true",
+            ],
             dtype=bool,
+        )
+        labels = np.asarray(
+            [
+                float(record["depression"]) if observed[0] else 0.0,
+                float(record["parkinson"]) if observed[1] else 0.0,
+            ],
+            dtype=np.float32,
         )
         records.append(
             {
