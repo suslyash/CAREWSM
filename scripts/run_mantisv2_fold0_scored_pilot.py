@@ -105,7 +105,7 @@ def build_population(
             summary["records_without_valid_window"] += 1
             continue
         frames, excluded, reasons = temporalizer.artifact_frames(
-            path, channels, temporalizer
+            path, channels, validator
         )
         windows = temporalizer.temporalize(frames, len(channels))
         summary["policy_c_excluded_frames"] += excluded
