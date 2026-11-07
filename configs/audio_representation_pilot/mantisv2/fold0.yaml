@@ -32,7 +32,7 @@ data:
     batch_size: 64
     care_root: /media/maxim/Databases/CARE
     feature_family: mantisv2_egemaps
-    mantis_cache_manifest: /media/maxim/Databases/CARE/mantisv2_cache/fold0/manifest.json
+    mantis_cache_manifest: /media/maxim/Databases/CARE/mantisv2_cache/fold0_validated3/manifest.json
     fold: 0
     manifest: reports/feature_audit/sample_feature_availability.csv
     num_workers: 8
@@ -74,7 +74,7 @@ train:
   params:
     collect_cache: true
     device: cuda
-    epochs: 50
+    epochs: 20
     grad_clip_norm: 1.0
     log_every_steps: 100
     mixed_precision: true

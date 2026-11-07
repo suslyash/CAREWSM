@@ -217,6 +217,7 @@ def inspect_artifact(
     nominal_hop: float,
     corpus: str = "CARE",
     boundary_policy: str = "strict",
+    include_window_metrics: bool = True,
 ) -> dict[str, Any]:
     result = empty_diagnostics()
     try:
@@ -345,68 +346,69 @@ def inspect_artifact(
         ]
         result["out_of_turn_rows"] += len(boundary_indices) - len(allowed_indices)
 
-        original_windows = candidate_windows(
-            turn_start,
-            turn_end,
-            [
-                (frame["frame_start_sec"], frame["frame_end_sec"])
-                for frame in frames_sorted
-            ],
-            [frame["frame_start_sec"] for frame in frames_sorted],
-            nominal_hop,
-        )
-        windows = candidate_windows(
-            turn_start,
-            turn_end,
-            [
-                (frame["frame_start_sec"], frame["frame_end_sec"])
-                for frame in retained
-            ],
-            [frame["frame_start_sec"] for frame in retained],
-            nominal_hop,
-        )
-        result["candidate_windows_before_exclusion"] += len(original_windows)
-        result["valid_windows_80_before_exclusion"] += sum(
-            window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[0]
-            for window in original_windows
-        )
-        result["valid_windows_95_before_exclusion"] += sum(
-            window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[1]
-            for window in original_windows
-        )
-        result["candidate_windows"] += len(windows)
-        result["valid_windows_80"] += sum(
-            window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[0]
-            for window in windows
-        )
-        result["valid_windows_95"] += sum(
-            window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[1]
-            for window in windows
-        )
-        for key, selected in (("_before_exclusion", original_windows), ("", windows)):
-            densities = [window["expected_frame_density"] for window in selected]
-            if not densities:
-                continue
-            if key == "":
-                result["density_sum"] += sum(densities)
-                result["density_count"] += len(densities)
-                minimum_key = "density_min"
-                maximum_key = "density_max"
-            else:
-                result["density_sum_before_exclusion"] += sum(densities)
-                result["density_count_before_exclusion"] += len(densities)
-                minimum_key = "density_min_before_exclusion"
-                maximum_key = "density_max_before_exclusion"
-            result[minimum_key] = (
-                min(densities)
-                if result[minimum_key] is None
-                else min(result[minimum_key], min(densities))
+        if include_window_metrics:
+            original_windows = candidate_windows(
+                turn_start,
+                turn_end,
+                [
+                    (frame["frame_start_sec"], frame["frame_end_sec"])
+                    for frame in frames_sorted
+                ],
+                [frame["frame_start_sec"] for frame in frames_sorted],
+                nominal_hop,
             )
-            result[maximum_key] = (
-                max(densities)
-                if result[maximum_key] is None
-                else max(result[maximum_key], max(densities))
+            windows = candidate_windows(
+                turn_start,
+                turn_end,
+                [
+                    (frame["frame_start_sec"], frame["frame_end_sec"])
+                    for frame in retained
+                ],
+                [frame["frame_start_sec"] for frame in retained],
+                nominal_hop,
             )
+            result["candidate_windows_before_exclusion"] += len(original_windows)
+            result["valid_windows_80_before_exclusion"] += sum(
+                window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[0]
+                for window in original_windows
+            )
+            result["valid_windows_95_before_exclusion"] += sum(
+                window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[1]
+                for window in original_windows
+            )
+            result["candidate_windows"] += len(windows)
+            result["valid_windows_80"] += sum(
+                window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[0]
+                for window in windows
+            )
+            result["valid_windows_95"] += sum(
+                window["valid_observation_fraction"] >= QUALITY_THRESHOLDS[1]
+                for window in windows
+            )
+            for key, selected in (("_before_exclusion", original_windows), ("", windows)):
+                densities = [window["expected_frame_density"] for window in selected]
+                if not densities:
+                    continue
+                if key == "":
+                    result["density_sum"] += sum(densities)
+                    result["density_count"] += len(densities)
+                    minimum_key = "density_min"
+                    maximum_key = "density_max"
+                else:
+                    result["density_sum_before_exclusion"] += sum(densities)
+                    result["density_count_before_exclusion"] += len(densities)
+                    minimum_key = "density_min_before_exclusion"
+                    maximum_key = "density_max_before_exclusion"
+                result[minimum_key] = (
+                    min(densities)
+                    if result[minimum_key] is None
+                    else min(result[minimum_key], min(densities))
+                )
+                result[maximum_key] = (
+                    max(densities)
+                    if result[maximum_key] is None
+                    else max(result[maximum_key], max(densities))
+                )
 
     invalid_fields = (
         "invalid_timestamp_rows",

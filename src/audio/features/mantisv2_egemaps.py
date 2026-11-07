@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import importlib.util
 import json
+import multiprocessing
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +43,22 @@ def _sha256(path: Path) -> str:
 def _cache_name(corpus: str, sample_id: str) -> str:
     return f"{corpus}__{hashlib.sha256(sample_id.encode()).hexdigest()[:20]}.npz"
 
+_WORKER_TEMPORIZER: Any | None = None
+_WORKER_VALIDATOR: Any | None = None
+_WORKER_CHANNELS: list[str] | None = None
+
+def _worker_init(registry: Path) -> None:
+    global _WORKER_TEMPORIZER, _WORKER_VALIDATOR, _WORKER_CHANNELS
+    _WORKER_TEMPORIZER = _load_temporalizer()
+    _WORKER_VALIDATOR = _WORKER_TEMPORIZER.load_validator()
+    _WORKER_CHANNELS = _WORKER_VALIDATOR.registry_channels(registry)
+
+def _worker_prepare(payload: tuple[str, str, dict[str, str]]) -> dict[str, Any] | None:
+    corpus, root, row = payload
+    return _prepare_sample(
+        corpus, Path(root), row, _WORKER_TEMPORIZER, _WORKER_VALIDATOR, _WORKER_CHANNELS
+    )
+
 def _prepare_sample(
     corpus: str,
     root: Path,
@@ -50,6 +68,15 @@ def _prepare_sample(
     channels: list[str],
 ) -> dict[str, Any] | None:
     path = validator.artifact_path(root, row)
+    diagnostic = validator.inspect_artifact(
+        path, channels, temporalizer.NOMINAL_HOP_SECONDS, corpus, "terminal-exclude",
+        include_window_metrics=False,
+    )
+    if diagnostic["status"] != "VALID":
+        raise ValueError(
+            f"temporal validation failed for {corpus}/{row['sample_id']}: "
+            f"{diagnostic['status']}"
+        )
     frames, excluded, reasons = temporalizer.artifact_frames(path, channels, validator)
     windows = temporalizer.temporalize(frames, len(channels))
     if not windows:
@@ -64,16 +91,26 @@ def _prepare_sample(
         "source_frame_rows": len(frames) + excluded,
     }
 
+def _cache_is_valid(path: Path) -> bool:
+    try:
+        with np.load(path, allow_pickle=False) as archive:
+            features = np.asarray(archive["features"], dtype=np.float32)
+    except (OSError, KeyError, ValueError):
+        return False
+    return features.shape == (1, FEATURE_DIMENSION) and bool(np.isfinite(features).all())
+
 def _infer_batch(
     pending: list[dict[str, Any]],
     cache_dir: Path,
     device: str,
     trainer: Any,
+    allow_reuse: bool,
 ) -> list[dict[str, Any]]:
     uncached = [
         item
         for item in pending
-        if not (cache_dir / _cache_name(item["corpus"], item["sample_id"])).exists()
+        if not allow_reuse
+        or not _cache_is_valid(cache_dir / _cache_name(item["corpus"], item["sample_id"]))
     ]
     if uncached:
         tensors = [window["tensor"] for item in uncached for window in item["windows"]]
@@ -114,15 +151,29 @@ def build_cache(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("Mantis checkpoint fingerprint does not match the pinned revision")
     args.output.mkdir(parents=True, exist_ok=True)
     manifest = {(row["corpus"], row["sample_id"]): row for row in _read_rows(args.manifest)}
-    from mantis.architecture import MantisV2
-    from mantis.trainer import MantisTrainer
-    network = MantisV2(device=args.device, return_transf_layer=2, output_token="combined").from_pretrained(str(args.checkpoint))
-    network.eval()
-    for parameter in network.parameters():
-        parameter.requires_grad_(False)
-    trainer = MantisTrainer(device=args.device, network=network)
-    records: list[dict[str, Any]] = []
-    pending: list[dict[str, Any]] = []
+    contract = {
+        "feature_family": FEATURE_FAMILY,
+        "feature_dimension": FEATURE_DIMENSION,
+        "checkpoint_revision": CHECKPOINT_REVISION,
+        "checkpoint_sha256": CHECKPOINT_SHA256,
+        "selected_layer": 2,
+        "output_token": "combined",
+        "pooling": "mean_windows",
+        "source_feature": "egemaps_lld",
+        "window_seconds": 1.0,
+        "hop_seconds": 0.5,
+        "min_consecutive_valid_frames": 95,
+        "max_windows_per_recording": 2,
+        "policy_c": "exclude terminal out-of-turn one-sample frames",
+    }
+    existing = args.output / "manifest.json"
+    allow_reuse = False
+    if existing.exists():
+        try:
+            allow_reuse = all(json.loads(existing.read_text(encoding="utf-8")).get(k) == v for k, v in contract.items())
+        except (OSError, json.JSONDecodeError):
+            allow_reuse = False
+    jobs: list[tuple[str, str, dict[str, str]]] = []
     for corpus, root in (("CARE", args.care_root), ("WSM", args.wsm_root)):
         split_rows = [
             _read_rows(root / "splits" / "folds" / "fold_0_train.csv"),
@@ -132,35 +183,39 @@ def build_cache(args: argparse.Namespace) -> dict[str, Any]:
         for rows in split_rows:
             for row in rows:
                 source = manifest.get((corpus, row["sample_id"]))
-                if source is None or source.get("egemaps_lld_status") != "VALID":
-                    continue
-                prepared = _prepare_sample(corpus, root, row, temporalizer, validator, channels)
-                if prepared is None:
-                    continue
-                pending.append(prepared)
-                if len(pending) == 32:
-                    records.extend(_infer_batch(pending, args.output, args.device, trainer))
-                    pending = []
+                if source is not None and source.get("egemaps_lld_status") == "VALID":
+                    jobs.append((corpus, str(root), row))
+
+    from mantis.architecture import MantisV2
+    from mantis.trainer import MantisTrainer
+    network = MantisV2(
+        device=args.device, return_transf_layer=2, output_token="combined"
+    ).from_pretrained(str(args.checkpoint))
+    network.eval()
+    for parameter in network.parameters():
+        parameter.requires_grad_(False)
+    trainer = MantisTrainer(device=args.device, network=network)
+    records: list[dict[str, Any]] = []
+    pending: list[dict[str, Any]] = []
+    with ProcessPoolExecutor(
+        max_workers=args.workers,
+        initializer=_worker_init,
+        initargs=(args.registry,),
+        mp_context=multiprocessing.get_context("spawn"),
+    ) as pool:
+        for prepared in pool.map(_worker_prepare, jobs, chunksize=4):
+            if prepared is None:
+                continue
+            pending.append(prepared)
+            if len(pending) == 32:
+                records.extend(_infer_batch(pending, args.output, args.device, trainer, allow_reuse))
+                pending = []
     if pending:
-        records.extend(_infer_batch(pending, args.output, args.device, trainer))
-    metadata = {
-        "feature_family": FEATURE_FAMILY,
-        "feature_dimension": FEATURE_DIMENSION,
-        "checkpoint_revision": CHECKPOINT_REVISION,
-        "checkpoint_sha256": CHECKPOINT_SHA256,
-        "selected_layer": 2,
-        "output_token": "combined",
-        "pooling": "mean_windows",
-        "source_feature": "egemaps_lld",
-        "channels": channels,
-        "window_seconds": 1.0,
-        "hop_seconds": 0.5,
-        "min_consecutive_valid_frames": 95,
-        "max_windows_per_recording": 2,
-        "policy_c": "exclude terminal out-of-turn one-sample frames",
-        "records": records,
-    }
-    (args.output / "manifest.json").write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8")
+        records.extend(_infer_batch(pending, args.output, args.device, trainer, allow_reuse))
+    metadata = {**contract, "channels": channels, "workers": args.workers, "records": records}
+    (args.output / "manifest.json").write_text(
+        json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8"
+    )
     return metadata
 
 def main() -> int:
@@ -172,6 +227,7 @@ def main() -> int:
     parser.add_argument("--wsm-root", type=Path, default=Path("/media/maxim/Databases/WSM_NEW"))
     parser.add_argument("--registry", type=Path, default=Path("/media/maxim/Databases/CARE/splits/features.json"))
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args()
     metadata = build_cache(args)
     print(json.dumps({"records": len(metadata["records"]), "output": str(args.output)}, indent=2))

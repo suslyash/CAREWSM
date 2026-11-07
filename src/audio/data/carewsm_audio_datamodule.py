@@ -173,9 +173,29 @@ class CAREWSMAudioDataModule(DataModule):
         if self.mantis_cache_manifest is None:
             return {}
         data = json.loads(self.mantis_cache_manifest.read_text(encoding="utf-8"))
-        return {
-            (row["corpus"], row["sample_id"]): row for row in data["records"]
+        expected = {
+            "feature_family": "mantisv2_egemaps",
+            "feature_dimension": 12_800,
+            "checkpoint_revision": "99fe0f548960e272fbfa4b82fd9b5b5956779dfd",
+            "checkpoint_sha256": "49d46d9a49cccdc87c46f4e0088fa52c0a6ef7eb4c13de5cc9815426b7b17ab1",
+            "selected_layer": 2,
+            "output_token": "combined",
+            "pooling": "mean_windows",
+            "source_feature": "egemaps_lld",
+            "window_seconds": 1.0,
+            "hop_seconds": 0.5,
+            "min_consecutive_valid_frames": 95,
+            "max_windows_per_recording": 2,
         }
+        if any(data.get(key) != value for key, value in expected.items()):
+            raise ValueError("Mantis cache manifest does not match the pinned feature contract")
+        records = {}
+        for row in data["records"]:
+            path = Path(row["path"])
+            if row.get("status") != "VALID" or not path.is_file():
+                raise ValueError(f"invalid Mantis cache artifact: {path}")
+            records[(row["corpus"], row["sample_id"])] = row
+        return records
 
     def _source_metadata(self, corpus: str, source: dict[str, str]) -> dict[str, str]:
         profile_id = source.get("profile_id", "")

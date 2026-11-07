@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from bisect import bisect_left
 import csv
 import hashlib
 import importlib.util
@@ -125,55 +126,92 @@ def consecutive_runs(frames: list[dict[str, Any]]) -> list[list[dict[str, Any]]]
     return runs
 
 
+def _interpolate_window(
+    frames: list[dict[str, Any]],
+    indices: list[int],
+    channels: int,
+    start: float,
+    end: float,
+) -> dict[str, Any]:
+    selected = [frames[index] for index in indices]
+    source_times = np.asarray(
+        [frame["frame_start_sec"] for frame in selected], dtype=np.float64
+    )
+    target_times = np.linspace(source_times[0], source_times[-1], 512)
+    values = np.stack([frame["values"] for frame in selected], axis=0)
+    interpolated = np.vstack(
+        [
+            np.interp(target_times, source_times, values[:, channel])
+            for channel in range(channels)
+        ]
+    ).astype(np.float32)
+    return {
+        "start_sec": start,
+        "end_sec": end,
+        "source_frame_count": len(selected),
+        "source_start_sec": float(source_times[0]),
+        "source_end_sec": float(source_times[-1]),
+        "tensor": interpolated,
+    }
+
+def _longest_consecutive_run(
+    frames: list[dict[str, Any]], left: int, right: int
+) -> list[int]:
+    best: list[int] = []
+    current: list[int] = []
+    for index in range(left, right):
+        if not current:
+            current = [index]
+            continue
+        delta = frames[index]["frame_start_sec"] - frames[index - 1]["frame_start_sec"]
+        if abs(delta - NOMINAL_HOP_SECONDS) <= TIMESTAMP_TOLERANCE:
+            current.append(index)
+        else:
+            if len(current) > len(best):
+                best = current
+            current = [index]
+    if len(current) > len(best):
+        best = current
+    return best
+
 def temporalize(frames: list[dict[str, Any]], channels: int) -> list[dict[str, Any]]:
     by_turn: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for frame in frames:
         by_turn[frame["turn_id"]].append(frame)
 
-    windows: list[dict[str, Any]] = []
+    selected_windows: list[dict[str, Any]] = []
     for turn_frames in by_turn.values():
         ordered = sorted(turn_frames, key=lambda item: item["frame_start_sec"])
         turn_start = ordered[0]["turn_start_sec"]
         turn_end = ordered[0]["turn_end_sec"]
+        starts = [frame["frame_start_sec"] for frame in ordered]
         index = 0
+        first: dict[str, Any] | None = None
+        last: dict[str, Any] | None = None
         while turn_start + index * WINDOW_HOP_SECONDS + WINDOW_SECONDS <= turn_end + TIMESTAMP_TOLERANCE:
             start = turn_start + index * WINDOW_HOP_SECONDS
             end = start + WINDOW_SECONDS
-            complete = [
-                frame
-                for frame in ordered
-                if frame["frame_start_sec"] >= start - TIMESTAMP_TOLERANCE
-                and frame["frame_end_sec"] <= end + TIMESTAMP_TOLERANCE
-                and frame["frame_start_sec"] >= turn_start - TIMESTAMP_TOLERANCE
-                and frame["frame_end_sec"] <= turn_end + TIMESTAMP_TOLERANCE
-            ]
-            runs = consecutive_runs(complete)
-            run = max(runs, key=len, default=[])
+            left = bisect_left(starts, start - TIMESTAMP_TOLERANCE)
+            right = bisect_left(starts, end - TIMESTAMP_TOLERANCE)
+            while left < right and ordered[left]["frame_end_sec"] > end + TIMESTAMP_TOLERANCE:
+                left += 1
+            while right > left and ordered[right - 1]["frame_end_sec"] > end + TIMESTAMP_TOLERANCE:
+                right -= 1
+            run = _longest_consecutive_run(ordered, left, right)
             if len(run) >= MIN_CONSECUTIVE_FRAMES:
-                source_times = np.asarray(
-                    [frame["frame_start_sec"] for frame in run], dtype=np.float64
-                )
-                target_times = np.linspace(source_times[0], source_times[-1], 512)
-                values = np.stack([frame["values"] for frame in run], axis=0)
-                interpolated = np.vstack(
-                    [np.interp(target_times, source_times, values[:, channel]) for channel in range(channels)]
-                ).astype(np.float32)
-                assert interpolated.shape == (channels, 512)
-                assert target_times[0] >= source_times[0]
-                assert target_times[-1] <= source_times[-1]
-                windows.append(
-                    {
-                        "start_sec": start,
-                        "end_sec": end,
-                        "source_frame_count": len(run),
-                        "source_start_sec": float(source_times[0]),
-                        "source_end_sec": float(source_times[-1]),
-                        "tensor": interpolated,
-                    }
-                )
+                window = _interpolate_window(ordered, run, channels, start, end)
+                if first is None:
+                    first = window
+                last = window
             index += 1
-    return windows[:2]
-
+        if first is not None:
+            selected_windows.append(first)
+            if last is not first:
+                selected_windows.append(last)
+    selected_windows.sort(key=lambda window: (window["start_sec"], window["end_sec"]))
+    if len(selected_windows) <= 2:
+        return selected_windows
+    return [selected_windows[0], selected_windows[-1]]
 
 def synthetic_checks(channels: int) -> None:
     frames = []
@@ -194,6 +232,11 @@ def synthetic_checks(channels: int) -> None:
     assert windows[0]["tensor"].shape == (channels, 512)
     assert np.isfinite(windows[0]["tensor"]).all()
     assert windows[0]["source_frame_count"] == 99
+    changed = [dict(frame) for frame in frames]
+    changed[-1]["values"] = np.full(channels, 1e30, dtype=np.float32)
+    changed[-1]["frame_end_sec"] = 1.0000625
+    changed_windows = temporalize(changed, channels)
+    assert np.array_equal(windows[0]["tensor"], changed_windows[0]["tensor"])
 
 
 def select_artifacts(
