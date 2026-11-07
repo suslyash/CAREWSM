@@ -147,9 +147,12 @@ class CAREWSMStageGMTLLoss(BaseLoss):
         parkinson_pos_weight: float,
         tau: float = 0.1,
         progress_temperature: float = 0.25,
-        progress_reference_depression: float = 0.697035,
-        progress_reference_parkinson: float = 0.852104,
+        progress_reference_depression: float = 0.5,
+        progress_reference_parkinson: float = 0.5,
         controller_ema: float = 0.8,
+        grad_ema: float = 0.9,
+        weight_min: float = 0.2,
+        weight_max: float = 0.8,
         pcgrad_seed: int = 5,
         calpha: float = 0.5,
         gradnorm_alpha: float = 1.5,
@@ -172,6 +175,13 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             float(progress_reference_parkinson),
         )
         self.controller_ema = float(controller_ema)
+        self.grad_ema = float(grad_ema)
+        self.weight_min = float(weight_min)
+        self.weight_max = float(weight_max)
+        if not 0.0 <= self.controller_ema < 1.0 or not 0.0 <= self.grad_ema < 1.0:
+            raise ValueError("EMA values must be in [0, 1)")
+        if not 0.0 <= self.weight_min <= self.weight_max <= 1.0:
+            raise ValueError("weight bounds must satisfy 0 <= min <= max <= 1")
         self._rng = random.Random(pcgrad_seed)
         self.calpha = float(calpha)
         self.gradnorm_alpha = float(gradnorm_alpha)
@@ -181,6 +191,8 @@ class CAREWSMStageGMTLLoss(BaseLoss):
         self.weights = torch.tensor([0.5, 0.5], dtype=torch.float64)
         self.last_progress = [0.0, 0.0]
         self.last_scores = [float("nan"), float("nan")]
+        self.grad_norm_ema: list[float | None] = [None, None]
+        self.grad_cos_ema: float | None = None
         self._parameters: list[torch.Tensor] | None = None
         self._shared: list[int] = []
         self._private_d: list[int] = []
@@ -194,14 +206,16 @@ class CAREWSMStageGMTLLoss(BaseLoss):
 
     def bind_model(self, model: Any) -> None:
         """Bind actual gated-fusion ownership before the first training batch."""
-        parameters = list(model.named_parameters())
-        self._parameters = [parameter for _, parameter in parameters if parameter.requires_grad]
+        parameters = [
+            (name, parameter)
+            for name, parameter in model.named_parameters()
+            if parameter.requires_grad
+        ]
+        self._parameters = [parameter for _, parameter in parameters]
         self._shared = []
         self._private_d = []
         self._private_p = []
         for index, (name, parameter) in enumerate(parameters):
-            if not parameter.requires_grad:
-                continue
             if name.startswith(("projections.", "gates.")):
                 self._shared.append(index)
             elif name.startswith("heads.depression."):
@@ -290,14 +304,25 @@ class CAREWSMStageGMTLLoss(BaseLoss):
         objectives: list[torch.Tensor],
     ) -> list[torch.Tensor]:
         assert self._parameters is not None
+        if self.method == "gradnorm":
+            shared_d = _flat(grad_d[index] for index in self._shared)
+            shared_p = _flat(grad_p[index] for index in self._shared)
+            weights = self._compute_gradnorm_weights(shared_d, shared_p, objectives)
+            return [
+                weights[0] * depression + weights[1] * parkinson
+                for depression, parkinson in zip(grad_d, grad_p, strict=True)
+            ]
+
         shared_d = _flat(grad_d[index] for index in self._shared)
         shared_p = _flat(grad_p[index] for index in self._shared)
         pre_cosine = _cosine(shared_d, shared_p)
-        self._record(pre_cosine=pre_cosine, conflict=float(pre_cosine is not None and pre_cosine < 0.0))
+        self._record(
+            pre_cosine=pre_cosine,
+            conflict=float(pre_cosine is not None and pre_cosine < 0.0),
+        )
         if self.method == "pcgrad":
             order = [0, 1]
             self._rng.shuffle(order)
-            del order
             transformed_d, transformed_p = pcgrad_two(shared_d, shared_p)
             shared = 0.5 * (transformed_d + transformed_p)
             self._record(post_cosine=_cosine(transformed_d, transformed_p))
@@ -306,21 +331,16 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             self._record(
                 cagrad_weight_depression=float(weights[0]),
                 cagrad_weight_parkinson=float(weights[1]),
-                cagrad_adjustment=float((shared - 0.5 * (shared_d + shared_p)).norm().item()),
-            )
-        elif self.method == "gradnorm":
-            shared = self._gradnorm(shared_d, shared_p, objectives)
-        elif self.method == "dbmtl":
-            shared, _ = dbmtl_update(
-                torch.autograd.grad(torch.log(objectives[0] + EPS), self._parameters, retain_graph=True, allow_unused=True)[self._shared[0]],
-                torch.autograd.grad(torch.log(objectives[1] + EPS), self._parameters, retain_graph=True, allow_unused=True)[self._shared[0]],
-                self._db_buffer,
-                self._db_step + 1,
-                self.db_beta,
-                self.db_beta_sigma,
+                cagrad_adjustment=float(
+                    (shared - 0.5 * (shared_d + shared_p)).norm().item()
+                ),
             )
         else:
-            return [0.5 * (left + right) for left, right in zip(grad_d, grad_p, strict=True)]
+            return [
+                0.5 * (left + right)
+                for left, right in zip(grad_d, grad_p, strict=True)
+            ]
+
         chunks: dict[int, torch.Tensor] = {}
         offset = 0
         for index in self._shared:
@@ -337,7 +357,7 @@ class CAREWSMStageGMTLLoss(BaseLoss):
                 result.append(grad_p[index])
         return result
 
-    def _gradnorm(
+    def _compute_gradnorm_weights(
         self,
         shared_d: torch.Tensor,
         shared_p: torch.Tensor,
@@ -345,9 +365,14 @@ class CAREWSMStageGMTLLoss(BaseLoss):
     ) -> torch.Tensor:
         reference = objectives[0]
         if self._gradnorm_weights is None:
-            self._gradnorm_weights = torch.nn.Parameter(torch.ones(2, device=reference.device, dtype=reference.dtype))
-            self._gradnorm_optimizer = torch.optim.Adam([self._gradnorm_weights], lr=self.gradnorm_weight_lr)
+            self._gradnorm_weights = torch.nn.Parameter(
+                torch.ones(2, device=reference.device, dtype=reference.dtype)
+            )
+            self._gradnorm_optimizer = torch.optim.Adam(
+                [self._gradnorm_weights], lr=self.gradnorm_weight_lr
+            )
         assert self._gradnorm_optimizer is not None and self._gradnorm_weights is not None
+        weights_before = self._gradnorm_weights.detach().clone()
         losses = torch.stack([objective.detach() for objective in objectives])
         norms = torch.stack([shared_d.norm(), shared_p.norm()]).detach()
         if self._initial_losses is None:
@@ -365,12 +390,12 @@ class CAREWSMStageGMTLLoss(BaseLoss):
                 self._gradnorm_weights.clamp_(min=EPS)
                 self._gradnorm_weights.mul_(2.0 / self._gradnorm_weights.sum().clamp_min(EPS))
         self._record(
-            weight_depression=float(self._gradnorm_weights[0].detach().item()),
-            weight_parkinson=float(self._gradnorm_weights[1].detach().item()),
+            weight_depression=float(weights_before[0].item()),
+            weight_parkinson=float(weights_before[1].item()),
             gradient_norm_depression=float(norms[0].item()),
             gradient_norm_parkinson=float(norms[1].item()),
         )
-        return self._gradnorm_weights.detach()[0] * shared_d + self._gradnorm_weights.detach()[1] * shared_p
+        return weights_before
 
     def __call__(self, output: Any, batch: Any) -> torch.Tensor:
         objectives, active = self._components(output, batch)
@@ -380,17 +405,30 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             return objectives[1]
         if not any(active):
             return output.preds.sum() * 0.0
+        self._record(
+            task_loss_depression=float(objectives[0].detach().item()),
+            task_loss_parkinson=float(objectives[1].detach().item()),
+        )
         if self.method == "equal":
+            self._record(scalar_weight_depression=0.5, scalar_weight_parkinson=0.5)
             return 0.5 * (objectives[0] + objectives[1])
         if self.method == "stch":
+            self._record(scalar_weight_depression=0.5, scalar_weight_parkinson=0.5)
             return self.tau * torch.logsumexp(
-                torch.stack((0.5 * objectives[0] / self.tau, 0.5 * objectives[1] / self.tau)), dim=0
+                torch.stack(
+                    (0.5 * objectives[0] / self.tau, 0.5 * objectives[1] / self.tau)
+                ),
+                dim=0,
             )
         if not output.preds.requires_grad:
             return 0.5 * (objectives[0] + objectives[1])
         if self.method in {"progress", "ra_stch"}:
             weights = self.weights.to(device=output.preds.device, dtype=output.preds.dtype)
             if self.method == "progress":
+                self._record(
+                    scalar_weight_depression=float(weights[0].item()),
+                    scalar_weight_parkinson=float(weights[1].item()),
+                )
                 return (weights * torch.stack(objectives)).sum()
             if self._parameters is None:
                 raise RuntimeError("loss must be bound to a model before RA-STCH")
@@ -398,12 +436,37 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             grad_p = self._task_gradients(objectives[1], 1)
             shared_d = _flat(grad_d[index] for index in self._shared)
             shared_p = _flat(grad_p[index] for index in self._shared)
+            norm_values = (float(shared_d.norm().item()), float(shared_p.norm().item()))
+            cosine = _cosine(shared_d, shared_p)
+            for task, value in enumerate(norm_values):
+                previous = self.grad_norm_ema[task]
+                self.grad_norm_ema[task] = (
+                    value
+                    if previous is None
+                    else self.grad_ema * previous + (1.0 - self.grad_ema) * value
+                )
+            if cosine is not None:
+                self.grad_cos_ema = (
+                    cosine
+                    if self.grad_cos_ema is None
+                    else self.grad_ema * self.grad_cos_ema
+                    + (1.0 - self.grad_ema) * cosine
+                )
             self._record(
-                gradient_norm_depression=float(shared_d.norm().item()),
-                gradient_norm_parkinson=float(shared_p.norm().item()),
-                gradient_cosine=_cosine(shared_d, shared_p),
+                gradient_norm_depression=norm_values[0],
+                gradient_norm_parkinson=norm_values[1],
+                gradient_cosine=cosine,
+                gradient_norm_ema_depression=self.grad_norm_ema[0],
+                gradient_norm_ema_parkinson=self.grad_norm_ema[1],
+                gradient_cosine_ema=self.grad_cos_ema,
             )
-            return self.tau * torch.logsumexp(weights * torch.stack(objectives) / self.tau, dim=0)
+            self._record(
+                scalar_weight_depression=float(weights[0].item()),
+                scalar_weight_parkinson=float(weights[1].item()),
+            )
+            return self.tau * torch.logsumexp(
+                weights * torch.stack(objectives) / self.tau, dim=0
+            )
         if self._parameters is None:
             raise RuntimeError("loss must be bound to a model before gradient MTL")
         grad_d = self._task_gradients(objectives[0], 0)
@@ -418,6 +481,11 @@ class CAREWSMStageGMTLLoss(BaseLoss):
                 shared_d, shared_p, self._db_buffer, self._db_step, self.db_beta, self.db_beta_sigma
             )
             combined = self._combine_from_shared(log_d, log_p, shared)
+            self._record(
+                dbmtl_norm_depression=float(shared_d.norm().item()),
+                dbmtl_norm_parkinson=float(shared_p.norm().item()),
+                dbmtl_cosine=_cosine(shared_d, shared_p),
+            )
         else:
             combined = self._combine_gradients(grad_d, grad_p, objectives)
         self._record(
@@ -460,16 +528,36 @@ class CAREWSMStageGMTLLoss(BaseLoss):
         self.last_progress = [float(value) for value in progress]
         if self.method not in {"progress", "ra_stch"}:
             return
+
         raw = torch.exp(-progress / self.progress_temperature)
         if self.method == "ra_stch":
-            raw = raw * torch.tensor([1.0, 1.0], dtype=torch.float64)
-        raw = raw / raw.sum().clamp_min(EPS)
-        bounded = raw.clamp(0.2, 0.8)
-        bounded = bounded / bounded.sum()
-        current = self.weights
-        self.weights = self.controller_ema * current + (1.0 - self.controller_ema) * bounded
-        self.weights = self.weights / self.weights.sum()
-        self._record(controller_weight_depression=float(self.weights[0]), controller_weight_parkinson=float(self.weights[1]))
+            norms = torch.tensor(
+                [value if value is not None else 1.0 for value in self.grad_norm_ema],
+                dtype=torch.float64,
+            )
+            mean_norm = norms.mean()
+            cosine = self.grad_cos_ema if self.grad_cos_ema is not None else 0.0
+            exponent = 1.0 + max(0.0, -cosine)
+            raw = raw * (mean_norm / (norms + EPS)).clamp(0.5, 2.0).pow(exponent)
+            # CAREWSM has no pseudo-label reliability signal; the declared
+            # neutral reliability factor is therefore one for both tasks.
+
+        bounded = raw / raw.sum().clamp_min(EPS)
+        bounded = bounded.clamp(self.weight_min, self.weight_max)
+        bounded = bounded / bounded.sum().clamp_min(EPS)
+        if self.method == "progress":
+            self.weights = bounded
+        else:
+            self.weights = (
+                self.controller_ema * self.weights
+                + (1.0 - self.controller_ema) * bounded
+            )
+            self.weights = self.weights.clamp(self.weight_min, self.weight_max)
+            self.weights = self.weights / self.weights.sum().clamp_min(EPS)
+        self._record(
+            controller_weight_depression=float(self.weights[0]),
+            controller_weight_parkinson=float(self.weights[1]),
+        )
 
 
 @LOSSES.register("carewsm_stageg_mtl")

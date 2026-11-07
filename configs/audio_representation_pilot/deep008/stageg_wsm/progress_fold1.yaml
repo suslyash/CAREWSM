@@ -14,8 +14,8 @@ data:
     wsm_root: /media/maxim/Databases/WSM_NEW
 experiment_info:
   params:
-    experiment_name: audio_representation_pilot_deep008_stageg_wsm
-    run_name: progress_fold1
+    experiment_name: audio_representation_pilot_deep008_stageg_wsm_corrected
+    run_name: progress_corrected_fold1
     include_time: false
 model:
   name: carewsm_gated_fusion
@@ -30,6 +30,11 @@ loss:
   name: carewsm_stageg_mtl
   params:
     method: progress
+    progress_reference_depression: 0.5
+    progress_reference_parkinson: 0.5
+    grad_ema: 0.9
+    weight_min: 0.2
+    weight_max: 0.8
     parkinson_pos_weight: 2.375234521575985
     pcgrad_seed: 6
 metrics:
@@ -48,7 +53,7 @@ callbacks:
 - name: checkpoint_callback
   params:
     filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
-    log_path: logs/audio_representation_pilot/deep008_stageg_wsm
+    log_path: logs/audio_representation_pilot/deep008_stageg_wsm_corrected
     mode: max
     monitor: val_mean_corpora_tasks/macro_recall
     save_last: true
@@ -67,7 +72,7 @@ callbacks:
     include:
     - src
     - configs
-    log_path: logs/audio_representation_pilot/deep008_stageg_wsm
+    log_path: logs/audio_representation_pilot/deep008_stageg_wsm_corrected
     save_code_zip: true
     save_config: true
 logging:
@@ -76,10 +81,10 @@ logging:
     console_level: INFO
     file_level: INFO
     log_file: train.log
-    log_path: logs/audio_representation_pilot/deep008_stageg_wsm
+    log_path: logs/audio_representation_pilot/deep008_stageg_wsm_corrected
 - name: mlflow_logger
   params:
-    tracking_uri: sqlite:///logs/audio_representation_pilot/deep008_stageg_wsm/mlflow.db
+    tracking_uri: sqlite:///logs/audio_representation_pilot/deep008_stageg_wsm_corrected/mlflow.db
 train:
   params:
     collect_cache: true

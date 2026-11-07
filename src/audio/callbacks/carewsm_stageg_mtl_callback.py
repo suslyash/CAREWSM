@@ -35,14 +35,17 @@ class CAREWSMStageGMTLCallback(BaseCallback):
 
     @staticmethod
     def _mean(logs: dict[str, float], task: str) -> float:
-        values = [
-            logs.get(f"val_care/{task}/macro_recall"),
-            logs.get(f"val_wsm/{task}/macro_recall"),
-        ]
-        available = [float(value) for value in values if value is not None and math.isfinite(float(value))]
-        if not available:
-            raise KeyError(f"validation Macro Recall is unavailable for {task}")
-        return sum(available) / len(available)
+        names = (
+            f"val_care/{task}/macro_recall",
+            f"val_wsm/{task}/macro_recall",
+        )
+        values = [logs.get(name) for name in names]
+        if any(value is None or not math.isfinite(float(value)) for value in values):
+            raise KeyError(
+                "two-corpus validation Macro Recall is unavailable: "
+                + ", ".join(names)
+            )
+        return sum(float(value) for value in values) / len(values)
 
     def on_epoch_end(self, trainer: Any, epoch: int, logs: dict[str, float]) -> None:
         loss = self._loss(trainer)
@@ -58,7 +61,11 @@ class CAREWSMStageGMTLCallback(BaseCallback):
         logger = getattr(trainer, "mlflow_logger", None)
         if logger is not None:
             logger.log_metrics(
-                {key: value for key, value in logs.items() if key.startswith("mtl/") and math.isfinite(float(value))},
+                {
+                    key: value
+                    for key, value in logs.items()
+                    if key.startswith("mtl/") and math.isfinite(float(value))
+                },
                 step=epoch,
             )
 
