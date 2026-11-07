@@ -1,0 +1,90 @@
+callbacks:
+- name: carewsm_validation_monitor
+  params: {}
+- name: carewsm_stageg_mtl_callback
+  params: {}
+- name: checkpoint_callback
+  params:
+    filename_template: epoch={epoch}_{monitor}={value:.4f}.pt
+    log_path: logs/audio_representation_pilot/deep008_stageg_wsm
+    mode: max
+    monitor: val_mean_corpora_tasks/macro_recall
+    save_last: true
+    save_top_k: 1
+- name: early_stopping_callback
+  params:
+    min_delta: 0.0
+    mode: max
+    monitor: val_mean_corpora_tasks/macro_recall
+    patience: 7
+- name: carewsm_summary_callback
+  params:
+    filename: summary.txt
+- name: snapshot_callback
+  params:
+    include:
+    - src
+    - configs
+    log_path: logs/audio_representation_pilot/deep008_stageg_wsm
+    save_code_zip: true
+    save_config: true
+data:
+  name: carewsm_joint
+  params:
+    batch_size: 64
+    care_root: /media/maxim/Databases/CARE
+    feature_family:
+    - emotionmsp_embeds
+    - trillsson4_1
+    fold: 0
+    manifest: reports/feature_audit/sample_feature_availability.csv
+    num_workers: 8
+    registry: /media/maxim/Databases/CARE/splits/features.json
+    shuffle_train: true
+    wsm_root: /media/maxim/Databases/WSM_NEW
+experiment_info:
+  params:
+    experiment_name: audio_representation_pilot_deep008_stageg_wsm
+    run_name: ra_stch_fold0
+    include_time: false
+logging:
+- name: console_file_logger
+  params:
+    console_level: INFO
+    file_level: INFO
+    log_file: train.log
+    log_path: logs/audio_representation_pilot/deep008_stageg_wsm
+- name: mlflow_logger
+  params:
+    tracking_uri: sqlite:///logs/audio_representation_pilot/deep008_stageg_wsm/mlflow.db
+loss:
+  name: carewsm_stageg_mtl
+  params:
+    method: ra_stch
+    parkinson_pos_weight: 2.358878504672897
+    pcgrad_seed: 5
+metrics:
+- name: carewsm_masked_multitask_classification
+model:
+  name: carewsm_gated_fusion
+  params:
+    input_dim: 2048
+    hidden_dim: 64
+    dropout: 0.1
+    family_dims:
+    - 1024
+    - 1024
+optimizer:
+  name: adamw_optimizer
+  params:
+    lr: 0.0001
+    weight_decay: 0.0
+seed: 5
+train:
+  params:
+    collect_cache: true
+    device: cuda
+    epochs: 50
+    grad_clip_norm: 1.0
+    log_every_steps: 100
+    mixed_precision: true
