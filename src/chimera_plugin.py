@@ -14,9 +14,11 @@ def register() -> None:
         "audio.models.carewsm_representation_pilot_models",
         "audio.loss.carewsm_masked_bce_loss",
         "audio.loss.carewsm_weighted_bce_loss",
+        "audio.loss.carewsm_stageg_mtl_loss",
         "audio.metrics.carewsm_audio_metrics",
         "audio.callbacks.carewsm_summary_callback",
         "audio.callbacks.carewsm_validation_monitor_callback",
+        "audio.callbacks.carewsm_stageg_mtl_callback",
     )
     for module in modules:
         try:
