@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+from bisect import bisect_left
 import csv
 import hashlib
 import importlib.util
 import json
 import math
 import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -125,57 +127,95 @@ def consecutive_runs(frames: list[dict[str, Any]]) -> list[list[dict[str, Any]]]
     return runs
 
 
+def _interpolate_window(
+    frames: list[dict[str, Any]],
+    indices: list[int],
+    channels: int,
+    start: float,
+    end: float,
+) -> dict[str, Any]:
+    selected = [frames[index] for index in indices]
+    source_times = np.asarray(
+        [frame["frame_start_sec"] for frame in selected], dtype=np.float64
+    )
+    target_times = np.linspace(source_times[0], source_times[-1], 512)
+    values = np.stack([frame["values"] for frame in selected], axis=0)
+    interpolated = np.vstack(
+        [
+            np.interp(target_times, source_times, values[:, channel])
+            for channel in range(channels)
+        ]
+    ).astype(np.float32)
+    return {
+        "start_sec": start,
+        "end_sec": end,
+        "source_frame_count": len(selected),
+        "source_start_sec": float(source_times[0]),
+        "source_end_sec": float(source_times[-1]),
+        "tensor": interpolated,
+    }
+
+def _longest_consecutive_run(
+    frames: list[dict[str, Any]], left: int, right: int
+) -> list[int]:
+    best: list[int] = []
+    current: list[int] = []
+    for index in range(left, right):
+        if not current:
+            current = [index]
+            continue
+        delta = frames[index]["frame_start_sec"] - frames[index - 1]["frame_start_sec"]
+        if abs(delta - NOMINAL_HOP_SECONDS) <= TIMESTAMP_TOLERANCE:
+            current.append(index)
+        else:
+            if len(current) > len(best):
+                best = current
+            current = [index]
+    if len(current) > len(best):
+        best = current
+    return best
+
 def temporalize(frames: list[dict[str, Any]], channels: int) -> list[dict[str, Any]]:
     by_turn: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for frame in frames:
         by_turn[frame["turn_id"]].append(frame)
 
-    windows: list[dict[str, Any]] = []
+    selected_windows: list[dict[str, Any]] = []
     for turn_frames in by_turn.values():
         ordered = sorted(turn_frames, key=lambda item: item["frame_start_sec"])
         turn_start = ordered[0]["turn_start_sec"]
         turn_end = ordered[0]["turn_end_sec"]
+        starts = [frame["frame_start_sec"] for frame in ordered]
         index = 0
+        first: dict[str, Any] | None = None
+        last: dict[str, Any] | None = None
         while turn_start + index * WINDOW_HOP_SECONDS + WINDOW_SECONDS <= turn_end + TIMESTAMP_TOLERANCE:
             start = turn_start + index * WINDOW_HOP_SECONDS
             end = start + WINDOW_SECONDS
-            complete = [
-                frame
-                for frame in ordered
-                if frame["frame_start_sec"] >= start - TIMESTAMP_TOLERANCE
-                and frame["frame_end_sec"] <= end + TIMESTAMP_TOLERANCE
-                and frame["frame_start_sec"] >= turn_start - TIMESTAMP_TOLERANCE
-                and frame["frame_end_sec"] <= turn_end + TIMESTAMP_TOLERANCE
-            ]
-            runs = consecutive_runs(complete)
-            run = max(runs, key=len, default=[])
+            left = bisect_left(starts, start - TIMESTAMP_TOLERANCE)
+            right = bisect_left(starts, end - TIMESTAMP_TOLERANCE)
+            while left < right and ordered[left]["frame_end_sec"] > end + TIMESTAMP_TOLERANCE:
+                left += 1
+            while right > left and ordered[right - 1]["frame_end_sec"] > end + TIMESTAMP_TOLERANCE:
+                right -= 1
+            run = _longest_consecutive_run(ordered, left, right)
             if len(run) >= MIN_CONSECUTIVE_FRAMES:
-                source_times = np.asarray(
-                    [frame["frame_start_sec"] for frame in run], dtype=np.float64
-                )
-                target_times = np.linspace(source_times[0], source_times[-1], 512)
-                values = np.stack([frame["values"] for frame in run], axis=0)
-                interpolated = np.vstack(
-                    [np.interp(target_times, source_times, values[:, channel]) for channel in range(channels)]
-                ).astype(np.float32)
-                assert interpolated.shape == (channels, 512)
-                assert target_times[0] >= source_times[0]
-                assert target_times[-1] <= source_times[-1]
-                windows.append(
-                    {
-                        "start_sec": start,
-                        "end_sec": end,
-                        "source_frame_count": len(run),
-                        "source_start_sec": float(source_times[0]),
-                        "source_end_sec": float(source_times[-1]),
-                        "tensor": interpolated,
-                    }
-                )
+                window = _interpolate_window(ordered, run, channels, start, end)
+                if first is None:
+                    first = window
+                last = window
             index += 1
-    return windows[:2]
+        if first is not None:
+            selected_windows.append(first)
+            if last is not first:
+                selected_windows.append(last)
+    selected_windows.sort(key=lambda window: (window["start_sec"], window["end_sec"]))
+    if len(selected_windows) <= 2:
+        return selected_windows
+    return [selected_windows[0], selected_windows[-1]]
 
-
-def synthetic_checks(channels: int) -> None:
+def synthetic_checks(channels: list[str]) -> None:
+    channel_count = len(channels)
     frames = []
     for index in range(100):
         start = index * NOMINAL_HOP_SECONDS
@@ -186,14 +226,49 @@ def synthetic_checks(channels: int) -> None:
                 "turn_end_sec": 1.01,
                 "frame_start_sec": start,
                 "frame_end_sec": start + 0.02,
-                "values": np.full(channels, index, dtype=np.float32),
+                "values": np.full(channel_count, index, dtype=np.float32),
             }
         )
-    windows = temporalize(frames, channels)
+    windows = temporalize(frames, channel_count)
     assert len(windows) == 1
-    assert windows[0]["tensor"].shape == (channels, 512)
+    assert windows[0]["tensor"].shape == (channel_count, 512)
     assert np.isfinite(windows[0]["tensor"]).all()
     assert windows[0]["source_frame_count"] == 99
+
+    validator = load_validator()
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "policy_c.csv"
+        fieldnames = [*validator.REQUIRED_METADATA, *channels]
+        rows = []
+        for index in range(100):
+            start = index * NOMINAL_HOP_SECONDS
+            row = {
+                "turn_id": "synthetic",
+                "turn_start_sec": "0.0",
+                "turn_end_sec": "1.0",
+                "frame_start_sec": str(start),
+                "frame_end_sec": str(start + NOMINAL_HOP_SECONDS),
+            }
+            row.update({channel: str(index) for channel in channels})
+            rows.append(row)
+        rows[-1]["frame_end_sec"] = str(1.0 + 1 / 16000)
+        rows[-1][channels[0]] = "1e30"
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+        diagnostic = validator.inspect_artifact(
+            path, channels, NOMINAL_HOP_SECONDS, "CARE", "terminal-exclude"
+        )
+        assert diagnostic["status"] == "VALID"
+        assert diagnostic["excluded_frame_count"] == 1
+        retained, excluded, reasons = artifact_frames(path, channels, validator)
+        assert excluded == 1
+        assert reasons == ["excluded_terminal_out_of_turn_1sample"]
+        filtered_windows = temporalize(retained, channel_count)
+        baseline = temporalize(frames[:99], channel_count)
+        assert np.array_equal(baseline[0]["tensor"], filtered_windows[0]["tensor"])
 
 
 def select_artifacts(
@@ -293,7 +368,7 @@ def main() -> int:
     validator = load_validator()
     channels = validator.registry_channels(args.registry)
     assert len(channels) == 25
-    synthetic_checks(len(channels))
+    synthetic_checks(channels)
     manifest = {
         (row["corpus"], row["sample_id"]): row for row in read_csv(args.manifest)
     }

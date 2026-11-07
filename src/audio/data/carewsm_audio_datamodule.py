@@ -13,6 +13,35 @@ from chimera_ml.data.datamodule import DataModule
 from audio.data.carewsm_audio_dataset import CAREWSMAudioDataset
 
 
+CANONICAL_EGEMAPS_CHANNELS = [
+    "Loudness_sma3",
+    "alphaRatio_sma3",
+    "hammarbergIndex_sma3",
+    "slope0-500_sma3",
+    "slope500-1500_sma3",
+    "spectralFlux_sma3",
+    "mfcc1_sma3",
+    "mfcc2_sma3",
+    "mfcc3_sma3",
+    "mfcc4_sma3",
+    "F0semitoneFrom27.5Hz_sma3nz",
+    "jitterLocal_sma3nz",
+    "shimmerLocaldB_sma3nz",
+    "HNRdBACF_sma3nz",
+    "logRelF0-H1-H2_sma3nz",
+    "logRelF0-H1-A3_sma3nz",
+    "F1frequency_sma3nz",
+    "F1bandwidth_sma3nz",
+    "F1amplitudeLogRelF0_sma3nz",
+    "F2frequency_sma3nz",
+    "F2bandwidth_sma3nz",
+    "F2amplitudeLogRelF0_sma3nz",
+    "F3frequency_sma3nz",
+    "F3bandwidth_sma3nz",
+    "F3amplitudeLogRelF0_sma3nz",
+]
+
+
 def read_rows(path: Path) -> list[dict[str, str]]:
     """Read a source CSV with its original fields."""
     with path.open(newline="", encoding="utf-8-sig") as handle:
@@ -44,13 +73,25 @@ class CAREWSMAudioDataModule(DataModule):
         num_workers: int = 0,
         shuffle_train: bool = False,
         pooling: str = "native",
+        mantis_cache_manifest: str | None = None,
     ) -> None:
         self.feature_families = self._validate_selection(feature_family)
         self.fold_index = fold
         self.feature_family = feature_family
         self.pooling = pooling
+        self.mantis_cache_manifest = (
+            Path(mantis_cache_manifest) if mantis_cache_manifest else None
+        )
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
         self.feature_specs = self._read_registry(Path(registry))
+        if "mantisv2_egemaps" in self.feature_families:
+            self.feature_specs["mantisv2_egemaps"] = {
+                "format": "npz",
+                "embedding_keys": ["features"],
+                "modality": "audio",
+                "file": "",
+            }
+        self.mantis_cache_index = self._read_mantis_cache()
         unknown = set(self.feature_families) - set(self.feature_specs)
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
@@ -147,8 +188,46 @@ class CAREWSMAudioDataModule(DataModule):
                 record[target] = value
                 record[f"{target}_observed"] = observed
             record["feature_paths"] = self._feature_paths(key[0], source)
+            if "mantisv2_egemaps" in self.feature_families:
+                cache = self.mantis_cache_index.get(key)
+                record["mantisv2_egemaps_status"] = (
+                    cache["status"] if cache is not None else "MISSING"
+                )
+                if cache is not None:
+                    record["feature_paths"]["mantisv2_egemaps"] = cache["path"]
             manifest[key] = record
         return manifest
+
+    def _read_mantis_cache(self) -> dict[tuple[str, str], dict[str, Any]]:
+        if self.mantis_cache_manifest is None:
+            return {}
+        data = json.loads(self.mantis_cache_manifest.read_text(encoding="utf-8"))
+        expected = {
+            "feature_family": "mantisv2_egemaps",
+            "feature_dimension": 12_800,
+            "checkpoint_revision": "99fe0f548960e272fbfa4b82fd9b5b5956779dfd",
+            "checkpoint_sha256": "49d46d9a49cccdc87c46f4e0088fa52c0a6ef7eb4c13de5cc9815426b7b17ab1",
+            "selected_layer": 2,
+            "output_token": "combined",
+            "pooling": "mean_windows",
+            "source_feature": "egemaps_lld",
+            "window_seconds": 1.0,
+            "hop_seconds": 0.5,
+            "min_consecutive_valid_frames": 95,
+            "max_windows_per_recording": 2,
+            "channels": CANONICAL_EGEMAPS_CHANNELS,
+            "temporalizer_version": "mantisv2_egemaps_temporalizer_v2",
+            "cache_schema_version": "mantisv2_egemaps_cache_v1",
+        }
+        if any(data.get(key) != value for key, value in expected.items()):
+            raise ValueError("Mantis cache manifest does not match the pinned feature contract")
+        records = {}
+        for row in data["records"]:
+            path = Path(row["path"])
+            if row.get("status") != "VALID" or not path.is_file():
+                raise ValueError(f"invalid Mantis cache artifact: {path}")
+            records[(row["corpus"], row["sample_id"])] = row
+        return records
 
     def _source_metadata(self, corpus: str, source: dict[str, str]) -> dict[str, str]:
         profile_id = source.get("profile_id", "")
