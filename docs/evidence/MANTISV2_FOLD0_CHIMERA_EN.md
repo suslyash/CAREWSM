@@ -68,3 +68,24 @@ Values are `Macro F1 / Weighted F1 / Macro Recall / Weighted Recall / Patient Re
 - Synthetic sentinel and temporal selector checks: PASS.
 - `git diff --check`: PASS.
 - Standard train log, summary, checkpoint, and MLflow artifacts: present.
+
+## Final manager review corrections
+
+The final review corrections were applied without changing the completed Chimera
+run or feature content:
+
+- Native NPZ loading again fails closed when a non-EmotionMSP specification has
+  no declared embedding key. The Mantis specification continues to declare its
+  explicit `features` key.
+- The Policy C sentinel now writes a terminal frame ending exactly one 16-kHz
+  sample beyond `turn_end_sec`, runs through the production validator, and then
+  verifies exclusion through the production frame-filtering path. The retained
+  temporalized tensor is unchanged by the extreme excluded value.
+- Cache reuse now requires the canonical 25-channel order,
+  `mantisv2_egemaps_temporalizer_v2`, and `mantisv2_egemaps_cache_v1` metadata.
+  The existing manifest was updated with only these compatibility fields; all
+  10,448 NPZ artifacts remain unchanged and no training was rerun.
+
+Targeted negative-path checks confirmed that a missing NPZ key and an
+incompatible cache manifest are rejected. Mantis and historical baseline
+Chimera config validation both passed after the corrections.

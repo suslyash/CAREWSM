@@ -72,7 +72,7 @@ def _load_values(
                 key = (
                     "embed"
                     if family == "emotionmsp_embeds"
-                    else (keys[0] if keys else "features")
+                    else (keys[0] if keys else None)
                 )
                 if key is None or key not in archive.files:
                     raise ValueError(f"required NPZ key {key!r} is missing: {path}")

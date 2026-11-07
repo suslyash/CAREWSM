@@ -11,6 +11,7 @@ import importlib.util
 import json
 import math
 import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -213,7 +214,8 @@ def temporalize(frames: list[dict[str, Any]], channels: int) -> list[dict[str, A
         return selected_windows
     return [selected_windows[0], selected_windows[-1]]
 
-def synthetic_checks(channels: int) -> None:
+def synthetic_checks(channels: list[str]) -> None:
+    channel_count = len(channels)
     frames = []
     for index in range(100):
         start = index * NOMINAL_HOP_SECONDS
@@ -224,19 +226,49 @@ def synthetic_checks(channels: int) -> None:
                 "turn_end_sec": 1.01,
                 "frame_start_sec": start,
                 "frame_end_sec": start + 0.02,
-                "values": np.full(channels, index, dtype=np.float32),
+                "values": np.full(channel_count, index, dtype=np.float32),
             }
         )
-    windows = temporalize(frames, channels)
+    windows = temporalize(frames, channel_count)
     assert len(windows) == 1
-    assert windows[0]["tensor"].shape == (channels, 512)
+    assert windows[0]["tensor"].shape == (channel_count, 512)
     assert np.isfinite(windows[0]["tensor"]).all()
     assert windows[0]["source_frame_count"] == 99
-    changed = [dict(frame) for frame in frames]
-    changed[-1]["values"] = np.full(channels, 1e30, dtype=np.float32)
-    changed[-1]["frame_end_sec"] = 1.0000625
-    changed_windows = temporalize(changed, channels)
-    assert np.array_equal(windows[0]["tensor"], changed_windows[0]["tensor"])
+
+    validator = load_validator()
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "policy_c.csv"
+        fieldnames = [*validator.REQUIRED_METADATA, *channels]
+        rows = []
+        for index in range(100):
+            start = index * NOMINAL_HOP_SECONDS
+            row = {
+                "turn_id": "synthetic",
+                "turn_start_sec": "0.0",
+                "turn_end_sec": "1.0",
+                "frame_start_sec": str(start),
+                "frame_end_sec": str(start + NOMINAL_HOP_SECONDS),
+            }
+            row.update({channel: str(index) for channel in channels})
+            rows.append(row)
+        rows[-1]["frame_end_sec"] = str(1.0 + 1 / 16000)
+        rows[-1][channels[0]] = "1e30"
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+        diagnostic = validator.inspect_artifact(
+            path, channels, NOMINAL_HOP_SECONDS, "CARE", "terminal-exclude"
+        )
+        assert diagnostic["status"] == "VALID"
+        assert diagnostic["excluded_frame_count"] == 1
+        retained, excluded, reasons = artifact_frames(path, channels, validator)
+        assert excluded == 1
+        assert reasons == ["excluded_terminal_out_of_turn_1sample"]
+        filtered_windows = temporalize(retained, channel_count)
+        baseline = temporalize(frames[:99], channel_count)
+        assert np.array_equal(baseline[0]["tensor"], filtered_windows[0]["tensor"])
 
 
 def select_artifacts(
@@ -336,7 +368,7 @@ def main() -> int:
     validator = load_validator()
     channels = validator.registry_channels(args.registry)
     assert len(channels) == 25
-    synthetic_checks(len(channels))
+    synthetic_checks(channels)
     manifest = {
         (row["corpus"], row["sample_id"]): row for row in read_csv(args.manifest)
     }

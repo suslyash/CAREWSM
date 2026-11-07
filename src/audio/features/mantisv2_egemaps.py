@@ -19,6 +19,8 @@ CHECKPOINT_REVISION = "99fe0f548960e272fbfa4b82fd9b5b5956779dfd"
 CHECKPOINT_SHA256 = "49d46d9a49cccdc87c46f4e0088fa52c0a6ef7eb4c13de5cc9815426b7b17ab1"
 FEATURE_FAMILY = "mantisv2_egemaps"
 FEATURE_DIMENSION = 12_800
+TEMPORALIZER_VERSION = "mantisv2_egemaps_temporalizer_v2"
+CACHE_SCHEMA_VERSION = "mantisv2_egemaps_cache_v1"
 
 def _load_temporalizer() -> Any:
     path = Path(__file__).parents[3] / "scripts" / "smoke_mantisv2_egemaps_train.py"
@@ -165,6 +167,9 @@ def build_cache(args: argparse.Namespace) -> dict[str, Any]:
         "min_consecutive_valid_frames": 95,
         "max_windows_per_recording": 2,
         "policy_c": "exclude terminal out-of-turn one-sample frames",
+        "channels": channels,
+        "temporalizer_version": TEMPORALIZER_VERSION,
+        "cache_schema_version": CACHE_SCHEMA_VERSION,
     }
     existing = args.output / "manifest.json"
     allow_reuse = False

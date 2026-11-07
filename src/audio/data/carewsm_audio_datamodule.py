@@ -13,6 +13,35 @@ from chimera_ml.data.datamodule import DataModule
 from audio.data.carewsm_audio_dataset import CAREWSMAudioDataset
 
 
+CANONICAL_EGEMAPS_CHANNELS = [
+    "Loudness_sma3",
+    "alphaRatio_sma3",
+    "hammarbergIndex_sma3",
+    "slope0-500_sma3",
+    "slope500-1500_sma3",
+    "spectralFlux_sma3",
+    "mfcc1_sma3",
+    "mfcc2_sma3",
+    "mfcc3_sma3",
+    "mfcc4_sma3",
+    "F0semitoneFrom27.5Hz_sma3nz",
+    "jitterLocal_sma3nz",
+    "shimmerLocaldB_sma3nz",
+    "HNRdBACF_sma3nz",
+    "logRelF0-H1-H2_sma3nz",
+    "logRelF0-H1-A3_sma3nz",
+    "F1frequency_sma3nz",
+    "F1bandwidth_sma3nz",
+    "F1amplitudeLogRelF0_sma3nz",
+    "F2frequency_sma3nz",
+    "F2bandwidth_sma3nz",
+    "F2amplitudeLogRelF0_sma3nz",
+    "F3frequency_sma3nz",
+    "F3bandwidth_sma3nz",
+    "F3amplitudeLogRelF0_sma3nz",
+]
+
+
 def read_rows(path: Path) -> list[dict[str, str]]:
     """Read a source CSV with its original fields."""
     with path.open(newline="", encoding="utf-8-sig") as handle:
@@ -53,7 +82,6 @@ class CAREWSMAudioDataModule(DataModule):
         self.mantis_cache_manifest = (
             Path(mantis_cache_manifest) if mantis_cache_manifest else None
         )
-        self.mantis_cache_index = self._read_mantis_cache()
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
         self.feature_specs = self._read_registry(Path(registry))
         if "mantisv2_egemaps" in self.feature_families:
@@ -63,6 +91,7 @@ class CAREWSMAudioDataModule(DataModule):
                 "modality": "audio",
                 "file": "",
             }
+        self.mantis_cache_index = self._read_mantis_cache()
         unknown = set(self.feature_families) - set(self.feature_specs)
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
@@ -186,6 +215,9 @@ class CAREWSMAudioDataModule(DataModule):
             "hop_seconds": 0.5,
             "min_consecutive_valid_frames": 95,
             "max_windows_per_recording": 2,
+            "channels": CANONICAL_EGEMAPS_CHANNELS,
+            "temporalizer_version": "mantisv2_egemaps_temporalizer_v2",
+            "cache_schema_version": "mantisv2_egemaps_cache_v1",
         }
         if any(data.get(key) != value for key, value in expected.items()):
             raise ValueError("Mantis cache manifest does not match the pinned feature contract")
