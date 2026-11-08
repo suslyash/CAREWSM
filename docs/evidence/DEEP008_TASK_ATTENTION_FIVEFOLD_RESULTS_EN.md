@@ -12,8 +12,8 @@ negative against the pre-registered decision rules:
 | Task-specific gated attention | 0.82298 | 0.03091 | -0.00408 |
 
 Task-specific attention does not meet the required `+0.010` improvement and is
-not promoted on this evidence. No TEST values were inspected, summarized, or
-used for this decision.
+not promoted on this evidence. Automatic TEST outputs were excluded from the
+report and were not used for this decision.
 
 ## Source, environment and fixed protocol
 
@@ -155,8 +155,8 @@ does not support promoting this architecture.
 
 - This is a five-fold validation comparison with the fixed seed and prescribed
   controls; no significance test or seed-variance study was authorized.
-- The report excludes TEST metrics and does not use them for selection or
-  acceptance.
+- The report excludes automatically generated TEST metrics and does not use
+  them for selection or acceptance.
 - Runtime logs, MLflow SQLite data, checkpoints, and private feature artifacts
   remain local and are not committed.
 - No further experiment is recommended from this task. Any follow-up, such as
