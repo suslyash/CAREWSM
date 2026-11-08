@@ -103,12 +103,110 @@ class CAREWSMGatedFusionModel(nn.Module):
         return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
 
 
+class CAREWSMGatedTaskAttentionModel(nn.Module):
+    """Gated fusion with independent masked attention for each task."""
+
+    def __init__(
+        self,
+        input_dim: int,
+        family_dims: list[int],
+        hidden_dim: int = 64,
+        dropout: float = 0.1,
+    ) -> None:
+        if input_dim != 2048 or family_dims != [1024, 1024]:
+            raise ValueError(
+                "gated task attention requires [1024, 1024] native families"
+            )
+        super().__init__()
+        self.family_dims = family_dims
+        self.projections = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.LayerNorm(dim), nn.Linear(dim, hidden_dim), nn.GELU()
+                )
+                for dim in family_dims
+            ]
+        )
+        self.gates = nn.ModuleList(
+            [nn.Linear(dim, hidden_dim) for dim in family_dims]
+        )
+        _, self.heads = _shared_components(input_dim, hidden_dim, dropout)
+        self.depression_attention = nn.Linear(hidden_dim, 1)
+        self.parkinson_attention = nn.Linear(hidden_dim, 1)
+
+    def _fuse(
+        self, values: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
+        family_values = torch.split(values, self.family_dims, dim=-1)
+        fused = torch.zeros(
+            values.shape[0],
+            values.shape[1],
+            self.projections[0][1].out_features,
+            device=values.device,
+            dtype=values.dtype,
+        )
+        for family, projection, gate in zip(
+            family_values, self.projections, self.gates
+        ):
+            fused = fused + torch.sigmoid(gate(family)) * projection(family)
+        return fused * mask.unsqueeze(-1).to(fused.dtype)
+
+    @staticmethod
+    def _pool(
+        values: torch.Tensor,
+        mask: torch.Tensor,
+        scorer: nn.Linear,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        scores = scorer(values).squeeze(-1).masked_fill(~mask, -torch.inf)
+        attention = torch.softmax(scores, dim=1)
+        pooled = (values * attention.unsqueeze(-1)).sum(dim=1)
+        return pooled, attention
+
+    def forward(self, batch: Any) -> ModelOutput:
+        values, mask = _unpack(batch)
+        if not mask.any(dim=1).all():
+            raise ValueError("gated task attention requires at least one valid turn")
+
+        fused = self._fuse(values, mask)
+        depression_features, depression_attention = self._pool(
+            fused, mask, self.depression_attention
+        )
+        parkinson_features, parkinson_attention = self._pool(
+            fused, mask, self.parkinson_attention
+        )
+        logits = torch.cat(
+            (
+                self.heads.depression(depression_features),
+                self.heads.parkinson(parkinson_features),
+            ),
+            dim=-1,
+        )
+        features = torch.stack((depression_features, parkinson_features), dim=1)
+        attention = torch.stack((depression_attention, parkinson_attention), dim=1)
+        return ModelOutput(
+            preds=logits,
+            aux={
+                "features": features,
+                "logits": logits,
+                "attention_weights": attention,
+            },
+        )
+
+
 @MODELS.register("carewsm_attentive_mlp")
 def carewsm_attentive_mlp(
     context: Any | None = None, **params: Any
 ) -> CAREWSMAttentiveMLPModel:
     del context
     return CAREWSMAttentiveMLPModel(**params)
+
+
+@MODELS.register("carewsm_gated_task_attention")
+def carewsm_gated_task_attention(
+    context: Any | None = None, **params: Any
+) -> CAREWSMGatedTaskAttentionModel:
+    del context
+    return CAREWSMGatedTaskAttentionModel(**params)
 
 
 @MODELS.register("carewsm_gated_fusion")
