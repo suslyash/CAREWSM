@@ -14,7 +14,7 @@ Every ranked value below uses the four-component arithmetic TEST UAR:
 
 Only the original validation-selected epoch is used. Historical selection monitors are preserved as follows:
 
-- Original feature-screening records: `joint/average_macro_f1` / the committed `dev_mean_macro_recall` evidence alias.
+- Original 110-run feature-screening matrix: `joint/average_macro_f1` (historical VAL Macro F1 selection). Later deep-feature and DEEP-008 run groups may use `dev_mean_macro_recall` (an alias of the modern four-component VAL Macro Recall monitor), but **that is not an alias of the original feature-screening Macro F1 selector**. Keep the two selection protocols distinct.
 - Modern joint records: `val_mean_corpora_tasks/macro_recall`.
 - Single-task Batch 02 records: task-specific VAL monitor, paired by fold before H1 scoring.
 
@@ -110,7 +110,7 @@ The TEST UAR columns are fold 0 through fold 4. `VAL–TEST gap` is mean VAL UAR
 | 12 | Stage-G corrected GradNorm | 0.766090 ± 0.017841 | 0.823300 ± 0.027003 | +0.057210 | 0.776400, 0.740950, 0.757425, 0.768250, 0.787425 | 0.746060 / 0.760300 / 0.753340 / 0.804660 |
 | 13 | Stage-G PCGrad | 0.764980 ± 0.026095 | 0.825720 ± 0.024291 | +0.060740 | 0.775400, 0.722425, 0.761725, 0.773525, 0.791825 | 0.748180 / 0.762300 / 0.756100 / 0.793340 |
 | 14 | Weighted-F | 0.764310 ± 0.023065 | 0.827060 ± 0.027880 | +0.062750 | 0.754725, 0.732500, 0.760900, 0.784600, 0.788825 | 0.740280 / 0.768660 / 0.757680 / 0.790620 |
-| 15 | Batch 02 H2 corpus-heads | 0.752495 ± 0.026635 | 0.823760 ± 0.031098 | +0.071265 | 0.747600, 0.716175, 0.743450, 0.786275, 0.768975 | 0.798600 / 0.669680 / 0.741020 / 0.800680 |
+| 15 | Batch 02 H2 corpus-heads | 0.752495 ± 0.026635 | 0.823745 ± 0.031097 | +0.071250 | 0.747600, 0.716175, 0.743450, 0.786275, 0.768975 | 0.798600 / 0.669680 / 0.741020 / 0.800680 |
 | 16 | DEEP-003 EmotionMSP embeddings MLP | 0.751020 ± 0.025894 | 0.791880 ± 0.039534 | +0.040860 | 0.722550, 0.737500, 0.738000, 0.776775, 0.780275 | 0.754680 / 0.705660 / 0.768980 / 0.774760 |
 | 17 | DEEP-008 F gated fusion | 0.750475 ± 0.029723 | 0.808360 ± 0.033308 | +0.057885 | 0.742675, 0.706175, 0.752500, 0.764275, 0.786750 | 0.734060 / 0.753200 / 0.756560 / 0.758080 |
 | 18 | DEEP-006 EmotionMSP embeddings + trajectories MD-Former | 0.746740 ± 0.011309 | 0.791940 ± 0.036498 | +0.045200 | 0.749175, 0.735775, 0.750925, 0.735525, 0.762300 | 0.730260 / 0.697040 / 0.776360 / 0.783300 |
