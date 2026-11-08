@@ -6,6 +6,27 @@ The manager-review corrections are implemented and the valid five-fold ledger is
 
 All training remains through Chimera-ML using the existing CAREWSM gated-fusion model, EmotionMSP + TRILLsson 4.1, joint CARE+WSM folds, seed 5, AdamW, TRAIN-only Parkinson weighting, mixed precision, validation-only monitoring, and unchanged feature/data contracts.
 
+
+## Provenance correction
+
+Three earlier MLflow records were incomplete or partial despite having FINISHED
+status. Read-only inspection confirmed that the complete runtime records below
+contain matching train.log, summary.txt, selected checkpoint, full
+validation/TEST metrics, and Training complete evidence:
+
+- Static-STCH fold 0 supersedes historical ID
+  276bb158801e4cd1b85aa99949d07071 with
+  03a0d4c7d99741f5a6f4de369943d840.
+- Corrected GradNorm fold 0 supersedes historical ID
+  be8535dd860f4e6da92d04d78a2f65d1 with
+  707670be07684a98ab30807e9d175b88.
+- CAGrad fold 0 supersedes historical ID
+  f0eade557acd4d5a82b2093953026315 with
+  fe6f132700db4677a17939f08eb891fe.
+
+Only the MLflow identifiers are corrected here; validation metrics, TEST
+metrics, epochs, checkpoints, and experimental conclusions are unchanged.
+
 ## Corrected algorithms
 
 - Progress uses explicitly configured chance-level references `(0.5, 0.5)` and applies each normalized target weight directly to the next epoch.
@@ -22,7 +43,7 @@ All training remains through Chimera-ML using the existing CAREWSM gated-fusion 
 | Equal | 2 | 11 | 0.7304 / 0.8558 | 0.7073 / 0.8979 | 0.7979 | `F_weighted_parkinson_fold2_2026-11-06_14-59_carewsm_gated_fusion_151e5750` | `4afa8dfef8144666a14e4a44017c77bb` | `epoch=11_val_mean_corpora_tasks_macro_recall=0.7979.pt` |
 | Equal | 3 | 14 | 0.8506 / 0.7177 | 0.7164 / 0.9193 | 0.8010 | `F_weighted_parkinson_fold3_2026-11-06_15-01_carewsm_gated_fusion_f7e04dbe` | `93c47d48889b4445bc293cab24b40735` | `epoch=14_val_mean_corpora_tasks_macro_recall=0.8010.pt` |
 | Equal | 4 | 7 | 0.8483 / 0.9116 | 0.8166 / 0.8805 | 0.8643 | `F_weighted_parkinson_fold4_2026-11-06_15-04_carewsm_gated_fusion_410a2700` | `9e15409719554d2daa5819df7b7b8546` | `epoch=7_val_mean_corpora_tasks_macro_recall=0.8643.pt` |
-| Static-STCH | 0 | 8 | 0.8554 / 0.7926 | 0.7954 / 0.9020 | 0.8363 | `stch_fold0_2026-11-07_12-06_carewsm_gated_fusion_e7902c8d` | `276bb158801e4cd1b85aa99949d07071` | `epoch=8_val_mean_corpora_tasks_macro_recall=0.8363.pt` |
+| Static-STCH | 0 | 8 | 0.8554 / 0.7926 | 0.7954 / 0.9020 | 0.8363 | `stch_fold0_2026-11-07_12-06_carewsm_gated_fusion_e7902c8d` | `03a0d4c7d99741f5a6f4de369943d840` | `epoch=8_val_mean_corpora_tasks_macro_recall=0.8363.pt` |
 | Static-STCH | 1 | 3 | 0.8691 / 0.8426 | 0.7570 / 0.8847 | 0.8383 | `stch_fold1_2026-11-07_13-14_carewsm_gated_fusion_ed43ba64` | `091ae97c22424743ad3c2f1038ff3d4a` | `epoch=3_val_mean_corpora_tasks_macro_recall=0.8383.pt` |
 | Static-STCH | 2 | 11 | 0.7284 / 0.8687 | 0.6992 / 0.9041 | 0.8001 | `stch_fold2_2026-11-07_13-15_carewsm_gated_fusion_c2bd2d9e` | `dd1d68a4be7c46068d75502fc784c4c0` | `epoch=11_val_mean_corpora_tasks_macro_recall=0.8001.pt` |
 | Static-STCH | 3 | 18 | 0.8567 / 0.7160 | 0.7053 / 0.9147 | 0.7982 | `stch_fold3_2026-11-07_13-17_carewsm_gated_fusion_f353fa84` | `28a7ab859bb24ae084420b95be66890f` | `epoch=18_val_mean_corpora_tasks_macro_recall=0.7982.pt` |
@@ -37,7 +58,7 @@ All training remains through Chimera-ML using the existing CAREWSM gated-fusion 
 | RA-STCH | 2 | 11 | 0.7304 / 0.8124 | 0.7038 / 0.8880 | 0.7837 | `ra_stch_corrected_fold2_2026-11-07_14-43_carewsm_gated_fusion_8e581ac1` | `4850fa04ffa6458a802d11e9d89f6fc8` | `epoch=11_val_mean_corpora_tasks_macro_recall=0.7837.pt` |
 | RA-STCH | 3 | 14 | 0.8506 / 0.7177 | 0.7111 / 0.9184 | 0.7994 | `ra_stch_corrected_fold3_2026-11-07_14-45_carewsm_gated_fusion_96caa0c4` | `cedb5b0f4f564274b346d270f1ffdea5` | `epoch=14_val_mean_corpora_tasks_macro_recall=0.7994.pt` |
 | RA-STCH | 4 | 7 | 0.8468 / 0.8905 | 0.8146 / 0.8718 | 0.8559 | `ra_stch_corrected_fold4_2026-11-07_14-47_carewsm_gated_fusion_b360c316` | `96df82073f9d43fb81aac99c0eea3b8d` | `epoch=7_val_mean_corpora_tasks_macro_recall=0.8559.pt` |
-| GradNorm | 0 | 8 | 0.8398 / 0.7732 | 0.8005 / 0.8920 | 0.8264 | `gradnorm_corrected_fold0_2026-11-07_14-50_carewsm_gated_fusion_9dc93c44` | `be8535dd860f4e6da92d04d78a2f65d1` | `epoch=8_val_mean_corpora_tasks_macro_recall=0.8264.pt` |
+| GradNorm | 0 | 8 | 0.8398 / 0.7732 | 0.8005 / 0.8920 | 0.8264 | `gradnorm_corrected_fold0_2026-11-07_14-50_carewsm_gated_fusion_9dc93c44` | `707670be07684a98ab30807e9d175b88` | `epoch=8_val_mean_corpora_tasks_macro_recall=0.8264.pt` |
 | GradNorm | 1 | 3 | 0.8825 / 0.8475 | 0.7442 / 0.8886 | 0.8407 | `gradnorm_corrected_fold1_2026-11-07_14-52_carewsm_gated_fusion_d242fef0` | `201bb24f68794809991dbdd2e4eafac3` | `epoch=3_val_mean_corpora_tasks_macro_recall=0.8407.pt` |
 | GradNorm | 2 | 11 | 0.7284 / 0.8591 | 0.6988 / 0.8707 | 0.7893 | `gradnorm_corrected_fold2_2026-11-07_14-53_carewsm_gated_fusion_97b381c6` | `491c5bd634c5409aa7878ea900bd0316` | `epoch=11_val_mean_corpora_tasks_macro_recall=0.7893.pt` |
 | GradNorm | 3 | 17 | 0.8586 / 0.7160 | 0.7206 / 0.9210 | 0.8040 | `gradnorm_corrected_fold3_2026-11-07_14-55_carewsm_gated_fusion_29f8aeae` | `f3e3dca3fa864a6cb3abfb87fd6b5e23` | `epoch=17_val_mean_corpora_tasks_macro_recall=0.8040.pt` |
@@ -47,7 +68,7 @@ All training remains through Chimera-ML using the existing CAREWSM gated-fusion 
 | PCGrad | 2 | 11 | 0.7304 / 0.8703 | 0.7073 / 0.9026 | 0.8027 | `pcgrad_fold2_2026-11-07_12-47_carewsm_gated_fusion_eef4e882` | `2de59fa8a2504ca0a2f8200c776000c2` | `epoch=11_val_mean_corpora_tasks_macro_recall=0.8027.pt` |
 | PCGrad | 3 | 18 | 0.8546 / 0.7316 | 0.7101 / 0.9158 | 0.8030 | `pcgrad_fold3_2026-11-07_12-49_carewsm_gated_fusion_944574ad` | `6738b37f02e34f44a12e87f193125d03` | `epoch=18_val_mean_corpora_tasks_macro_recall=0.8030.pt` |
 | PCGrad | 4 | 7 | 0.8521 / 0.9000 | 0.8142 / 0.8783 | 0.8612 | `pcgrad_fold4_2026-11-07_12-52_carewsm_gated_fusion_c7b74aaa` | `ac9e55aed1af4c6c96c3682ba9d3834e` | `epoch=7_val_mean_corpora_tasks_macro_recall=0.8612.pt` |
-| CAGrad | 0 | 9 | 0.8656 / 0.7438 | 0.8013 / 0.9043 | 0.8288 | `cagrad_fold0_2026-11-07_12-11_carewsm_gated_fusion_6b38a5a4` | `f0eade557acd4d5a82b2093953026315` | `epoch=9_val_mean_corpora_tasks_macro_recall=0.8288.pt` |
+| CAGrad | 0 | 9 | 0.8656 / 0.7438 | 0.8013 / 0.9043 | 0.8288 | `cagrad_fold0_2026-11-07_12-11_carewsm_gated_fusion_6b38a5a4` | `fe6f132700db4677a17939f08eb891fe` | `epoch=9_val_mean_corpora_tasks_macro_recall=0.8288.pt` |
 | CAGrad | 1 | 3 | 0.8844 / 0.8252 | 0.7452 / 0.8868 | 0.8354 | `cagrad_fold1_2026-11-07_12-13_carewsm_gated_fusion_cea93f19` | `e3f259d4448c42cdb80b2cecfcffac72` | `epoch=3_val_mean_corpora_tasks_macro_recall=0.8354.pt` |
 | CAGrad | 2 | 11 | 0.7267 / 0.8430 | 0.7035 / 0.8930 | 0.7916 | `cagrad_fold2_2026-11-07_12-14_carewsm_gated_fusion_875bb5d8` | `f785cf770c23467fbce9455680825824` | `epoch=11_val_mean_corpora_tasks_macro_recall=0.7916.pt` |
 | CAGrad | 3 | 12 | 0.8460 / 0.6535 | 0.7016 / 0.9281 | 0.7823 | `cagrad_fold3_2026-11-07_12-17_carewsm_gated_fusion_7ffe96a9` | `38a65526d8684df89d2c24dd0c7f0c02` | `epoch=12_val_mean_corpora_tasks_macro_recall=0.7823.pt` |

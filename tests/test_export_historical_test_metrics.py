@@ -39,7 +39,7 @@ def test_equal_validation_scores_select_earliest_epoch(tmp_path):
 def test_foldwise_equal_corpus_task_uses_sample_sd():
     mean, deviation = EXPORTER.foldwise_mean_sd([0.0, 1.0, 2.0, 3.0, 4.0])
     assert mean == 2.0
-    assert deviation == pytest.approx((2.5)**0.5)
+    assert deviation == pytest.approx((2.5) ** 0.5)
 
 
 def test_fold_first_sd_differs_from_component_sd_average():
@@ -47,7 +47,7 @@ def test_fold_first_sd_differs_from_component_sd_average():
     _, fold_sd = EXPORTER.foldwise_mean_sd(fold_values)
     component_sd_average = (
         EXPORTER.foldwise_mean_sd([0, 0, 0, 0, 1])[1]
-        + EXPORTER.foldwise_mean_sd([0, 0, 0, 0, 0])[1]
+        + EXPORTER.foldwise_mean_sd([0, 0, 0, 1, 0])[1]
     ) / 2
     assert fold_sd != component_sd_average
 

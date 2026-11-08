@@ -510,10 +510,70 @@ def write_aggregate(entries: list[Entry], output: Path) -> None:
                 writer.writerow(row)
 
 
+STAGE_I_FAMILIES = (
+    "emotionmsp_embeds",
+    "emotionmsp_trajectories",
+    "trillsson4_1",
+    "wav2vec_xlsr300m",
+)
+STAGE_II_SUBSETS = (
+    "emotionmsp_embeds__emotionmsp_trajectories",
+    "emotionmsp_embeds__emotionmsp_trajectories__trillsson4_1",
+    "emotionmsp_embeds__emotionmsp_trajectories__trillsson4_1__wav2vec_xlsr300m",
+    "emotionmsp_embeds__emotionmsp_trajectories__wav2vec_xlsr300m",
+    "emotionmsp_embeds__trillsson4_1",
+    "emotionmsp_embeds__trillsson4_1__wav2vec_xlsr300m",
+    "emotionmsp_embeds__wav2vec_xlsr300m",
+    "emotionmsp_trajectories__trillsson4_1",
+    "emotionmsp_trajectories__trillsson4_1__wav2vec_xlsr300m",
+    "emotionmsp_trajectories__wav2vec_xlsr300m",
+    "trillsson4_1__wav2vec_xlsr300m",
+)
+STAGE_G_METHODS = (
+    "equal",
+    "stch",
+    "progress_corrected",
+    "ra_stch_corrected",
+    "gradnorm_corrected",
+    "pcgrad",
+    "cagrad",
+    "dbmtl",
+)
+
+
+def expected_blocks() -> set[str]:
+    stage_i = {
+        f"DEEP-003_{family}_{model}"
+        for family in STAGE_I_FAMILIES
+        for model in ("mlp", "mdformer")
+    }
+    stage_ii = {
+        f"DEEP-006_{subset}_{model}"
+        for subset in STAGE_II_SUBSETS
+        for model in ("mlp", "mdformer")
+    }
+    return (
+        stage_i
+        | stage_ii
+        | {
+            "DEEP-008_A",
+            "DEEP-008_F",
+            "DEEP-008_weighted-F",
+        }
+        | {f"DEEP-008_StageG_{method}" for method in STAGE_G_METHODS}
+    )
+
+
 def validate_grid(entries: list[Entry]) -> None:
-    if len(entries) != 205 or len({entry.block for entry in entries}) != 41:
+    actual_blocks = {entry.block for entry in entries}
+    if actual_blocks != expected_blocks():
         raise ValueError(
-            f"expected 205 entries/41 blocks, got {len(entries)}/{len({entry.block for entry in entries})}"
+            f"experimental block grid mismatch: missing={sorted(expected_blocks() - actual_blocks)} "
+            f"unexpected={sorted(actual_blocks - expected_blocks())}"
+        )
+    if len(entries) != 205 or len(actual_blocks) != 41:
+        raise ValueError(
+            f"expected 205 entries/41 blocks, got {len(entries)}/{len(actual_blocks)}"
         )
     by_block = {}
     for entry in entries:
