@@ -8,6 +8,7 @@ from audio.data.carewsm_audio_dataset import CAREWSMAudioDataset
 from audio.models.carewsm_representation_pilot_models import (
     CAREWSMAttentiveMLPModel,
     CAREWSMGatedFusionModel,
+    CAREWSMGatedTaskAttentionModel,
 )
 from chimera_ml.core.registry import MODELS
 
@@ -39,6 +40,12 @@ def test_pilot_registrations_are_idempotent() -> None:
     assert MODELS.create("carewsm_attentive_mlp", input_dim=4, hidden_dim=4)
     assert MODELS.create(
         "carewsm_gated_fusion", input_dim=2048, family_dims=[1024, 1024], hidden_dim=4
+    )
+    assert MODELS.create(
+        "carewsm_gated_task_attention",
+        input_dim=2048,
+        family_dims=[1024, 1024],
+        hidden_dim=4,
     )
 
 
@@ -106,3 +113,82 @@ def test_pilot_models_mask_padding_and_backpropagate() -> None:
 def test_gated_fusion_rejects_wrong_family_contract() -> None:
     with pytest.raises(ValueError):
         CAREWSMGatedFusionModel(3075, [1024, 3, 1024, 1024])
+
+
+def _task_attention_model(hidden_dim: int = 8) -> CAREWSMGatedTaskAttentionModel:
+    model = CAREWSMGatedTaskAttentionModel(
+        2048, [1024, 1024], hidden_dim=hidden_dim, dropout=0.0
+    )
+    model.eval()
+    return model
+
+
+def test_task_attention_matches_gated_fusion_for_one_turn() -> None:
+    torch.manual_seed(30)
+    gated = CAREWSMGatedFusionModel(2048, [1024, 1024], hidden_dim=8, dropout=0.0)
+    attentive = _task_attention_model()
+    attentive.load_state_dict(gated.state_dict(), strict=False)
+    values = torch.randn(2, 1, 2048)
+    batch = Batch(values, torch.ones(2, 1, dtype=torch.bool))
+
+    with torch.no_grad():
+        gated_logits = gated(batch).preds
+        attentive_output = attentive(batch)
+
+    assert torch.allclose(attentive_output.preds, gated_logits)
+    assert torch.all(attentive_output.aux["attention_weights"] == 1.0)
+
+
+def test_task_attention_is_task_specific_and_mask_safe() -> None:
+    torch.manual_seed(31)
+    model = _task_attention_model()
+    with torch.no_grad():
+        model.depression_attention.weight.zero_()
+        model.depression_attention.weight[0, 0] = 1.0
+        model.parkinson_attention.weight.zero_()
+        model.parkinson_attention.weight[0, 0] = -1.0
+    values = torch.randn(2, 4, 2048)
+    mask = torch.tensor([[True, True, True, False], [True, True, False, False]])
+    output = model(Batch(values, mask))
+    attention = output.aux["attention_weights"]
+
+    assert tuple(output.preds.shape) == (2, 2)
+    assert not torch.allclose(attention[:, 0], attention[:, 1])
+    assert torch.allclose(attention.sum(dim=-1), torch.ones(2, 2))
+    assert torch.all(attention[:, :, 3] == 0.0)
+    assert torch.all(attention[1, :, 2:] == 0.0)
+
+    changed = values.clone()
+    changed[0, 3:] = 1000.0
+    changed[1, 2:] = 1000.0
+    changed_output = model(Batch(changed, mask))
+    assert torch.allclose(output.preds, changed_output.preds)
+
+
+def test_task_attention_rejects_all_invalid_sequences() -> None:
+    model = _task_attention_model()
+    values = torch.randn(2, 3, 2048)
+    mask = torch.tensor([[False, False, False], [True, False, False]])
+
+    with pytest.raises(ValueError, match="at least one valid turn"):
+        model(Batch(values, mask))
+
+
+def test_task_attention_gradients_reach_scorers_and_heads() -> None:
+    torch.manual_seed(32)
+    model = CAREWSMGatedTaskAttentionModel(
+        2048, [1024, 1024], hidden_dim=8, dropout=0.0
+    )
+    values = torch.randn(2, 3, 2048, requires_grad=True)
+    mask = torch.tensor([[True, True, True], [True, True, False]])
+
+    model(Batch(values, mask)).preds.sum().backward()
+
+    for parameter in (
+        model.depression_attention.weight,
+        model.parkinson_attention.weight,
+        *model.heads.depression.parameters(),
+        *model.heads.parkinson.parameters(),
+    ):
+        assert parameter.grad is not None
+        assert torch.isfinite(parameter.grad).all()
