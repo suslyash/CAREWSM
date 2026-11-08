@@ -179,8 +179,8 @@ is about 0.20M MACs for `T=1`, 0.59M for `T=3`, and 0.98M for `T=5`.
 
 The CrossView intermediate activations are small: storing `u`, `v` and the
 rank product requires `3 * B * T * 16` values, plus the output branch. In
-fp16 this is approximately 0.02 MB per turn at `B=64` for those rank tensors,
-or 0.10 MB at `T=5`, before autograd bookkeeping. The model is therefore
+fp16 this is approximately 0.006 MB per turn at `B=64` for those rank tensors,
+or 0.031 MB at `T=5`, excluding the output branch and autograd bookkeeping. The model is therefore
 parameter- and activation-light relative to the existing 1024-to-64 family
 projections. A future RTX 4080 pilot should retain the established batch size,
 mixed precision and gradient clipping; no memory-driven protocol change is
