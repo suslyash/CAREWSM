@@ -1,6 +1,6 @@
 # DEEP-009 — CAREWSM-CrossView Feature-Only Architecture RFC
 
-Date: 2026-11-08  
+Date: 2026-11-08
 Scope: existing native `emotionmsp_embeds` and `trillsson4_1` artifacts only
 
 ## 1. Decision summary
