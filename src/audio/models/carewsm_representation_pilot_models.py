@@ -257,7 +257,9 @@ class CAREWSMGatedCorpusHeadsModel(CAREWSMGatedFusionModel):
             indices = [index for index, item in enumerate(corpora) if item == corpus]
             if indices:
                 index_tensor = torch.tensor(indices, device=features.device)
-                logits[index_tensor] = self.corpus_heads[corpus](features[index_tensor])
+                logits[index_tensor] = self.corpus_heads[corpus](
+                    features[index_tensor]
+                ).to(logits.dtype)
         return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
 
 
