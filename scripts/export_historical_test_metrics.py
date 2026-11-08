@@ -45,6 +45,26 @@ def finite(value: str, label: str) -> float:
     return result
 
 
+def require_one(paths: list[Path], label: str) -> Path:
+    if len(paths) != 1:
+        raise ValueError(f"{label}: expected exactly one run, found {len(paths)}")
+    return paths[0]
+
+
+def completed_run_candidates(paths: list[Path]) -> list[Path]:
+    return [
+        path
+        for path in paths
+        if (path / "train.log").is_file()
+        and (path / "summary.txt").is_file()
+        and "Training complete" in (path / "train.log").read_text(encoding="utf-8")
+        and any(
+            checkpoint.name != "last.pt"
+            for checkpoint in (path / "checkpoints").glob("*.pt")
+        )
+    ]
+
+
 def summary_row(summary: Path) -> tuple[dict[str, str], int, float]:
     with summary.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle, delimiter=";"))
@@ -78,13 +98,35 @@ def checkpoint_for(run_dir: Path, epoch: int) -> Path:
     return candidates[0]
 
 
+def checkpoint_monitor(checkpoint: Path) -> tuple[int, float]:
+    match = re.search(
+        r"epoch=(?P<epoch>\d+)_(?:dev_mean_macro_recall|val_mean_corpora_tasks_macro_recall)=(?P<value>[-+]?\d+(?:\.\d+)?)\.pt$",
+        checkpoint.name,
+    )
+    if match is None:
+        raise ValueError(f"unsupported checkpoint identity: {checkpoint}")
+    return int(match.group("epoch")), float(match.group("value"))
+
+
 def metric_values(row: dict[str, str]) -> dict[str, float]:
     values = {}
     for corpus in CORPORA:
         for task in TASKS:
             for metric in BASE_METRICS:
                 key = f"test_{corpus}_{task}_{metric}"
-                values[f"{corpus}_{task}_{metric}"] = finite(row[key], key)
+                value = finite(row[key], key)
+                if not 0.0 <= value <= 1.0:
+                    raise ValueError(f"out-of-range {key}: {value}")
+                values[f"{corpus}_{task}_{metric}"] = value
+            macro = values[f"{corpus}_{task}_macro_recall"]
+            recall_mean = statistics.mean(
+                [
+                    values[f"{corpus}_{task}_patient_recall"],
+                    values[f"{corpus}_{task}_healthy_recall"],
+                ]
+            )
+            if abs(macro - recall_mean) > 5e-4:
+                raise ValueError(f"inconsistent TEST recalls for {corpus}/{task}")
     return values
 
 
@@ -120,6 +162,9 @@ def add_entry(
     summary = run_dir / "summary.txt"
     row, epoch, monitor = summary_row(summary)
     checkpoint = checkpoint_for(run_dir, epoch)
+    checkpoint_epoch, checkpoint_value = checkpoint_monitor(checkpoint)
+    if checkpoint_epoch != epoch or abs(checkpoint_value - monitor) > 5e-5:
+        raise ValueError(f"{run_dir}: checkpoint does not identify selected VAL row")
     if "Training complete" not in (run_dir / "train.log").read_text(encoding="utf-8"):
         raise ValueError(f"{run_dir}: missing Training complete")
     match = re.search(r"fold(\d+)_", run_dir.name)
@@ -167,10 +212,10 @@ def historical_entries(root: Path) -> list[Entry]:
                             f"*_{model if kind == 'native_turns' else {'mlp': 'pooled_mlp', 'mdformer': 'md_former'}[model]}_fold{fold}_*/summary.txt"
                         )
                     )
-                    if len(runs) != 1:
-                        raise ValueError(
-                            f"{parent}: expected one {model} fold {fold}, found {len(runs)}"
-                        )
+                    run = require_one(
+                        completed_run_candidates([item.parent for item in runs]),
+                        f"{parent}: {model} fold {fold}",
+                    )
                     entries.append(
                         add_entry(
                             root,
@@ -179,7 +224,7 @@ def historical_entries(root: Path) -> list[Entry]:
                             configuration,
                             model,
                             config,
-                            runs[0].parent,
+                            run,
                             "sqlite:///logs/audio_deep_features/mlflow.db",
                         )
                     )
@@ -208,10 +253,7 @@ def deep008_entries(root: Path) -> list[Entry]:
             runs = sorted(
                 p.parent for p in pilot.glob(f"{config_stem}_fold{fold}_*/summary.txt")
             )
-            if len(runs) != 1:
-                raise ValueError(
-                    f"{block} fold {fold}: expected one run, found {len(runs)}"
-                )
+            run = require_one(completed_run_candidates(runs), f"{block} fold {fold}")
             entries.append(
                 add_entry(
                     root,
@@ -220,7 +262,7 @@ def deep008_entries(root: Path) -> list[Entry]:
                     block,
                     model,
                     config,
-                    runs[0],
+                    run,
                     "sqlite:///logs/audio_representation_pilot/mlflow.db",
                 )
             )
@@ -238,10 +280,9 @@ def deep008_entries(root: Path) -> list[Entry]:
             p.parent
             for p in weighted.glob(f"F_weighted_parkinson_fold{fold}_*/summary.txt")
         )
-        if len(runs) != 1:
-            raise ValueError(
-                f"DEEP-008 weighted-F fold {fold}: expected one run, found {len(runs)}"
-            )
+        run = require_one(
+            completed_run_candidates(runs), f"DEEP-008 weighted-F fold {fold}"
+        )
         entries.append(
             add_entry(
                 root,
@@ -250,7 +291,7 @@ def deep008_entries(root: Path) -> list[Entry]:
                 "weighted-F",
                 "gated_fusion",
                 config,
-                runs[0],
+                run,
                 "sqlite:///logs/audio_representation_pilot/deep008_weighted_f/mlflow.db",
             )
         )
@@ -307,9 +348,9 @@ def deep008_entries(root: Path) -> list[Entry]:
                     p.parent
                     for p in run_root.glob(f"{method}_fold{fold}_*/summary.txt")
                 )
-            if not runs:
-                raise ValueError(f"Stage G {method} fold {fold}: no run")
-            run = runs[-1]
+            run = require_one(
+                completed_run_candidates(runs), f"Stage G {method} fold {fold}"
+            )
             entries.append(
                 add_entry(
                     root,
@@ -403,6 +444,12 @@ def write_manifest(entries: list[Entry], output: Path) -> None:
             )
 
 
+def foldwise_mean_sd(values: list[float]) -> tuple[float, float]:
+    if len(values) != 5:
+        raise ValueError(f"expected five fold values, found {len(values)}")
+    return statistics.mean(values), statistics.stdev(values)
+
+
 def write_aggregate(entries: list[Entry], output: Path) -> None:
     groups = {}
     for entry in entries:
@@ -457,23 +504,74 @@ def write_aggregate(entries: list[Entry], output: Path) -> None:
                                 )
                             else:
                                 values.append(entry.values[f"{corpus}_{task}_{metric}"])
-                        row[f"{corpus}_{metric}_mean"] = (
-                            f"{statistics.mean(values):.10f}"
-                        )
-                        row[f"{corpus}_{metric}_sd"] = (
-                            f"{statistics.stdev(values):.10f}"
-                        )
+                        mean, deviation = foldwise_mean_sd(values)
+                        row[f"{corpus}_{metric}_mean"] = f"{mean:.10f}"
+                        row[f"{corpus}_{metric}_sd"] = f"{deviation:.10f}"
                 writer.writerow(row)
+
+
+def validate_grid(entries: list[Entry]) -> None:
+    if len(entries) != 205 or len({entry.block for entry in entries}) != 41:
+        raise ValueError(
+            f"expected 205 entries/41 blocks, got {len(entries)}/{len({entry.block for entry in entries})}"
+        )
+    by_block = {}
+    for entry in entries:
+        by_block.setdefault(entry.block, []).append(entry)
+    if any(
+        sorted(item.fold for item in rows) != list(range(5))
+        for rows in by_block.values()
+    ):
+        raise ValueError("every report block must contain folds 0 through 4")
+    if (
+        len({entry.mlflow_run_id for entry in entries}) != 200
+        or len({entry.run_dir for entry in entries}) != 200
+    ):
+        raise ValueError("expected exactly 200 unique physical runs and MLflow run IDs")
+    if (
+        len(
+            {
+                entry.block
+                for entry in entries
+                if entry.block.startswith("DEEP-008_StageG_")
+            }
+        )
+        != 8
+    ):
+        raise ValueError("expected eight Stage G methods")
+    corrected = [
+        entry
+        for entry in entries
+        if entry.configuration
+        in {"progress_corrected", "ra_stch_corrected", "gradnorm_corrected"}
+    ]
+    if len(corrected) != 15 or not all(
+        "stageg_wsm_corrected" in str(entry.run_dir) for entry in corrected
+    ):
+        raise ValueError("expected 15 corrected Stage G replacement runs")
+    equal = {
+        entry.fold: entry for entry in entries if entry.block == "DEEP-008_StageG_equal"
+    }
+    weighted = {
+        entry.fold: entry for entry in entries if entry.block == "DEEP-008_weighted-F"
+    }
+    for fold in range(5):
+        if (
+            equal[fold].run_dir != weighted[fold].run_dir
+            or equal[fold].checkpoint != weighted[fold].checkpoint
+            or equal[fold].values != weighted[fold].values
+            or equal[fold].mlflow_run_id != weighted[fold].mlflow_run_id
+        ):
+            raise ValueError(
+                f"Stage G Equal does not exactly reuse weighted-F fold {fold}"
+            )
 
 
 def main() -> None:
     root = Path(__file__).resolve().parents[1]
     output = root / "docs/evidence/tables"
     entries = historical_entries(root) + deep008_entries(root)
-    if len(entries) != 205 or len({entry.block for entry in entries}) != 41:
-        raise ValueError(
-            f"expected 205 entries/41 blocks, got {len(entries)}/{len({entry.block for entry in entries})}"
-        )
+    validate_grid(entries)
     output.mkdir(parents=True, exist_ok=True)
     write_per_fold(entries, output / "DEEP008_HISTORICAL_TEST_METRICS_PER_FOLD.csv")
     write_aggregate(entries, output / "DEEP008_HISTORICAL_TEST_METRICS_AGGREGATED.csv")
