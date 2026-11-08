@@ -124,3 +124,49 @@ def carewsm_validation_monitor(
 ) -> CAREWSMValidationMonitorCallback:
     del context, params
     return CAREWSMValidationMonitorCallback()
+
+
+class CAREWSMTaskValidationMonitorCallback(BaseCallback):
+    """Aggregate only the active task for single-task checkpoint selection."""
+
+    def __init__(self, task: str) -> None:
+        if task not in _TASKS:
+            raise ValueError("task must be depression or parkinson")
+        self.task = task
+
+    def on_epoch_end(self, trainer: Any, epoch: int, logs: dict[str, float]) -> None:
+        derived: dict[str, float] = {}
+        for split in ("val", "test"):
+            for metric in _METRICS:
+                values = [
+                    logs.get(f"{split}_{corpus}/{self.task}/{metric}")
+                    for corpus in _CORPORA
+                ]
+                key = f"{split}_mean_corpora/{self.task}/{metric}"
+                derived[key] = CAREWSMValidationMonitorCallback._mean(values)
+        monitor = f"val_mean_corpora/{self.task}/macro_recall"
+        if not math.isfinite(derived[monitor]):
+            raise ValueError(
+                f"{monitor} is unavailable; both corpus validation components "
+                "must be finite"
+            )
+        logs.update(derived)
+        mlflow_logger = getattr(trainer, "mlflow_logger", None)
+        if mlflow_logger is not None:
+            mlflow_logger.log_metrics(
+                {key: value for key, value in derived.items() if math.isfinite(value)},
+                step=epoch,
+            )
+        self._info(
+            trainer,
+            f"[carewsm_{self.task} epoch {epoch}] "
+            f"{monitor}={derived[monitor]:.6f}",
+        )
+
+
+@CALLBACKS.register("carewsm_task_validation_monitor")
+def carewsm_task_validation_monitor(
+    context: Any | None = None, **params: Any
+) -> CAREWSMTaskValidationMonitorCallback:
+    del context
+    return CAREWSMTaskValidationMonitorCallback(**params)

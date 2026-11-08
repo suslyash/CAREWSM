@@ -116,6 +116,28 @@ class CAREWSMAudioClassificationMetric(BaseMetric):
         return result
 
 
+class CAREWSMSingleTaskClassificationMetric(CAREWSMAudioClassificationMetric):
+    """Compute only the active task's metrics for a single-task run."""
+
+    def __init__(self, task: str) -> None:
+        if task not in {"depression", "parkinson"}:
+            raise ValueError("task must be depression or parkinson")
+        super().__init__()
+        self.task = task
+        self.task_index = 0 if task == "depression" else 1
+
+    def compute(self) -> dict[str, float]:
+        if not self._predictions:
+            return {f"{self.task}/{name}": float("nan") for name in _METRICS}
+        predictions = torch.cat(self._predictions)[:, self.task_index]
+        targets = torch.cat(self._targets)[:, self.task_index]
+        observed = torch.cat(self._observed)[:, self.task_index]
+        return {
+            f"{self.task}/{name}": value
+            for name, value in self._task_values(predictions, targets, observed).items()
+        }
+
+
 @METRICS.register("carewsm_masked_multitask_classification")
 def carewsm_masked_multitask_classification(
     context: Any | None = None,
@@ -123,3 +145,11 @@ def carewsm_masked_multitask_classification(
 ) -> CAREWSMAudioClassificationMetric:
     del context, params
     return CAREWSMAudioClassificationMetric()
+
+
+@METRICS.register("carewsm_single_task_classification")
+def carewsm_single_task_classification(
+    context: Any | None = None, **params: Any
+) -> CAREWSMSingleTaskClassificationMetric:
+    del context
+    return CAREWSMSingleTaskClassificationMetric(**params)
