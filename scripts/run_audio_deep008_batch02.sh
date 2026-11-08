@@ -15,7 +15,7 @@ PYTHON="$REPO_ROOT/.venv/bin/python"
 CHIMERA="$REPO_ROOT/.venv/bin/chimera-ml"
 SESSION_NAME=carewsm-deep008-batch02
 
-configs=(
+all_configs=(
     "$CONFIG_ROOT/H1_depression_fold0.yaml"
     "$CONFIG_ROOT/H1_depression_fold1.yaml"
     "$CONFIG_ROOT/H1_depression_fold2.yaml"
@@ -33,11 +33,24 @@ configs=(
     "$CONFIG_ROOT/H2_corpus_heads_fold4.yaml"
 )
 
-if [[ $# -ne 1 || ( "$1" != "--check" && "$1" != "--all" ) ]]; then
-    printf 'Usage: scripts/run_audio_deep008_batch02.sh --check|--all\n' >&2
+h2_configs=(
+    "$CONFIG_ROOT/H2_corpus_heads_fold0_recovery.yaml"
+    "$CONFIG_ROOT/H2_corpus_heads_fold1.yaml"
+    "$CONFIG_ROOT/H2_corpus_heads_fold2.yaml"
+    "$CONFIG_ROOT/H2_corpus_heads_fold3.yaml"
+    "$CONFIG_ROOT/H2_corpus_heads_fold4.yaml"
+)
+
+if [[ $# -ne 1 || ( "$1" != "--check" && "$1" != "--all" && "$1" != "--check-h2" && "$1" != "--resume-h2" ) ]]; then
+    printf 'Usage: scripts/run_audio_deep008_batch02.sh --check|--all|--check-h2|--resume-h2\n' >&2
     exit 2
 fi
 mode=$1
+if [[ "$mode" == "--check-h2" || "$mode" == "--resume-h2" ]]; then
+    configs=("${h2_configs[@]}")
+else
+    configs=("${all_configs[@]}")
+fi
 
 identity() {
     "$PYTHON" - "$1" <<'PYCODE'
@@ -240,7 +253,7 @@ for config in "${configs[@]}"; do
     "$CHIMERA" validate-config -c "$config" >/dev/null
     mapfile -t ids < <(identity "$config")
     [[ "${ids[0]}" == "$EXPERIMENT" ]] || exit 1
-    [[ "${ids[1]}" == H1_depression_fold[0-4] || "${ids[1]}" == H1_parkinson_fold[0-4] || "${ids[1]}" == H2_corpus_heads_fold[0-4] ]] || exit 1
+    [[ "${ids[1]}" == H1_depression_fold[0-4] || "${ids[1]}" == H1_parkinson_fold[0-4] || "${ids[1]}" == H2_corpus_heads_fold[0-4] || "${ids[1]}" == H2_corpus_heads_fold0_recovery ]] || exit 1
     rg -q 'name: carewsm_gated_(single_task|corpus_heads)' "$config" || exit 1
     if [[ -z "${BATCH02_MLFLOW_URI:-}" ]]; then
         rg -q "$MLFLOW_URI" "$config" || exit 1
@@ -248,7 +261,7 @@ for config in "${configs[@]}"; do
     assert_no_collision "$config"
 done
 
-if [[ "$mode" == "--check" ]]; then
+if [[ "$mode" == "--check" || "$mode" == "--check-h2" ]]; then
     printf 'Preflight passed; no training was launched.\n'
     exit 0
 fi
