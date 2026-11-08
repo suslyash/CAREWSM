@@ -48,7 +48,7 @@ For H1, each fold combines the Depression component from its independently VAL-s
 | Hypothesis | Mean improvement | Component degradation > 0.020 | Paired fold wins | Decision |
 |---|---:|---|---:|---|
 | H1 independent task optimization | +0.007010 | No | 4/5 | **Rejected**: below the required +0.010 |
-| H2 corpus-specific heads | −0.003315 | No | 3/5 | **Rejected**: no required improvement |
+| H2 corpus-specific heads | −0.003315 | Yes: CARE Parkinson (−0.06490) | 3/5 | **Rejected**: overall improvement and component-preservation rules both fail |
 
 The historical DB-MTL reference is `0.8317 ± 0.0371`. H1 is descriptively `+0.00237` above its mean; H2 is `−0.007955` below it. Neither hypothesis satisfies the preregistered overall improvement criterion.
 
@@ -67,7 +67,7 @@ Values are five-fold mean ± sample SD for the fixed VAL-selected checkpoints.
 | H2 | WSM Depression | 0.730320 ± 0.096223 | 0.766980 ± 0.072787 | 0.748640 ± 0.043522 |
 | H2 | WSM Parkinson | 0.930060 ± 0.023312 | 0.882740 ± 0.033962 | 0.906400 ± 0.022304 |
 
-Relative to the historical weighted-F component means, H1 changes were +0.00784, +0.09592, +0.00574, and −0.00662 for the four rows in the order above. H2 changes were +0.04404, +0.00070, +0.00404, and +0.01280. Thus neither hypothesis breached the component-degradation rule, but neither passed the overall improvement rule.
+Relative to the historical weighted-F VAL component means (CARE Depression 0.82642, CARE Parkinson 0.82270, WSM Depression 0.75624, WSM Parkinson 0.90276), H1 changes were +0.01952, +0.03032, −0.00590, and −0.01578, respectively. H2 changes were +0.05572, **−0.06490**, −0.00760, and +0.00364. H1 satisfies the component-preservation rule but fails the required +0.010 overall VAL gain. **H2 fails the component-preservation rule**: CARE Parkinson UAR declines by 0.06490, well beyond the permitted 0.020, and it also fails the overall VAL gain rule. On CARE Parkinson, H2 Patient Recall is 0.55664 versus weighted-F 0.69884, an absolute decline of 0.14220.
 
 ## 4. Descriptive TEST results
 
@@ -108,7 +108,7 @@ Values are five-fold mean ± sample SD at the fixed VAL-selected epochs.
 
 ## 5. Completion evidence and provenance
 
-- Source/main commit used: `607d6afc46c6a4dc631b7fae69a5d3aa8df00c0f`.
+- Original ten completed H1 runs used source commit `78e3eb3e50e09119246dfa7849c0f0b23745f320`; five valid H2 recovery runs used source commit `607d6afc46c6a4dc631b7fae69a5d3aa8df00c0f`, which adds only the H2 mixed-precision dtype compatibility fix and recovery launcher/config. No H1 run was retrained.
 - H2-only preflight passed before execution.
 - The launcher completed exactly five recovery runs in deterministic order and reported `selected=5`.
 - The ten H1 runs were reused; no H1 process was launched.
@@ -117,6 +117,6 @@ Values are five-fold mean ± sample SD at the fixed VAL-selected epochs.
 
 ## 6. Scientific conclusion
 
-Both hypotheses are rejected under the frozen VAL acceptance contract. H1 produced a modest mean VAL increase of `+0.007010`, four paired fold wins, and no component degradation beyond `0.020`, but it did not reach the required `+0.010`. H2 produced three paired wins and no component degradation beyond `0.020`, but its mean VAL UAR was `0.003315` below weighted-F.
+Both hypotheses are rejected under the frozen VAL acceptance contract. H1 produced a modest mean VAL increase of `+0.007010`, four paired fold wins, and no component degradation beyond `0.020`, but it did not reach the required `+0.010`. H2 produced three paired wins but failed **both** required gates: its mean VAL UAR was `0.003315` below weighted-F, and CARE Parkinson VAL UAR deteriorated by `0.06490` (Patient Recall by `0.14220`).
 
 The recorded TEST results are descriptive follow-up evidence only. H1 averaged `0.782660 ± 0.025709` and H2 averaged `0.752495 ± 0.026635`, both below the long-term `0.8500` target. No additional experiments are authorized by this batch.
