@@ -193,6 +193,74 @@ class CAREWSMGatedTaskAttentionModel(nn.Module):
         )
 
 
+class CAREWSMGatedSingleTaskModel(CAREWSMGatedFusionModel):
+    """Historical gated fusion with one active task output."""
+
+    def __init__(self, active_task: str, **params: Any) -> None:
+        if active_task not in {"depression", "parkinson"}:
+            raise ValueError("active_task must be depression or parkinson")
+        super().__init__(**params)
+        self.active_task = active_task
+        self.active_index = 0 if active_task == "depression" else 1
+
+    def forward(self, batch: Any) -> ModelOutput:
+        output = super().forward(batch)
+        logits = output.preds.clone()
+        logits[:, 1 - self.active_index] = 0.0
+        return ModelOutput(preds=logits, aux=output.aux)
+
+
+class CAREWSMGatedCorpusHeadsModel(CAREWSMGatedFusionModel):
+    """Gated fusion with separate task heads for CARE and WSM samples."""
+
+    def __init__(self, **params: Any) -> None:
+        super().__init__(**params)
+        from audio.models.carewsm_audio_models import TaskHeads
+
+        hidden_dim = self.projections[0][1].out_features
+        dropout = params.get("dropout", 0.1)
+        self.corpus_heads = nn.ModuleDict(
+            {
+                "CARE": TaskHeads(hidden_dim, dropout),
+                "WSM": TaskHeads(hidden_dim, dropout),
+            }
+        )
+        del self.heads
+
+    def forward(self, batch: Any) -> ModelOutput:
+        values, mask = _unpack(batch)
+        family_values = torch.split(values, self.family_dims, dim=-1)
+        fused = torch.zeros(
+            values.shape[0],
+            values.shape[1],
+            self.projections[0][1].out_features,
+            device=values.device,
+            dtype=values.dtype,
+        )
+        for family, projection, gate in zip(
+            family_values, self.projections, self.gates
+        ):
+            fused = fused + torch.sigmoid(gate(family)) * projection(family)
+        weights = mask.unsqueeze(-1).to(fused.dtype)
+        features = (fused * weights).sum(dim=1) / weights.sum(dim=1).clamp_min(1.0)
+
+        sample_meta = batch.meta.get("sample_meta") if batch.meta else None
+        if sample_meta is None:
+            raise ValueError("corpus-specific heads require sample metadata")
+        corpora = [item.get("corpus") for item in sample_meta]
+        if any(corpus not in self.corpus_heads for corpus in corpora):
+            raise ValueError("each sample must have a CARE or WSM corpus")
+        logits = torch.empty(
+            features.shape[0], 2, device=features.device, dtype=features.dtype
+        )
+        for corpus in self.corpus_heads:
+            indices = [index for index, item in enumerate(corpora) if item == corpus]
+            if indices:
+                index_tensor = torch.tensor(indices, device=features.device)
+                logits[index_tensor] = self.corpus_heads[corpus](features[index_tensor])
+        return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
+
+
 @MODELS.register("carewsm_attentive_mlp")
 def carewsm_attentive_mlp(
     context: Any | None = None, **params: Any
@@ -215,3 +283,19 @@ def carewsm_gated_fusion(
 ) -> CAREWSMGatedFusionModel:
     del context
     return CAREWSMGatedFusionModel(**params)
+
+
+@MODELS.register("carewsm_gated_single_task")
+def carewsm_gated_single_task(
+    context: Any | None = None, **params: Any
+) -> CAREWSMGatedSingleTaskModel:
+    del context
+    return CAREWSMGatedSingleTaskModel(**params)
+
+
+@MODELS.register("carewsm_gated_corpus_heads")
+def carewsm_gated_corpus_heads(
+    context: Any | None = None, **params: Any
+) -> CAREWSMGatedCorpusHeadsModel:
+    del context
+    return CAREWSMGatedCorpusHeadsModel(**params)
