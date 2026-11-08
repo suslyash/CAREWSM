@@ -103,6 +103,47 @@ class CAREWSMGatedFusionModel(nn.Module):
         return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
 
 
+class CAREWSMCrossViewModel(CAREWSMGatedFusionModel):
+    """Gated fusion with a low-rank interaction between the two views."""
+
+    def __init__(self, **params: Any) -> None:
+        super().__init__(**params)
+        hidden_dim = self.projections[0][1].out_features
+        rank = 16
+        self.emotion_interaction = nn.Linear(hidden_dim, rank, bias=False)
+        self.trillsson_interaction = nn.Linear(hidden_dim, rank, bias=False)
+        self.interaction_output = nn.Linear(rank, hidden_dim, bias=False)
+        self.alpha = nn.Parameter(torch.tensor(0.1))
+        for layer in (
+            self.emotion_interaction,
+            self.trillsson_interaction,
+            self.interaction_output,
+        ):
+            nn.init.xavier_uniform_(layer.weight)
+
+    def forward(self, batch: Any) -> ModelOutput:
+        values, mask = _unpack(batch)
+        if not mask.any(dim=1).all():
+            raise ValueError("CrossView requires at least one valid turn")
+
+        emotion, trillsson = torch.split(values, self.family_dims, dim=-1)
+        emotion_projected = self.projections[0](emotion)
+        trillsson_projected = self.projections[1](trillsson)
+        base = (
+            torch.sigmoid(self.gates[0](emotion)) * emotion_projected
+            + torch.sigmoid(self.gates[1](trillsson)) * trillsson_projected
+        )
+        interaction = self.interaction_output(
+            self.emotion_interaction(emotion_projected)
+            * self.trillsson_interaction(trillsson_projected)
+        )
+        fused = base + self.alpha * interaction
+        weights = mask.unsqueeze(-1).to(fused.dtype)
+        features = (fused * weights).sum(dim=1) / weights.sum(dim=1)
+        logits = self.heads(features)
+        return ModelOutput(preds=logits, aux={"features": features, "logits": logits})
+
+
 class CAREWSMGatedTaskAttentionModel(nn.Module):
     """Gated fusion with independent masked attention for each task."""
 
@@ -277,6 +318,14 @@ def carewsm_gated_task_attention(
 ) -> CAREWSMGatedTaskAttentionModel:
     del context
     return CAREWSMGatedTaskAttentionModel(**params)
+
+
+@MODELS.register("carewsm_crossview")
+def carewsm_crossview(
+    context: Any | None = None, **params: Any
+) -> CAREWSMCrossViewModel:
+    del context
+    return CAREWSMCrossViewModel(**params)
 
 
 @MODELS.register("carewsm_gated_fusion")
