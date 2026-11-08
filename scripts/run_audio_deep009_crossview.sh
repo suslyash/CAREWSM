@@ -213,10 +213,6 @@ assert_completed() {
     fi
 }
 
-if [[ "${CAREWSM_CROSSVIEW_TEST_LIBRARY:-0}" == "1" ]]; then
-    return 0 2>/dev/null || exit 0
-fi
-
 [[ -x "$PYTHON" && -x "$CHIMERA" ]] || {
     printf 'Repository .venv Chimera-ML installation is required.\n' >&2
     exit 1
