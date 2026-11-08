@@ -5,9 +5,9 @@ set -Eeuo pipefail
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$REPO_ROOT"
 CONFIG_ROOT="$REPO_ROOT/configs/audio_representation_pilot/deep008/task_attention"
-LOG_ROOT="$REPO_ROOT/logs/audio_representation_pilot/deep008_task_attention"
+LOG_ROOT="${TASK_ATTENTION_LOG_ROOT:-$REPO_ROOT/logs/audio_representation_pilot/deep008_task_attention}"
 EXPERIMENT=audio_representation_pilot_deep008_task_attention
-MLFLOW_URI=sqlite:///logs/audio_representation_pilot/deep008_task_attention/mlflow.db
+MLFLOW_URI="${TASK_ATTENTION_MLFLOW_URI:-sqlite:///logs/audio_representation_pilot/deep008_task_attention/mlflow.db}"
 LAUNCH_ROOT="$LOG_ROOT/launcher"
 LAUNCH_LOG="$LAUNCH_ROOT/launcher.log"
 PROGRESS_LOG="$LAUNCH_ROOT/progress.tsv"
@@ -92,10 +92,11 @@ experiment = client.get_experiment_by_name("audio_representation_pilot_deep008_t
 if experiment is None:
     print("COUNT:0")
     raise SystemExit
+run_name_prefix = run_name + "_"
 runs = [
     run
     for run in client.search_runs([experiment.experiment_id])
-    if (run.data.tags.get("mlflow.runName") or "") == run_name
+    if (run.data.tags.get("mlflow.runName") or "").startswith(run_name_prefix)
 ]
 if len(runs) != 1:
     print(f"COUNT:{len(runs)}")
@@ -116,14 +117,105 @@ assert_no_collision() {
     }
 }
 
+validate_selected_checkpoint() {
+    local summary=$1
+    local checkpoint=$2
+    "$PYTHON" - "$summary" "$checkpoint" <<'PYCODE'
+import csv
+import math
+import re
+import sys
+from pathlib import Path
+
+summary_path, checkpoint_path = sys.argv[1:]
+with Path(summary_path).open(encoding="utf-8", newline="") as handle:
+    reader = csv.DictReader(handle, delimiter=";")
+    fields = reader.fieldnames or []
+    if "val_mean_corpora_tasks/macro_recall" in fields:
+        monitor = "val_mean_corpora_tasks/macro_recall"
+    elif "val_mean_corpora_tasks_macro_recall" in fields:
+        monitor = "val_mean_corpora_tasks_macro_recall"
+    elif "dev_mean_macro_recall" in fields:
+        monitor = "dev_mean_macro_recall"
+    else:
+        raise SystemExit("summary has no canonical validation monitor")
+
+    rows = []
+    for row in reader:
+        if not row.get("epoch") and not row.get(monitor):
+            continue
+        try:
+            epoch = int(row["epoch"])
+            value = float(row[monitor])
+        except (KeyError, TypeError, ValueError) as error:
+            raise SystemExit("summary contains an invalid validation row") from error
+        if not math.isfinite(value):
+            raise SystemExit("summary contains a non-finite validation value")
+        rows.append((epoch, value))
+
+if not rows:
+    raise SystemExit("summary contains no validation rows")
+selected_epoch, selected_value = max(rows, key=lambda item: (item[1], item[0]))
+match = re.fullmatch(
+    r"epoch=(\d+)_val_mean_corpora_tasks_macro_recall=(\d+(?:\.\d+)?)\.pt",
+    Path(checkpoint_path).name,
+)
+if match is None:
+    raise SystemExit("checkpoint filename does not use the canonical validation monitor")
+checkpoint_epoch = int(match.group(1))
+checkpoint_value = match.group(2)
+precision = len(checkpoint_value.partition(".")[2])
+expected_value = f"{selected_value:.{precision}f}"
+if checkpoint_epoch != selected_epoch or checkpoint_value != expected_value:
+    raise SystemExit("checkpoint does not match the selected validation row")
+PYCODE
+}
+
 assert_completed() {
     local config=$1
     local directory
-    directory=$(completed_runtime_directory "$config")
-    [[ -f "$directory/train.log" && -f "$directory/summary.txt" ]]
-    [[ -n $(find "$directory/checkpoints" -maxdepth 1 -type f -name '*.pt' -print -quit 2>/dev/null) ]]
-    rg -q 'Training complete' "$directory/train.log"
+    if ! directory=$(completed_runtime_directory "$config"); then
+        printf 'Completion failure: runtime directory is missing or ambiguous.\n' >&2
+        return 1
+    fi
+    if [[ ! -f "$directory/train.log" ]]; then
+        printf 'Completion failure: train.log is missing.\n' >&2
+        return 1
+    fi
+    if [[ ! -f "$directory/summary.txt" ]]; then
+        printf 'Completion failure: summary.txt is missing.\n' >&2
+        return 1
+    fi
+    if ! rg -q 'Training complete' "$directory/train.log"; then
+        printf 'Completion failure: train.log has no Training complete marker.\n' >&2
+        return 1
+    fi
+
+    mapfile -t checkpoints < <(
+        find "$directory/checkpoints" -maxdepth 1 -type f -name '*.pt' \
+            ! -name 'last.pt' -print 2>/dev/null | sort
+    )
+    if [[ ${#checkpoints[@]} -ne 1 ]]; then
+        printf 'Completion failure: expected one selected checkpoint, found %d.\n' \
+            "${#checkpoints[@]}" >&2
+        return 1
+    fi
+    if ! validate_selected_checkpoint "$directory/summary.txt" "${checkpoints[0]}"; then
+        printf 'Completion failure: selected checkpoint does not match VAL selection.\n' >&2
+        return 1
+    fi
+
+    mapfile -t ids < <(identity "$config")
+    mapfile -t status < <(mlflow_status "${ids[1]}")
+    if [[ "${status[0]:-}" != "FINISHED" || -z "${status[1]:-}" ]]; then
+        printf 'Completion failure: exactly one FINISHED MLflow run with an ID is required.\n' >&2
+        return 1
+    fi
 }
+
+if [[ "${CAREWSM_TASK_ATTENTION_TEST_LIBRARY:-0}" == "1" ]]; then
+    return 0 2>/dev/null || exit 0
+fi
 
 [[ -x "$PYTHON" && -x "$CHIMERA" ]] || {
     printf 'Repository .venv Chimera-ML installation is required.\n' >&2
@@ -141,7 +233,9 @@ for config in "${configs[@]}"; do
     [[ "${ids[1]}" == F_task_attention_fold[0-4] ]] || exit 1
     rg -q 'name: carewsm_gated_task_attention' "$config" || exit 1
     rg -q 'monitor: val_mean_corpora_tasks/macro_recall' "$config" || exit 1
-    rg -q "$MLFLOW_URI" "$config" || exit 1
+    if [[ -z "${TASK_ATTENTION_MLFLOW_URI:-}" ]]; then
+        rg -q "$MLFLOW_URI" "$config" || exit 1
+    fi
     assert_no_collision "$config"
 done
 
@@ -180,7 +274,7 @@ for config in "${configs[@]}"; do
         exit "$exit_code"
     fi
     if ! assert_completed "$config"; then
-        printf '%s\t%s\tAMBIGUOUS_AFTER_EXIT\t0\t%s\n' \
+        printf '%s\t%s\tCOMPLETION_FAILED\t0\t%s\n' \
             "$config" "$launch_utc" "$expected_directory" >> "$PROGRESS_LOG"
         exit 1
     fi

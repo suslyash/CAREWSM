@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import subprocess
 from copy import deepcopy
 from pathlib import Path
 
@@ -11,6 +13,7 @@ import chimera_plugin
 from audio.loss.carewsm_weighted_bce_loss import CAREWSMWeightedParkinsonBCELoss
 from chimera_ml.core.batch import Batch
 from chimera_ml.core.registry import MODELS
+from mlflow.tracking import MlflowClient
 
 
 BASELINE_ROOT = Path("configs/audio_representation_pilot/deep008/weighted_f")
@@ -133,3 +136,165 @@ def test_launcher_declares_safe_sequential_preflight() -> None:
     assert "AMBIGUOUS_COLLISION" not in source
     assert "COLLISION" in source
     assert "audio_representation_pilot_deep008_task_attention" in source
+
+
+def _launcher_environment(tmp_path: Path) -> dict[str, str]:
+    environment = os.environ.copy()
+    environment["TASK_ATTENTION_LOG_ROOT"] = str(tmp_path / "logs")
+    environment["TASK_ATTENTION_MLFLOW_URI"] = (
+        f"sqlite:///{tmp_path / 'mlflow.db'}"
+    )
+    return environment
+
+
+def _run_preflight(tmp_path: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [str(LAUNCHER.resolve()), "--check"],
+        cwd=Path.cwd(),
+        env=_launcher_environment(tmp_path),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _create_mlflow_runs(
+    tmp_path: Path,
+    run_names: list[str],
+    status: str = "RUNNING",
+) -> None:
+    tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    client = MlflowClient(tracking_uri=tracking_uri)
+    experiment_id = client.create_experiment(EXPERIMENT)
+    for run_name in run_names:
+        run = client.create_run(
+            experiment_id,
+            tags={"mlflow.runName": run_name},
+        )
+        if status != "RUNNING":
+            client.set_terminated(run.info.run_id, status=status)
+
+
+def test_launcher_preflight_accepts_clean_synthetic_namespace(tmp_path: Path) -> None:
+    result = _run_preflight(tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "Preflight passed" in result.stdout
+
+
+def test_launcher_preflight_rejects_suffixed_mlflow_run(tmp_path: Path) -> None:
+    _create_mlflow_runs(tmp_path, ["F_task_attention_fold0_2026-01-01"])
+    result = _run_preflight(tmp_path)
+    assert result.returncode != 0
+    assert "MLflow collision" in result.stderr
+
+
+@pytest.mark.parametrize("status", ["FINISHED", "FAILED", "RUNNING"])
+def test_launcher_preflight_rejects_all_mlflow_statuses(
+    tmp_path: Path,
+    status: str,
+) -> None:
+    _create_mlflow_runs(tmp_path, ["F_task_attention_fold0_2026-01-01"], status)
+    result = _run_preflight(tmp_path)
+    assert result.returncode != 0
+    assert "MLflow collision" in result.stderr
+
+
+def test_launcher_preflight_rejects_ambiguous_mlflow_matches(tmp_path: Path) -> None:
+    _create_mlflow_runs(
+        tmp_path,
+        [
+            "F_task_attention_fold0_2026-01-01",
+            "F_task_attention_fold0_2026-01-02",
+        ],
+    )
+    result = _run_preflight(tmp_path)
+    assert result.returncode != 0
+    assert "MLflow collision" in result.stderr
+
+
+def _completion_directory(tmp_path: Path) -> Path:
+    return (
+        tmp_path
+        / "logs"
+        / EXPERIMENT
+        / "F_task_attention_fold0_2026-01-01"
+    )
+
+
+def _write_valid_completion(tmp_path: Path) -> Path:
+    directory = _completion_directory(tmp_path)
+    checkpoints = directory / "checkpoints"
+    checkpoints.mkdir(parents=True)
+    (directory / "train.log").write_text("Training complete\n")
+    (directory / "summary.txt").write_text(
+        "epoch;val_mean_corpora_tasks_macro_recall\n"
+        "0;0.8000\n"
+        "1;0.8271\n"
+    )
+    (
+        checkpoints / "epoch=1_val_mean_corpora_tasks_macro_recall=0.8271.pt"
+    ).write_bytes(b"checkpoint")
+    (checkpoints / "last.pt").write_bytes(b"last")
+    return directory
+
+
+def _run_completion_check(tmp_path: Path) -> subprocess.CompletedProcess[str]:
+    environment = _launcher_environment(tmp_path)
+    environment["CAREWSM_TASK_ATTENTION_TEST_LIBRARY"] = "1"
+    config = TASK_ROOT / "F_task_attention_fold0.yaml"
+    command = (
+        "set -- --check; "
+        f"source {LAUNCHER.resolve()}; "
+        f"assert_completed {config.resolve()}"
+    )
+    return subprocess.run(
+        ["bash", "-c", command],
+        cwd=Path.cwd(),
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_completion_accepts_selected_checkpoint_and_finished_mlflow(
+    tmp_path: Path,
+) -> None:
+    _write_valid_completion(tmp_path)
+    _create_mlflow_runs(tmp_path, ["F_task_attention_fold0_2026-01-01"], "FINISHED")
+    result = _run_completion_check(tmp_path)
+    assert result.returncode == 0, result.stderr
+
+
+def test_completion_rejects_missing_non_last_checkpoint(tmp_path: Path) -> None:
+    directory = _write_valid_completion(tmp_path)
+    (
+        directory / "checkpoints" / "epoch=1_val_mean_corpora_tasks_macro_recall=0.8271.pt"
+    ).unlink()
+    _create_mlflow_runs(
+        tmp_path,
+        ["F_task_attention_fold0_2026-01-01"],
+        "FINISHED",
+    )
+    result = _run_completion_check(tmp_path)
+    assert result.returncode != 0
+    assert "selected checkpoint" in result.stderr
+
+
+def test_completion_rejects_missing_mlflow_evidence(tmp_path: Path) -> None:
+    _write_valid_completion(tmp_path)
+    result = _run_completion_check(tmp_path)
+    assert result.returncode != 0
+    assert "FINISHED MLflow run" in result.stderr
+
+
+@pytest.mark.parametrize("status", ["FAILED", "RUNNING"])
+def test_completion_rejects_non_finished_mlflow_evidence(
+    tmp_path: Path,
+    status: str,
+) -> None:
+    _write_valid_completion(tmp_path)
+    _create_mlflow_runs(tmp_path, ["F_task_attention_fold0_2026-01-01"], status)
+    result = _run_completion_check(tmp_path)
+    assert result.returncode != 0
+    assert "FINISHED MLflow run" in result.stderr
