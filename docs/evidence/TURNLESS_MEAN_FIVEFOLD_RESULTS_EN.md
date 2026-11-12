@@ -65,3 +65,27 @@ All 20 run identities, actual MLflow run IDs, selected epochs, selected checkpoi
 Early mean pooling does not establish a validation improvement over native-turn Weighted-F. Its effect is primarily testable on CARE because valid WSM samples contain one turn; WSM differences are optimization/generalization effects.
 
 Learned feature-family gates remain beneficial relative to the pooled MLP: E1 exceeds E2 by 0.0226 mean VAL UAR, and E3 exceeds E4 by 0.0431. Reducing hidden dimension helps the gated model (E3 > E1 by 0.0086) but hurts the pooled MLP (E4 < E2 by 0.0119). The best new configuration, E3, is still below the +0.010 acceptance threshold and is therefore rejected. No statistical significance or clinical superiority is claimed. A further research step requires a new manager-approved, validation-controlled task.
+### All 20 run identities
+
+| Experiment | Fold | MLflow run ID | Epoch | Status |
+|---|---:|---|---:|---|
+| E1_gated64 | 0 | 2a470983fbf34cd283b2cdd5cd5e68c0 | 8 | COMPLETED |
+| E1_gated64 | 1 | d2ee7b73ef4a49f082946a888bc9286e | 3 | COMPLETED |
+| E1_gated64 | 2 | 0217d3a87b7a4387b8faed5ca3066846 | 11 | COMPLETED |
+| E1_gated64 | 3 | e5f1d41cec4b48908f60e3101f3f6824 | 18 | COMPLETED |
+| E1_gated64 | 4 | c9cd45d0c0fb4e7cb1bdb580e8af97ce | 7 | COMPLETED |
+| E2_mlp64 | 0 | 544a8357d52841c49c619730adaddeed | 12 | COMPLETED |
+| E2_mlp64 | 1 | 8a98646a24f246afb1a309699dd72543 | 12 | COMPLETED |
+| E2_mlp64 | 2 | 302d460674ab4270b3b2dac135c2fd5d | 5 | COMPLETED |
+| E2_mlp64 | 3 | ae6d957055ed40a5870fd11ed8ac7b66 | 15 | COMPLETED |
+| E2_mlp64 | 4 | 56bb22ee50144e9e9765505cbb09fc28 | 19 | COMPLETED |
+| E3_gated32 | 0 | 7b9ee7c1d0564a088c627d3f9a1c627c | 15 | COMPLETED |
+| E3_gated32 | 1 | 3abd7055d53841f38454835fde298f76 | 17 | COMPLETED |
+| E3_gated32 | 2 | 0579cd3e9d934391ba3b99f6de6f2eca | 30 | COMPLETED |
+| E3_gated32 | 3 | 707208da71ca4b63a8dc2a78286dc95d | 15 | COMPLETED |
+| E3_gated32 | 4 | 547754d2b9c748259b7ba57f5d214321 | 18 | COMPLETED |
+| E4_mlp32 | 0 | c6f3a4b2b64849e08fe29d710f38d5d5 | 8 | COMPLETED |
+| E4_mlp32 | 1 | 86e1545be618485fa2bce0f5c2a68ba1 | 13 | COMPLETED |
+| E4_mlp32 | 2 | e0b2331f1c4b4842a48a1ee925266689 | 5 | COMPLETED |
+| E4_mlp32 | 3 | 798ecd034c274548a1c37fb917219656 | 20 | COMPLETED |
+| E4_mlp32 | 4 | d0c9a005ed4e4b149fecb7e10f98bac9 | 12 | COMPLETED |
