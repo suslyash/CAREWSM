@@ -1,0 +1,347 @@
+#!/usr/bin/env python3
+"""Failure-tolerant sequential worker for audio_turns_combined."""
+
+from __future__ import annotations
+import csv
+import fcntl
+import json
+import os
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+import yaml
+
+ROOT = Path("logs/audio_turns_combined")
+CONFIG_ROOT = Path("configs/audio_turns_combined")
+LEDGER = ROOT / "reports/run_ledger.csv"
+STATUS = ROOT / "launcher/status.json"
+LOCK = ROOT / "launcher/worker.lock"
+PYTHON = Path(".venv/bin/python")
+CHIMERA = Path(".venv/bin/chimera-ml")
+FIELDS = (
+    "stage",
+    "experiment_id",
+    "feature_combination",
+    "feature_families",
+    "representation",
+    "model",
+    "hidden_dim",
+    "fold",
+    "seed",
+    "status",
+    "attempt_number",
+    "start_time",
+    "end_time",
+    "exit_code",
+    "failure_reason",
+    "runtime_directory",
+    "checkpoint_path",
+    "selected_epoch",
+    "selected_val_uar",
+    "mlflow_run_id",
+    "source_commit",
+)
+LETTERS = {
+    "emotionmsp_embeds": "A",
+    "emotionmsp_trajectories": "B",
+    "trillsson4_1": "C",
+    "wav2vec_xlsr300m": "D",
+}
+
+
+def now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def key(row):
+    return row["experiment_id"], row["fold"]
+
+
+def load_rows():
+    if not LEDGER.exists():
+        return []
+    with LEDGER.open(newline="", encoding="utf-8") as h:
+        return list(csv.DictReader(h))
+
+
+def save_rows(rows):
+    LEDGER.parent.mkdir(parents=True, exist_ok=True)
+    with LEDGER.open("w", newline="", encoding="utf-8") as h:
+        writer = csv.DictWriter(h, fieldnames=FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def set_status(**values):
+    data = json.loads(STATUS.read_text()) if STATUS.exists() else {}
+    data.update(values)
+    STATUS.parent.mkdir(parents=True, exist_ok=True)
+    STATUS.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+
+
+def identity(path):
+    data = yaml.safe_load(path.read_text())
+    params = data["data"]["params"]
+    info = data["experiment_info"]["params"]
+    return {
+        "stage": path.parent.name,
+        "experiment_id": info["run_name"].rsplit("_fold", 1)[0],
+        "feature_combination": "".join(LETTERS[x] for x in params["feature_family"]),
+        "feature_families": "+".join(params["feature_family"]),
+        "representation": params["pooling"],
+        "model": data["model"]["name"],
+        "hidden_dim": str(data["model"]["params"]["hidden_dim"]),
+        "fold": str(params["fold"]),
+        "seed": str(data["seed"]),
+        "run_name": info["run_name"],
+        "source_commit": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip(),
+    }
+
+
+def runtime(name):
+    found = sorted((ROOT / "audio_turns_combined").glob(name + "_*"))
+    return found[0] if len(found) == 1 else None
+
+
+def verified(path):
+    data = yaml.safe_load(path.read_text())
+    name = data["experiment_info"]["params"]["run_name"]
+    directory = runtime(name)
+    if (
+        directory is None
+        or not (directory / "summary.txt").exists()
+        or not (directory / "train.log").exists()
+    ):
+        return False
+    return (
+        "Training complete" in (directory / "train.log").read_text()
+        and len(
+            [p for p in (directory / "checkpoints").glob("*.pt") if p.name != "last.pt"]
+        )
+        == 1
+    )
+
+
+def run_one(path, rows):
+    ident = identity(path)
+    old = next(
+        (r for r in rows if key(r) == (ident["experiment_id"], ident["fold"])), None
+    )
+    if old and old["status"] == "COMPLETED" and verified(path):
+        return
+    attempt = int(old["attempt_number"] or 0) + 1 if old else 1
+    row = {field: "" for field in FIELDS}
+    row.update(ident, status="RUNNING", attempt_number=str(attempt), start_time=now())
+    rows[:] = [r for r in rows if key(r) != key(row)] + [row]
+    save_rows(rows)
+    set_status(
+        state="RUNNING",
+        current_stage=ident["stage"],
+        current_experiment=ident["experiment_id"],
+        current_fold=ident["fold"],
+    )
+    log = (
+        ROOT
+        / "launcher"
+        / (ident["experiment_id"] + f"_fold{ident['fold']}_attempt{attempt}.log")
+    )
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("w") as output:
+        process = subprocess.run(
+            [str(CHIMERA), "train", "-c", str(path)],
+            stdout=output,
+            stderr=subprocess.STDOUT,
+            env={
+                **os.environ,
+                "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES", "0"),
+            },
+        )
+    row.update(
+        end_time=now(),
+        exit_code=str(process.returncode),
+        runtime_directory=str(runtime(ident["run_name"]) or ""),
+    )
+    if process.returncode == 0 and verified(path):
+        row["status"] = "COMPLETED"
+    else:
+        row.update(
+            status="FAILED",
+            failure_reason="training exit or artifact verification failed",
+        )
+    rows[:] = [r for r in rows if key(r) != key(row)] + [row]
+    save_rows(rows)
+    subprocess.run(
+        [str(PYTHON), "scripts/audio_turns_combined/collect_results.py"], check=False
+    )
+    collected = ROOT / "reports/all_results_by_fold.csv"
+    if row["status"] == "COMPLETED" and collected.exists():
+        with collected.open(newline="", encoding="utf-8") as handle:
+            evidence = next(
+                (
+                    item
+                    for item in csv.DictReader(handle)
+                    if item["experiment_id"] == row["experiment_id"]
+                    and item["fold"] == row["fold"]
+                ),
+                None,
+            )
+        if evidence is not None:
+            row.update(
+                {
+                    "checkpoint_path": evidence["checkpoint_path"],
+                    "selected_epoch": evidence["selected_epoch"],
+                    "selected_val_uar": evidence["selected_val_uar"],
+                    "mlflow_run_id": evidence["mlflow_run_id"],
+                }
+            )
+            save_rows(rows)
+
+
+def stage_done(stage, rows):
+    paths = sorted((CONFIG_ROOT / stage).glob("*.yaml"))
+    return bool(paths) and all(
+        any(
+            r["experiment_id"] == p.stem.rsplit("_fold", 1)[0]
+            and r["fold"] == p.stem.rsplit("_fold", 1)[1]
+            for r in rows
+        )
+        for p in paths
+    )
+
+
+def scores(rows, stages):
+    result = []
+    for experiment in sorted(
+        {
+            r["experiment_id"]
+            for r in rows
+            if r["stage"] in stages and r["status"] == "COMPLETED"
+        }
+    ):
+        group = [
+            r
+            for r in rows
+            if r["experiment_id"] == experiment and r["status"] == "COMPLETED"
+        ]
+        if len(group) == 5:
+            result.append(
+                (
+                    sum(float(r.get("selected_val_uar") or 0) for r in group) / 5,
+                    experiment,
+                    group[0],
+                )
+            )
+    return sorted(result, reverse=True)
+
+
+def generate(stage, entries):
+    if entries:
+        subprocess.run(
+            [
+                str(PYTHON),
+                "scripts/audio_turns_combined/generate_configs.py",
+                stage,
+                "--entries",
+                *entries,
+            ],
+            check=True,
+        )
+
+
+def prepare(stage, rows):
+    if stage == "feature_screening":
+        subprocess.run(
+            [str(PYTHON), "scripts/audio_turns_combined/generate_configs.py", "stage1"],
+            check=True,
+        )
+        return
+    if stage == "gated_fusion" and stage_done("feature_screening", rows):
+        codes = []
+        for _, exp, _ in scores(rows, {"feature_screening"}):
+            code = exp.removeprefix("screen_").removesuffix("_mean_mlp32")
+            if len(code) > 1 and code not in codes:
+                codes.append(code)
+        if "AC" not in codes:
+            codes.append("AC")
+        generate("stage2", [x + ":mean" for x in codes[:4]])
+    elif stage == "mean_std" and stage_done("gated_fusion", rows):
+        choices = []
+        for _, _, r in scores(rows, {"feature_screening", "gated_fusion"}):
+            item = f"{r['feature_combination']}:{r['representation']}:{r['model']}:{r['hidden_dim']}"
+            if r["feature_combination"] not in [x.split(":")[0] for x in choices]:
+                choices.append(item)
+        if "AC" not in [x.split(":")[0] for x in choices]:
+            choices.append("AC:mean:carewsm_static_mlp:32")
+        generate("stage3", choices[:4])
+    elif stage == "model_tuning" and stage_done("mean_std", rows):
+        ranked = scores(rows, {"feature_screening", "gated_fusion", "mean_std"})
+        if ranked:
+            r = ranked[0][2]
+            generate(
+                "stage4",
+                [
+                    f"{r['feature_combination']}:{r['representation']}:64:{r['model']}",
+                    f"{r['feature_combination']}:{r['representation']}:64:carewsm_static_residual_mlp",
+                ],
+            )
+    elif stage == "mtl_strategies" and stage_done("model_tuning", rows):
+        ranked = scores(
+            rows, {"feature_screening", "gated_fusion", "mean_std", "model_tuning"}
+        )
+        if ranked:
+            r = ranked[0][2]
+            generate(
+                "stage5",
+                [
+                    f"{r['feature_combination']}:{r['representation']}:{r['hidden_dim']}:{r['model']}:{s}"
+                    for s in ("equal", "stch", "pcgrad", "dbmtl")
+                ],
+            )
+
+
+def main():
+    ROOT.mkdir(parents=True, exist_ok=True)
+    LOCK.parent.mkdir(parents=True, exist_ok=True)
+    with LOCK.open("w") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        rows = load_rows()
+        set_status(state="STARTING", completed=0, failed=0, pending=145)
+        for stage in (
+            "feature_screening",
+            "gated_fusion",
+            "mean_std",
+            "model_tuning",
+            "mtl_strategies",
+        ):
+            prepare(stage, rows)
+            for path in sorted((CONFIG_ROOT / stage).glob("*.yaml")):
+                run_one(path, rows)
+            set_status(
+                current_stage=stage,
+                completed=sum(r["status"] == "COMPLETED" for r in rows),
+                failed=sum(r["status"] == "FAILED" for r in rows),
+                pending=max(0, 145 - len(rows)),
+                state="STAGE_COMPLETE",
+            )
+        completed = sum(r["status"] == "COMPLETED" for r in rows)
+        failed = sum(r["status"] == "FAILED" for r in rows)
+        set_status(
+            state=(
+                "COMPLETED"
+                if completed == 145 and failed == 0
+                else "COMPLETED_WITH_FAILURES"
+            ),
+            completed=completed,
+            failed=failed,
+            pending=max(0, 145 - completed - failed),
+        )
+        subprocess.run(
+            [str(PYTHON), "scripts/audio_turns_combined/collect_results.py"],
+            check=False,
+        )
+
+
+if __name__ == "__main__":
+    main()

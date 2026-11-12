@@ -126,7 +126,9 @@ def _inject_gradients(
 ) -> torch.Tensor:
     class GradientInjection(torch.autograd.Function):
         @staticmethod
-        def forward(ctx: Any, scalar: torch.Tensor, *params: torch.Tensor) -> torch.Tensor:
+        def forward(
+            ctx: Any, scalar: torch.Tensor, *params: torch.Tensor
+        ) -> torch.Tensor:
             del params
             ctx.gradients = gradients
             return scalar.detach()
@@ -216,7 +218,7 @@ class CAREWSMStageGMTLLoss(BaseLoss):
         self._private_d = []
         self._private_p = []
         for index, (name, parameter) in enumerate(parameters):
-            if name.startswith(("projections.", "gates.")):
+            if name.startswith(("normalizations.", "projections.", "gates.")):
                 self._shared.append(index)
             elif name.startswith("heads.depression."):
                 self._private_d.append(index)
@@ -224,9 +226,9 @@ class CAREWSMStageGMTLLoss(BaseLoss):
                 self._private_p.append(index)
             else:
                 raise ValueError(f"unclassified gated-fusion parameter: {name}")
-        if len(self._shared) != 12 or len(self._private_d) != 6 or len(self._private_p) != 6:
+        if not self._shared or not self._private_d or not self._private_p:
             raise ValueError(
-                "unexpected gated-fusion ownership: "
+                "incomplete gated-fusion ownership: "
                 f"shared={len(self._shared)}, depression={len(self._private_d)}, "
                 f"parkinson={len(self._private_p)}"
             )
@@ -254,7 +256,9 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             if values
         }
 
-    def _components(self, output: Any, batch: Any) -> tuple[list[torch.Tensor], list[bool]]:
+    def _components(
+        self, output: Any, batch: Any
+    ) -> tuple[list[torch.Tensor], list[bool]]:
         logits = output.preds
         observed = _observed_targets(batch)
         observed = observed.to(device=logits.device, dtype=torch.bool)
@@ -279,9 +283,7 @@ class CAREWSMStageGMTLLoss(BaseLoss):
                 objectives.append(logits[:, task].sum() * 0.0)
         return objectives, active
 
-    def _task_gradients(
-        self, objective: torch.Tensor, task: int
-    ) -> list[torch.Tensor]:
+    def _task_gradients(self, objective: torch.Tensor, task: int) -> list[torch.Tensor]:
         if self._parameters is None:
             raise RuntimeError("loss must be bound to a model before training")
         raw = torch.autograd.grad(
@@ -289,7 +291,11 @@ class CAREWSMStageGMTLLoss(BaseLoss):
         )
         result = []
         for index, gradient in enumerate(raw):
-            value = torch.zeros_like(self._parameters[index]) if gradient is None else gradient
+            value = (
+                torch.zeros_like(self._parameters[index])
+                if gradient is None
+                else gradient
+            )
             if index in self._private_d and task == 1:
                 value = torch.zeros_like(value)
             if index in self._private_p and task == 0:
@@ -337,8 +343,7 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             )
         else:
             return [
-                0.5 * (left + right)
-                for left, right in zip(grad_d, grad_p, strict=True)
+                0.5 * (left + right) for left, right in zip(grad_d, grad_p, strict=True)
             ]
 
         chunks: dict[int, torch.Tensor] = {}
@@ -371,7 +376,9 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             self._gradnorm_optimizer = torch.optim.Adam(
                 [self._gradnorm_weights], lr=self.gradnorm_weight_lr
             )
-        assert self._gradnorm_optimizer is not None and self._gradnorm_weights is not None
+        assert (
+            self._gradnorm_optimizer is not None and self._gradnorm_weights is not None
+        )
         weights_before = self._gradnorm_weights.detach().clone()
         losses = torch.stack([objective.detach() for objective in objectives])
         norms = torch.stack([shared_d.norm(), shared_p.norm()]).detach()
@@ -388,7 +395,9 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             self._gradnorm_optimizer.step()
             with torch.no_grad():
                 self._gradnorm_weights.clamp_(min=EPS)
-                self._gradnorm_weights.mul_(2.0 / self._gradnorm_weights.sum().clamp_min(EPS))
+                self._gradnorm_weights.mul_(
+                    2.0 / self._gradnorm_weights.sum().clamp_min(EPS)
+                )
         self._record(
             weight_depression=float(weights_before[0].item()),
             weight_parkinson=float(weights_before[1].item()),
@@ -423,7 +432,9 @@ class CAREWSMStageGMTLLoss(BaseLoss):
         if not output.preds.requires_grad:
             return 0.5 * (objectives[0] + objectives[1])
         if self.method in {"progress", "ra_stch"}:
-            weights = self.weights.to(device=output.preds.device, dtype=output.preds.dtype)
+            weights = self.weights.to(
+                device=output.preds.device, dtype=output.preds.dtype
+            )
             if self.method == "progress":
                 self._record(
                     scalar_weight_depression=float(weights[0].item()),
@@ -478,7 +489,12 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             shared_d = _flat(log_d[index] for index in self._shared)
             shared_p = _flat(log_p[index] for index in self._shared)
             shared, self._db_buffer = dbmtl_update(
-                shared_d, shared_p, self._db_buffer, self._db_step, self.db_beta, self.db_beta_sigma
+                shared_d,
+                shared_p,
+                self._db_buffer,
+                self._db_step,
+                self.db_beta,
+                self.db_beta_sigma,
             )
             combined = self._combine_from_shared(log_d, log_p, shared)
             self._record(
@@ -493,7 +509,9 @@ class CAREWSMStageGMTLLoss(BaseLoss):
             parameter_tensors_depression_only=float(len(self._private_d)),
             parameter_tensors_parkinson_only=float(len(self._private_p)),
         )
-        return _inject_gradients(0.5 * (objectives[0] + objectives[1]), self._parameters, combined)
+        return _inject_gradients(
+            0.5 * (objectives[0] + objectives[1]), self._parameters, combined
+        )
 
     def _combine_from_shared(
         self,
@@ -515,7 +533,9 @@ class CAREWSMStageGMTLLoss(BaseLoss):
                 result.append(grad_p[index])
         return result
 
-    def update_controller(self, depression_score: float, parkinson_score: float) -> None:
+    def update_controller(
+        self, depression_score: float, parkinson_score: float
+    ) -> None:
         scores = (float(depression_score), float(parkinson_score))
         self.last_scores = list(scores)
         progress = torch.tensor(

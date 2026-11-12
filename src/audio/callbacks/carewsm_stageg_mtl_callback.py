@@ -26,8 +26,8 @@ class CAREWSMStageGMTLCallback(BaseCallback):
         if model is None or not hasattr(loss, "bind_model"):
             raise TypeError("Stage G loss requires trainer.model")
         loss.bind_model(model)
-        if loss.ownership_counts != {"shared": 12, "depression": 6, "parkinson": 6}:
-            raise ValueError(f"unexpected gated-fusion ownership: {loss.ownership_counts}")
+        if not all(loss.ownership_counts.values()):
+            raise ValueError(f"empty MTL parameter group: {loss.ownership_counts}")
 
     def on_epoch_start(self, trainer: Any, epoch: int) -> None:
         del epoch
@@ -42,8 +42,7 @@ class CAREWSMStageGMTLCallback(BaseCallback):
         values = [logs.get(name) for name in names]
         if any(value is None or not math.isfinite(float(value)) for value in values):
             raise KeyError(
-                "two-corpus validation Macro Recall is unavailable: "
-                + ", ".join(names)
+                "two-corpus validation Macro Recall is unavailable: " + ", ".join(names)
             )
         return sum(float(value) for value in values) / len(values)
 

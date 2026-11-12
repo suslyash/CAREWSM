@@ -21,7 +21,9 @@ def _normalise_turn_ids(raw_ids: Any, count: int, path: Path) -> tuple[str, ...]
     """Validate and normalize one artifact's ordered turn identifiers."""
     identifiers = np.asarray(raw_ids)
     if identifiers.ndim != 1 or identifiers.shape[0] != count:
-        raise ValueError(f"turn IDs must be one-dimensional with one ID per row: {path}")
+        raise ValueError(
+            f"turn IDs must be one-dimensional with one ID per row: {path}"
+        )
 
     normalized: list[str] = []
     for raw_id in identifiers.tolist():
@@ -106,13 +108,17 @@ def load_feature_component(
     if specification.get("format") == "csv":
         rows = read_csv_rows(path)
         if not rows or "turn_id" not in rows[0]:
-            raise ValueError(f"CSV feature is missing required turn_id metadata: {path}")
+            raise ValueError(
+                f"CSV feature is missing required turn_id metadata: {path}"
+            )
         raw_ids = [row["turn_id"] for row in rows]
     else:
         try:
             with np.load(path, allow_pickle=False) as archive:
                 if "turn_ids" not in archive.files:
-                    raise ValueError(f"NPZ feature is missing required turn_ids: {path}")
+                    raise ValueError(
+                        f"NPZ feature is missing required turn_ids: {path}"
+                    )
                 raw_ids = archive["turn_ids"]
         except (OSError, ValueError) as exc:
             if isinstance(exc, ValueError) and "missing required turn_ids" in str(exc):
@@ -140,7 +146,9 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
         if not families:
             raise ValueError("CAREWSMAudioDataset requires feature_family")
         if len(families) > 1 and len(families) not in (2, 3, 4):
-            raise ValueError("fused feature_family lists must contain two to four families")
+            raise ValueError(
+                "fused feature_family lists must contain two to four families"
+            )
         if len(set(families)) != len(families):
             raise ValueError("feature_family selections must not contain duplicates")
         unknown = set(families) - set(feature_specs)
@@ -152,8 +160,6 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
         self.feature_specs = feature_specs
         if pooling not in ("native", "mean", "mean_std"):
             raise ValueError("pooling must be native, mean, or mean_std")
-        if pooling == "mean_std" and len(self.feature_families) != 1:
-            raise ValueError("mean_std pooling supports one feature family")
         self.pooling = pooling
 
     def __len__(self) -> int:
@@ -173,12 +179,16 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
         }
         if len(self.feature_families) == 1:
             family = self.feature_families[0]
-            values = load_feature_array(paths[family], self.feature_specs[family], family)
+            values = load_feature_array(
+                paths[family], self.feature_specs[family], family
+            )
             feature_dimensions = {family: int(values.shape[1])}
             turn_ids = None
         else:
             components = [
-                load_feature_component(paths[family], self.feature_specs[family], family)
+                load_feature_component(
+                    paths[family], self.feature_specs[family], family
+                )
                 for family in self.feature_families
             ]
             turn_ids = components[0][1]
@@ -190,7 +200,20 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
                         f"turn IDs are not aligned for {record['corpus']}/{record['sample_id']}: "
                         f"{self.feature_families[0]} and {family}"
                     )
-            values = np.concatenate([component[0] for component in components], axis=1)
+            if self.pooling == "mean_std":
+                values = np.concatenate(
+                    [
+                        np.concatenate(
+                            (component[0].mean(axis=0), component[0].std(axis=0))
+                        )[None, :]
+                        for component in components
+                    ],
+                    axis=1,
+                )
+            else:
+                values = np.concatenate(
+                    [component[0] for component in components], axis=1
+                )
             feature_dimensions = {
                 family: int(component[0].shape[1])
                 for family, component in zip(self.feature_families, components)
@@ -198,7 +221,7 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
 
         if self.pooling == "mean":
             values = values.mean(axis=0, keepdims=True)
-        elif self.pooling == "mean_std":
+        elif self.pooling == "mean_std" and len(self.feature_families) == 1:
             values = np.concatenate(
                 (values.mean(axis=0, keepdims=True), values.std(axis=0, keepdims=True)),
                 axis=1,
@@ -225,9 +248,7 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
             "feature_paths": {family: str(path) for family, path in paths.items()},
             "feature_dimension": int(tensor.shape[1]),
             "observed_targets": observed,
-            "masks": {
-                "sequence_mask": torch.ones(tensor.shape[0], dtype=torch.bool)
-            },
+            "masks": {"sequence_mask": torch.ones(tensor.shape[0], dtype=torch.bool)},
         }
         if turn_ids is not None:
             metadata["turn_alignment"] = {
