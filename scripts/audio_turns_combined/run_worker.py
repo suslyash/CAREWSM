@@ -133,7 +133,12 @@ def run_one(path, rows):
         return
     attempt = int(old["attempt_number"] or 0) + 1 if old else 1
     row = {field: "" for field in FIELDS}
-    row.update(ident, status="RUNNING", attempt_number=str(attempt), start_time=now())
+    row.update(
+        {field: value for field, value in ident.items() if field != "run_name"},
+        status="RUNNING",
+        attempt_number=str(attempt),
+        start_time=now(),
+    )
     rows[:] = [r for r in rows if key(r) != key(row)] + [row]
     save_rows(rows)
     set_status(
@@ -316,7 +321,39 @@ def main():
             "mtl_strategies",
         ):
             prepare(stage, rows)
-            for path in sorted((CONFIG_ROOT / stage).glob("*.yaml")):
+            paths = list((CONFIG_ROOT / stage).glob("*.yaml"))
+            if stage == "feature_screening":
+                order = {
+                    code: index
+                    for index, code in enumerate(
+                        (
+                            "A",
+                            "B",
+                            "C",
+                            "D",
+                            "AB",
+                            "AC",
+                            "AD",
+                            "BC",
+                            "BD",
+                            "CD",
+                            "ABC",
+                            "ABD",
+                            "ACD",
+                            "BCD",
+                            "ABCD",
+                        )
+                    )
+                }
+                paths.sort(
+                    key=lambda path: (
+                        order[identity(path)["feature_combination"]],
+                        int(identity(path)["fold"]),
+                    )
+                )
+            else:
+                paths.sort()
+            for path in paths:
                 run_one(path, rows)
             set_status(
                 current_stage=stage,
@@ -344,4 +381,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BlockingIOError:
+        set_status(
+            state="RUNNING", error="another audio_turns_combined worker holds the lock"
+        )
+        raise
+    except Exception as exc:
+        set_status(state="INTERRUPTED", error=f"{type(exc).__name__}: {exc}")
+        raise

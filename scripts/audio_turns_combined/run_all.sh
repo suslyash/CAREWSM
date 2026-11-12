@@ -31,7 +31,22 @@ PYCFG
   if pgrep -af 'chimera-ml train' | grep -v "$$"; then echo 'training process already active' >&2; return 1; fi
   echo 'audio_turns_combined preflight passed'
 }
-start_worker(){ tmux has-session -t "$SESSION" 2>/dev/null && { echo 'worker already running' >&2; return 1; }; mkdir -p logs/audio_turns_combined/launcher; tmux new-session -d -s "$SESSION" "cd '$ROOT' && CUDA_VISIBLE_DEVICES=0 '$PYTHON' '$WORKER' >> logs/audio_turns_combined/launcher/launcher.log 2>&1"; }
+start_worker(){
+  tmux has-session -t "$SESSION" 2>/dev/null && { echo 'worker already running' >&2; return 1; }
+  mkdir -p logs/audio_turns_combined/launcher
+  "$PYTHON" - <<'PYSTATE'
+import json
+from pathlib import Path
+path = Path("logs/audio_turns_combined/launcher/status.json")
+if path.exists():
+    data = json.loads(path.read_text())
+    if data.get("state") in {"STARTING", "RUNNING"}:
+        data["state"] = "INTERRUPTED"
+        data["error"] = "previous worker state was stale; no tmux session was present"
+        path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+PYSTATE
+  tmux new-session -d -s "$SESSION" "cd '$ROOT' && CUDA_VISIBLE_DEVICES=0 '$PYTHON' '$WORKER' >> logs/audio_turns_combined/launcher/launcher.log 2>&1"
+}
 case "$1" in
  --check) check;;
  --start) check && start_worker;;
