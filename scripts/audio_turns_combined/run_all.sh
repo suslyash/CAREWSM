@@ -19,7 +19,8 @@ expected = {"A": 1024, "B": 3, "C": 1024, "D": 1024}
 for raw in sys.argv[1:]:
     config = yaml.safe_load(open(raw, encoding="utf-8"))
     params = config["data"]["params"]
-    families = params["feature_family"]
+    configured_families = params["feature_family"]
+    families = [configured_families] if isinstance(configured_families, str) else configured_families
     code = "".join({"emotionmsp_embeds": "A", "emotionmsp_trajectories": "B", "trillsson4_1": "C", "wav2vec_xlsr300m": "D"}[family] for family in families)
     if config["model"]["params"]["input_dim"] != sum(expected[item] for item in code):
         raise SystemExit(f"input dimension mismatch: {raw}")

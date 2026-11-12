@@ -65,6 +65,8 @@ def parse_config(path: Path) -> dict[str, object]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     params = data["data"]["params"]
     info = data["experiment_info"]["params"]
+    configured_families = params["feature_family"]
+    families = [configured_families] if isinstance(configured_families, str) else configured_families
     model = data["model"]
     code = "".join(
         {
@@ -73,13 +75,13 @@ def parse_config(path: Path) -> dict[str, object]:
             "trillsson4_1": "C",
             "wav2vec_xlsr300m": "D",
         }[family]
-        for family in params["feature_family"]
+        for family in families
     )
     return {
         "stage": path.parent.name,
         "experiment_id": info["run_name"].rsplit("_fold", 1)[0],
         "feature_combination": code,
-        "feature_families": "+".join(params["feature_family"]),
+        "feature_families": "+".join(families),
         "representation": params["pooling"],
         "model": model["name"],
         "hidden_dim": model["params"]["hidden_dim"],

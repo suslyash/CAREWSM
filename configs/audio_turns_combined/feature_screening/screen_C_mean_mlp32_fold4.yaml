@@ -31,8 +31,7 @@ data:
   params:
     batch_size: 64
     care_root: /media/maxim/Databases/CARE
-    feature_family:
-    - trillsson4_1
+    feature_family: trillsson4_1
     fold: 4
     manifest: reports/feature_audit/sample_feature_availability.csv
     num_workers: 8

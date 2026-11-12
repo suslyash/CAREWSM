@@ -52,6 +52,9 @@ def config(
     loss: str = "weighted",
 ) -> dict[str, Any]:
     families = family_names(code)
+    configured_families: str | list[str] = (
+        families[0] if len(families) == 1 else families
+    )
     dims = dimensions(code, representation)
     if loss == "weighted":
         loss_config = {
@@ -110,7 +113,7 @@ def config(
             "params": {
                 "batch_size": 64,
                 "care_root": "/media/maxim/Databases/CARE",
-                "feature_family": families,
+                "feature_family": configured_families,
                 "fold": fold,
                 "manifest": "reports/feature_audit/sample_feature_availability.csv",
                 "num_workers": 8,

@@ -31,8 +31,7 @@ data:
   params:
     batch_size: 64
     care_root: /media/maxim/Databases/CARE
-    feature_family:
-    - wav2vec_xlsr300m
+    feature_family: wav2vec_xlsr300m
     fold: 3
     manifest: reports/feature_audit/sample_feature_availability.csv
     num_workers: 8

@@ -75,6 +75,8 @@ def save_rows(rows):
 def set_status(**values):
     data = json.loads(STATUS.read_text()) if STATUS.exists() else {}
     data.update(values)
+    if values.get("state") in {"STARTING", "RUNNING"} and "error" not in values:
+        data.pop("error", None)
     STATUS.parent.mkdir(parents=True, exist_ok=True)
     STATUS.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
@@ -83,11 +85,13 @@ def identity(path):
     data = yaml.safe_load(path.read_text())
     params = data["data"]["params"]
     info = data["experiment_info"]["params"]
+    configured_families = params["feature_family"]
+    families = [configured_families] if isinstance(configured_families, str) else configured_families
     return {
         "stage": path.parent.name,
         "experiment_id": info["run_name"].rsplit("_fold", 1)[0],
-        "feature_combination": "".join(LETTERS[x] for x in params["feature_family"]),
-        "feature_families": "+".join(params["feature_family"]),
+        "feature_combination": "".join(LETTERS[x] for x in families),
+        "feature_families": "+".join(families),
         "representation": params["pooling"],
         "model": data["model"]["name"],
         "hidden_dim": str(data["model"]["params"]["hidden_dim"]),
@@ -355,6 +359,13 @@ def main():
                 paths.sort()
             for path in paths:
                 run_one(path, rows)
+                set_status(
+                    current_stage=stage,
+                    completed=sum(r["status"] == "COMPLETED" for r in rows),
+                    failed=sum(r["status"] == "FAILED" for r in rows),
+                    pending=max(0, 145 - len(rows)),
+                    state="RUNNING",
+                )
             set_status(
                 current_stage=stage,
                 completed=sum(r["status"] == "COMPLETED" for r in rows),
