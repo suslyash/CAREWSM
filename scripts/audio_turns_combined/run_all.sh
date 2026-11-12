@@ -53,6 +53,6 @@ case "$1" in
  --start) check && start_worker;;
  --resume) start_worker;;
  --attach) exec tmux attach-session -t "$SESSION";;
- --status) [[ -f "$STATUS" ]] && cat "$STATUS" || echo '{"state":"NOT_STARTED"}'; tmux has-session -t "$SESSION" 2>/dev/null && echo 'tmux_worker: RUNNING' || echo 'tmux_worker: STOPPED';;
+ --status) [[ -f "$STATUS" ]] && cat "$STATUS" || echo '{"state":"NOT_STARTED"}'; if tmux has-session -t "$SESSION" 2>/dev/null; then echo 'tmux_worker: RUNNING'; else echo 'tmux_worker: STOPPED'; state=$(python3 -c "import json; print(json.load(open(\"$STATUS\")).get(\"state\", \"NOT_STARTED\"))" 2>/dev/null || true); [[ "$state" == "STARTING" || "$state" == "RUNNING" ]] && echo 'effective_state: INTERRUPTED'; fi;;
  *) usage >&2; exit 2;;
 esac
