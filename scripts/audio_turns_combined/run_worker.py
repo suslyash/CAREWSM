@@ -316,7 +316,12 @@ def main():
     with LOCK.open("w") as handle:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         rows = load_rows()
-        set_status(state="STARTING", completed=0, failed=0, pending=145)
+        set_status(
+            state="STARTING",
+            completed=sum(r["status"] == "COMPLETED" for r in rows),
+            failed=sum(r["status"] == "FAILED" for r in rows),
+            pending=max(0, 145 - len(rows)),
+        )
         for stage in (
             "feature_screening",
             "gated_fusion",
