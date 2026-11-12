@@ -247,7 +247,11 @@ def main() -> None:
             "model_tuning",
             [
                 (
-                    f"tune_{item.split(':')[0]}_{item.split(':')[1]}{item.split(':')[2]}",
+                    (
+                        f"tune_{item.split(':')[0]}_{item.split(':')[1]}{item.split(':')[2]}"
+                        if item.split(':')[3] == "carewsm_static_residual_mlp"
+                        else f"tune_{item.split(':')[0]}_{item.split(':')[1]}{item.split(':')[2]}_gated_fusion"
+                    ),
                     item.split(":")[0],
                     item.split(":")[1],
                     int(item.split(":")[2]),
@@ -261,7 +265,7 @@ def main() -> None:
             "mtl_strategies",
             [
                 (
-                    f"mtl_{item.split(':')[0]}_{item.split(':')[1]}_{item.split(':')[2]}",
+                    f"mtl_{item.split(':')[0]}_{item.split(':')[1]}_{item.split(':')[2]}_{item.split(':')[4]}",
                     item.split(":")[0],
                     item.split(":")[1],
                     int(item.split(":")[2]),

@@ -16,6 +16,7 @@ CONFIG_ROOT = Path("configs/audio_turns_combined")
 LEDGER = ROOT / "reports/run_ledger.csv"
 STATUS = ROOT / "launcher/status.json"
 LOCK = ROOT / "launcher/worker.lock"
+ATTEMPTS = ROOT / "reports/run_attempts.csv"
 PYTHON = Path(".venv/bin/python")
 CHIMERA = Path(".venv/bin/chimera-ml")
 FIELDS = (
@@ -66,10 +67,12 @@ def load_rows():
 
 def save_rows(rows):
     LEDGER.parent.mkdir(parents=True, exist_ok=True)
-    with LEDGER.open("w", newline="", encoding="utf-8") as h:
+    temporary = LEDGER.with_suffix(".csv.tmp")
+    with temporary.open("w", newline="", encoding="utf-8") as h:
         writer = csv.DictWriter(h, fieldnames=FIELDS)
         writer.writeheader()
         writer.writerows(rows)
+    temporary.replace(LEDGER)
 
 
 def set_status(**values):
@@ -79,6 +82,46 @@ def set_status(**values):
         data.pop("error", None)
     STATUS.parent.mkdir(parents=True, exist_ok=True)
     STATUS.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+
+
+def counts(rows):
+    return {
+        "total": len(rows),
+        "completed": sum(r["status"] == "COMPLETED" for r in rows),
+        "failed": sum(r["status"] == "FAILED" for r in rows),
+        "pending": sum(r["status"] == "PENDING" for r in rows),
+        "blocked": sum(r["status"] == "BLOCKED" for r in rows),
+        "running": sum(r["status"] == "RUNNING" for r in rows),
+    }
+
+
+def update_progress(rows, **values):
+    set_status(**counts(rows), **values)
+
+
+def append_attempt(row, log_path):
+    ATTEMPTS.parent.mkdir(parents=True, exist_ok=True)
+    history = []
+    if ATTEMPTS.exists():
+        with ATTEMPTS.open(newline="", encoding="utf-8") as handle:
+            history = list(csv.DictReader(handle))
+    item = {field: row.get(field, "") for field in FIELDS}
+    item["log_path"] = str(log_path)
+    history.append(item)
+    temporary = ATTEMPTS.with_suffix(".csv.tmp")
+    with temporary.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(item))
+        writer.writeheader()
+        writer.writerows(history)
+    temporary.replace(ATTEMPTS)
+
+
+def failure_reason(log_path):
+    lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    for line in reversed(lines):
+        if any(token in line for token in ("Error:", "Exception:", "failed")):
+            return line.strip()[-500:]
+    return "training exit or artifact verification failed"
 
 
 def identity(path):
@@ -145,11 +188,9 @@ def run_one(path, rows):
     )
     rows[:] = [r for r in rows if key(r) != key(row)] + [row]
     save_rows(rows)
-    set_status(
-        state="RUNNING",
-        current_stage=ident["stage"],
-        current_experiment=ident["experiment_id"],
-        current_fold=ident["fold"],
+    update_progress(
+        rows, state="RUNNING", current_stage=ident["stage"],
+        current_experiment=ident["experiment_id"], current_fold=ident["fold"],
     )
     log = (
         ROOT
@@ -175,12 +216,10 @@ def run_one(path, rows):
     if process.returncode == 0 and verified(path):
         row["status"] = "COMPLETED"
     else:
-        row.update(
-            status="FAILED",
-            failure_reason="training exit or artifact verification failed",
-        )
+        row.update(status="FAILED", failure_reason=failure_reason(log))
     rows[:] = [r for r in rows if key(r) != key(row)] + [row]
     save_rows(rows)
+    append_attempt(row, log)
     subprocess.run(
         [str(PYTHON), "scripts/audio_turns_combined/collect_results.py"], check=False
     )
@@ -208,12 +247,40 @@ def run_one(path, rows):
             save_rows(rows)
 
 
+def sync_paths(paths, rows):
+    changed = False
+    for path in paths:
+        ident = identity(path)
+        existing = next(
+            (row for row in rows if key(row) == (ident["experiment_id"], ident["fold"])),
+            None,
+        )
+        if existing is not None:
+            if existing["status"] == "PENDING":
+                for field, value in ident.items():
+                    if field != "run_name":
+                        existing[field] = value
+                changed = True
+            continue
+        row = {field: "" for field in FIELDS}
+        row.update(
+            {field: value for field, value in ident.items() if field != "run_name"},
+            status="PENDING",
+            attempt_number="0",
+        )
+        rows.append(row)
+        changed = True
+    if changed:
+        save_rows(rows)
+
+
 def stage_done(stage, rows):
     paths = sorted((CONFIG_ROOT / stage).glob("*.yaml"))
     return bool(paths) and all(
         any(
             r["experiment_id"] == p.stem.rsplit("_fold", 1)[0]
             and r["fold"] == p.stem.rsplit("_fold", 1)[1]
+            and r["status"] == "COMPLETED"
             for r in rows
         )
         for p in paths
@@ -316,12 +383,7 @@ def main():
     with LOCK.open("w") as handle:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         rows = load_rows()
-        set_status(
-            state="STARTING",
-            completed=sum(r["status"] == "COMPLETED" for r in rows),
-            failed=sum(r["status"] == "FAILED" for r in rows),
-            pending=max(0, 145 - len(rows)),
-        )
+        update_progress(rows, state="STARTING")
         for stage in (
             "feature_screening",
             "gated_fusion",
@@ -331,6 +393,7 @@ def main():
         ):
             prepare(stage, rows)
             paths = list((CONFIG_ROOT / stage).glob("*.yaml"))
+            sync_paths(paths, rows)
             if stage == "feature_screening":
                 order = {
                     code: index
@@ -364,32 +427,18 @@ def main():
                 paths.sort()
             for path in paths:
                 run_one(path, rows)
-                set_status(
-                    current_stage=stage,
-                    completed=sum(r["status"] == "COMPLETED" for r in rows),
-                    failed=sum(r["status"] == "FAILED" for r in rows),
-                    pending=max(0, 145 - len(rows)),
-                    state="RUNNING",
-                )
-            set_status(
-                current_stage=stage,
-                completed=sum(r["status"] == "COMPLETED" for r in rows),
-                failed=sum(r["status"] == "FAILED" for r in rows),
-                pending=max(0, 145 - len(rows)),
-                state="STAGE_COMPLETE",
-            )
-        completed = sum(r["status"] == "COMPLETED" for r in rows)
-        failed = sum(r["status"] == "FAILED" for r in rows)
-        set_status(
-            state=(
-                "COMPLETED"
-                if completed == 145 and failed == 0
-                else "COMPLETED_WITH_FAILURES"
-            ),
-            completed=completed,
-            failed=failed,
-            pending=max(0, 145 - completed - failed),
+                update_progress(rows, current_stage=stage, state="RUNNING")
+            update_progress(rows, current_stage=stage, state="STAGE_COMPLETE")
+        progress = counts(rows)
+        terminal = progress["completed"] + progress["failed"] + progress["blocked"]
+        state = (
+            "COMPLETED"
+            if progress["completed"] == progress["total"]
+            else "COMPLETED_WITH_FAILURES"
+            if terminal == progress["total"]
+            else "INTERRUPTED"
         )
+        update_progress(rows, state=state)
         subprocess.run(
             [str(PYTHON), "scripts/audio_turns_combined/collect_results.py"],
             check=False,

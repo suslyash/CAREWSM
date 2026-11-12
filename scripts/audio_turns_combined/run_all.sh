@@ -53,6 +53,6 @@ case "$1" in
  --start) check && start_worker;;
  --resume) start_worker;;
  --attach) exec tmux attach-session -t "$SESSION";;
- --status) [[ -f "$STATUS" ]] && cat "$STATUS" || echo '{"state":"NOT_STARTED"}'; if tmux has-session -t "$SESSION" 2>/dev/null; then echo 'tmux_worker: RUNNING'; else echo 'tmux_worker: STOPPED'; state=$(python3 -c "import json; print(json.load(open(\"$STATUS\")).get(\"state\", \"NOT_STARTED\"))" 2>/dev/null || true); [[ "$state" == "STARTING" || "$state" == "RUNNING" ]] && echo 'effective_state: INTERRUPTED'; fi;;
+ --status) [[ -f "$STATUS" ]] && cat "$STATUS" || echo '{"state":"NOT_STARTED"}'; if tmux has-session -t "$SESSION" 2>/dev/null; then echo 'tmux_worker: RUNNING'; else echo 'tmux_worker: STOPPED'; state=$(python3 -c "import json; d=json.load(open(\"$STATUS\")); print(d.get(\"state\", \"NOT_STARTED\"), d.get(\"pending\", 0))" 2>/dev/null || true); [[ "$state" == STARTING* || "$state" == RUNNING* || "$state" == COMPLETED_WITH_FAILURES* || "$state" != *" 0" ]] && echo 'effective_state: INTERRUPTED'; fi;;
  *) usage >&2; exit 2;;
 esac

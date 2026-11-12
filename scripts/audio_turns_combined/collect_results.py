@@ -221,10 +221,6 @@ def main() -> None:
                 }
             )
     write_csv(ROOT / "reports/all_results_summary.csv", summary)
-    write_csv(
-        ROOT / "reports/run_ledger.csv",
-        [{field: row.get(field, "") for field in FIELDS} for row in rows],
-    )
     lines = [
         "# audio_turns_combined Research Report",
         "",
