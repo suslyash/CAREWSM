@@ -187,3 +187,25 @@ def test_callback_requires_both_validation_corpora_and_ignores_test_feedback() -
     assert "mtl/example" in logger.metrics
     with pytest.raises(KeyError):
         callback.on_epoch_end(trainer, 2, {"val_care/depression/macro_recall": 0.5})
+
+
+@pytest.mark.parametrize("method", ("equal", "pcgrad", "dbmtl"))
+def test_static_gated_mtl_shared_and_private_gradient_ownership(method: str) -> None:
+    """Static fused model must retain both task-specific heads under gradient MTL."""
+    from audio.models.carewsm_static_models import CAREWSMStaticGatedFusionModel
+
+    torch.manual_seed(41)
+    model = CAREWSMStaticGatedFusionModel(
+        input_dim=2048, family_dims=[1024, 1024], hidden_dim=32, dropout=0.0
+    )
+    loss = CAREWSMStageGMTLLoss(method, 2.35)
+    loss.bind_model(model)
+    assert loss.ownership_counts == {"shared": 12, "depression": 6, "parkinson": 6}
+    batch = _batch()
+    value = loss(model(batch), batch)
+    assert torch.isfinite(value)
+    value.backward()
+    for name, parameter in model.named_parameters():
+        assert parameter.grad is not None, name
+        assert torch.isfinite(parameter.grad).all(), name
+
