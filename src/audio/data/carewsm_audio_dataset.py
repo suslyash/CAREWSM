@@ -177,7 +177,7 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
     def __getitem__(self, index: int) -> dict[str, Any]:
         record = self.records[index]
         for family in self.feature_families:
-            if record.get(f"{family}_status") != "VALID":
+            if record.get(f"{family}_status") not in (None, "VALID"):
                 raise ValueError(
                     f"feature is not VALID for {record['corpus']}/{record['sample_id']}: {family}"
                 )

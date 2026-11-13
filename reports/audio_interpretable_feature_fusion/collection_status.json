@@ -1,0 +1,11 @@
+{
+  "successful_slots": 25,
+  "expected_slots": 25,
+  "completed_combinations": [
+    "B",
+    "BE",
+    "BP",
+    "BA",
+    "BEPA"
+  ]
+}

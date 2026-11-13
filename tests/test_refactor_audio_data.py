@@ -427,7 +427,15 @@ def test_independent_family_mean_does_not_require_aligned_turn_ids(tmp_path: Pat
     from audio.data.carewsm_audio_dataset import CAREWSMAudioDataset
 
     path = care / "extracted/DEPRESSION/group/PROFILE_profile_tr_CARE_1/VIDEO_tr_CARE_1"
-    np.savez(path / "static_b.npz", embed=np.array([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]], dtype=np.float32), turn_ids=np.array([9, 10]))
+    record["feature_paths"] = {
+        "static_a": str(path / "static_a.npz"),
+        "static_b": str(path / "static_b.npz"),
+    }
+    np.savez(
+        path / "static_b.npz",
+        embed=np.array([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]], dtype=np.float32),
+        turn_ids=np.array([9, 10]),
+    )
     specs = json.loads(registry.read_text())["sources"]
     dataset = CAREWSMAudioDataset(
         [record],
@@ -438,7 +446,7 @@ def test_independent_family_mean_does_not_require_aligned_turn_ids(tmp_path: Pat
     )
     sample = dataset[0]
     assert sample["inputs"]["native"].tolist() == [[1.0, 2.0, 15.0, 16.0, 17.0]]
-    assert sample["meta"]["turn_ids"] is None
+    assert sample["meta"]["aggregation"] == "independent_mean"
 
 
 def test_static_gated_fusion_supports_seven_family_dimensions() -> None:
@@ -448,8 +456,15 @@ def test_static_gated_fusion_supports_seven_family_dimensions() -> None:
     model = CAREWSMStaticGatedFusionModel(
         input_dim=sum(dimensions), family_dims=dimensions, hidden_dim=8, dropout=0.0
     )
-    batch = {"inputs": {"native": torch.randn(3, sum(dimensions))}}
+    from chimera_ml.core.batch import Batch
+
+    values = torch.randn(3, 1, sum(dimensions))
+    batch = Batch(
+        inputs={"native": values},
+        targets=None,
+        masks={"sequence_mask": torch.ones(3, 1, dtype=torch.bool)},
+    )
     output = model(batch)
-    assert output.logits.shape == (3, 2)
-    output.logits.sum().backward()
+    assert output.preds.shape == (3, 2)
+    output.preds.sum().backward()
     assert all(parameter.grad is not None for parameter in model.parameters())

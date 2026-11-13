@@ -14,6 +14,8 @@ import yaml
 from torch.utils.data import DataLoader
 
 import chimera_plugin  # noqa: F401
+from chimera_ml.core.batch import Batch
+
 from audio.data.carewsm_audio_datamodule import CAREWSMAudioDataModule
 from audio.models.carewsm_static_models import CAREWSMStaticGatedFusionModel
 
@@ -54,7 +56,14 @@ def evaluate(model, batches, permutation: tuple[int, int] | None) -> float:
                 if len(indexes) > 1:
                     order = torch.tensor(indexes)[torch.randperm(len(indexes))]
                     values[indexes, 0, start:end] = values[order, 0, start:end]
-        output = model({"inputs": {"native": values}})
+        model_batch = Batch(
+            inputs={"native": values},
+            targets=batch_targets,
+            masks={"sequence_mask": torch.ones(
+                values.shape[:2], dtype=torch.bool
+            )},
+        )
+        output = model(model_batch)
         logits.append(output.preds.detach().cpu())
         targets.append(batch_targets)
         observed.append(batch_observed)
@@ -65,8 +74,12 @@ def collect_batches(data_module) -> list[tuple[torch.Tensor, torch.Tensor, torch
     loaders = data_module.val_dataloader()
     for name, loader in loaders.items():
         for batch in loader:
-            values = batch["inputs"]["native"]
-            result.append((values, batch["targets"], batch["meta"]["observed_targets"], [name.split("_")[1]] * values.shape[0]))
+            values = batch.inputs["native"]
+            observed = torch.stack(
+                [item["observed_targets"] for item in batch.meta["sample_meta"]]
+            )
+            corpus = name.split("_")[1].upper()
+            result.append((values, batch.targets, observed, [corpus] * values.shape[0]))
     return result
 
 def main() -> None:

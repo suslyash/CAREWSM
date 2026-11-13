@@ -147,6 +147,8 @@ class CAREWSMAudioDataModule(DataModule):
             return (feature_family,)
         if not isinstance(feature_family, list) or not feature_family:
             raise ValueError("feature_family must be a string or non-empty list")
+        if len(feature_family) < 2:
+            raise ValueError("feature_family lists must contain at least two families")
         if len(feature_family) > 11:
             raise ValueError("feature_family lists cannot contain more than eleven families")
         if any(not isinstance(family, str) or not family for family in feature_family):
