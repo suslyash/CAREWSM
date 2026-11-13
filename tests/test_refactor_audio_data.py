@@ -344,3 +344,51 @@ def test_fusion_filters_rows_missing_any_selected_family(tmp_path: Path) -> None
 def test_invalid_fusion_selections_fail(tmp_path: Path, selection: list[str]) -> None:
     with pytest.raises(ValueError):
         build_dm(tmp_path, feature_family=selection)
+
+
+def test_static_pooling_per_family_mean_and_population_sd(tmp_path: Path) -> None:
+    """Two aligned turns must collapse to one recording vector without mixing families."""
+    for pooling, expected in (
+        ("native", [[1., 2., 10., 11., 12.], [3., 4., 14., 15., 16.]]),
+        ("mean", [[2., 3., 12., 13., 14.]]),
+        ("mean_std", [[2., 3., 1., 1., 12., 13., 14., 2., 2., 2.]]),
+    ):
+        dm = build_dm(
+            tmp_path / pooling,
+            feature_family=["static_a", "static_b"],
+            pooling=pooling,
+        )
+        record = dm.train_dataset.records[0]
+        np.savez(
+            record["feature_paths"]["static_a"],
+            embed=np.array([[1., 2.], [3., 4.]], dtype=np.float32),
+            turn_ids=np.array([1, 2]),
+        )
+        np.savez(
+            record["feature_paths"]["static_b"],
+            embed=np.array([[10., 11., 12.], [14., 15., 16.]], dtype=np.float32),
+            turn_ids=np.array([1, 2]),
+        )
+        sample = dm.train_dataset[0]
+        np.testing.assert_allclose(
+            sample["inputs"]["native"].numpy(),
+            np.array(expected, dtype=np.float32),
+            rtol=0, atol=0,
+        )
+        assert sample["meta"]["masks"]["sequence_mask"].shape[0] == len(expected)
+        assert sample["meta"]["observed_targets"].tolist() == [True, False]
+
+
+def test_static_mean_std_singleton_is_zero(tmp_path: Path) -> None:
+    dm = build_dm(
+        tmp_path,
+        feature_family=["static_a", "static_b"],
+        pooling="mean_std",
+    )
+    sample = dm.train_dataset[0]
+    np.testing.assert_array_equal(
+        sample["inputs"]["native"].numpy(),
+        np.array([[1., 2., 0., 0., 10., 11., 12., 0., 0., 0.]], dtype=np.float32),
+    )
+    assert sample["inputs"]["native"].shape == (1, 10)
+
