@@ -1,0 +1,252 @@
+{
+  "manifest": "reports/feature_audit/sample_feature_availability.csv",
+  "families": [
+    "emotionmsp_embeds",
+    "emotionmsp_trajectories",
+    "trillsson4_1",
+    "wav2vec_xlsr300m",
+    "egemaps_func",
+    "disvoice_phonation_static",
+    "disvoice_articulation_static"
+  ],
+  "manifest_rows": 10464,
+  "complete_case_rows": 10273,
+  "folds": {
+    "0": {
+      "train": {
+        "n": 6870,
+        "depression_observed": 4669,
+        "parkinson_observed": 3500,
+        "depression_positive": 1674,
+        "parkinson_positive": 1047,
+        "sample_fingerprint": "863779a6fa7f14ddbd84",
+        "profile_fingerprint": "e3db5e051503790c6594"
+      },
+      "val_care": {
+        "n": 327,
+        "depression_observed": 327,
+        "parkinson_observed": 327,
+        "depression_positive": 83,
+        "parkinson_positive": 33,
+        "sample_fingerprint": "e59320ce16823d5c5387",
+        "profile_fingerprint": "a207919c56f4b4c1dea4"
+      },
+      "val_wsm": {
+        "n": 1416,
+        "depression_observed": 867,
+        "parkinson_observed": 549,
+        "depression_positive": 363,
+        "parkinson_positive": 226,
+        "sample_fingerprint": "c1eeb8d75ae942b058ac",
+        "profile_fingerprint": "ac1f265cd31b784b2ec1"
+      },
+      "test_care": {
+        "n": 304,
+        "depression_observed": 304,
+        "parkinson_observed": 304,
+        "depression_positive": 94,
+        "parkinson_positive": 33,
+        "sample_fingerprint": "4177e614560f37970e13",
+        "profile_fingerprint": "d563d618f0745e0ff0d6"
+      },
+      "test_wsm": {
+        "n": 1356,
+        "depression_observed": 823,
+        "parkinson_observed": 533,
+        "depression_positive": 334,
+        "parkinson_positive": 131,
+        "sample_fingerprint": "2192bf1842e0ae9d277c",
+        "profile_fingerprint": "7e8a15e8c945a7a9d177"
+      }
+    },
+    "1": {
+      "train": {
+        "n": 6895,
+        "depression_observed": 4692,
+        "parkinson_observed": 3499,
+        "depression_positive": 1701,
+        "parkinson_positive": 1046,
+        "sample_fingerprint": "43fc48d15980720f783c",
+        "profile_fingerprint": "9406e9b04e82b8613464"
+      },
+      "val_care": {
+        "n": 330,
+        "depression_observed": 330,
+        "parkinson_observed": 330,
+        "depression_positive": 80,
+        "parkinson_positive": 39,
+        "sample_fingerprint": "30be23654c2a880d4922",
+        "profile_fingerprint": "5d7d6da3a46a8aef8d2a"
+      },
+      "val_wsm": {
+        "n": 1388,
+        "depression_observed": 841,
+        "parkinson_observed": 547,
+        "depression_positive": 339,
+        "parkinson_positive": 221,
+        "sample_fingerprint": "2ede4156ce54ddf09f02",
+        "profile_fingerprint": "89c176c9e9a70a75cfdb"
+      },
+      "test_care": {
+        "n": 304,
+        "depression_observed": 304,
+        "parkinson_observed": 304,
+        "depression_positive": 94,
+        "parkinson_positive": 33,
+        "sample_fingerprint": "4177e614560f37970e13",
+        "profile_fingerprint": "d563d618f0745e0ff0d6"
+      },
+      "test_wsm": {
+        "n": 1356,
+        "depression_observed": 823,
+        "parkinson_observed": 533,
+        "depression_positive": 334,
+        "parkinson_positive": 131,
+        "sample_fingerprint": "2192bf1842e0ae9d277c",
+        "profile_fingerprint": "7e8a15e8c945a7a9d177"
+      }
+    },
+    "2": {
+      "train": {
+        "n": 6914,
+        "depression_observed": 4708,
+        "parkinson_observed": 3514,
+        "depression_positive": 1702,
+        "parkinson_positive": 1052,
+        "sample_fingerprint": "d75e293f0702545f7dcf",
+        "profile_fingerprint": "b62a89fbdd02b897fdc3"
+      },
+      "val_care": {
+        "n": 318,
+        "depression_observed": 318,
+        "parkinson_observed": 318,
+        "depression_positive": 79,
+        "parkinson_positive": 31,
+        "sample_fingerprint": "7f077d1ac17e5fa026ff",
+        "profile_fingerprint": "167a8da48ae1be92d2d9"
+      },
+      "val_wsm": {
+        "n": 1381,
+        "depression_observed": 837,
+        "parkinson_observed": 544,
+        "depression_positive": 339,
+        "parkinson_positive": 223,
+        "sample_fingerprint": "1a63d9a94473d8151707",
+        "profile_fingerprint": "ffc2db8c045283b57de7"
+      },
+      "test_care": {
+        "n": 304,
+        "depression_observed": 304,
+        "parkinson_observed": 304,
+        "depression_positive": 94,
+        "parkinson_positive": 33,
+        "sample_fingerprint": "4177e614560f37970e13",
+        "profile_fingerprint": "d563d618f0745e0ff0d6"
+      },
+      "test_wsm": {
+        "n": 1356,
+        "depression_observed": 823,
+        "parkinson_observed": 533,
+        "depression_positive": 334,
+        "parkinson_positive": 131,
+        "sample_fingerprint": "2192bf1842e0ae9d277c",
+        "profile_fingerprint": "7e8a15e8c945a7a9d177"
+      }
+    },
+    "3": {
+      "train": {
+        "n": 6888,
+        "depression_observed": 4705,
+        "parkinson_observed": 3495,
+        "depression_positive": 1706,
+        "parkinson_positive": 1030,
+        "sample_fingerprint": "c52ffd4963daabc0177a",
+        "profile_fingerprint": "51a5eeca498195cd884d"
+      },
+      "val_care": {
+        "n": 314,
+        "depression_observed": 314,
+        "parkinson_observed": 314,
+        "depression_positive": 76,
+        "parkinson_positive": 32,
+        "sample_fingerprint": "427d8e6eb8cec90ed9db",
+        "profile_fingerprint": "facff989bf4041890f03"
+      },
+      "val_wsm": {
+        "n": 1411,
+        "depression_observed": 844,
+        "parkinson_observed": 567,
+        "depression_positive": 338,
+        "parkinson_positive": 244,
+        "sample_fingerprint": "5638c9f1b8dea626af62",
+        "profile_fingerprint": "ea1176db3a0510204a6d"
+      },
+      "test_care": {
+        "n": 304,
+        "depression_observed": 304,
+        "parkinson_observed": 304,
+        "depression_positive": 94,
+        "parkinson_positive": 33,
+        "sample_fingerprint": "4177e614560f37970e13",
+        "profile_fingerprint": "d563d618f0745e0ff0d6"
+      },
+      "test_wsm": {
+        "n": 1356,
+        "depression_observed": 823,
+        "parkinson_observed": 533,
+        "depression_positive": 334,
+        "parkinson_positive": 131,
+        "sample_fingerprint": "2192bf1842e0ae9d277c",
+        "profile_fingerprint": "7e8a15e8c945a7a9d177"
+      }
+    },
+    "4": {
+      "train": {
+        "n": 6885,
+        "depression_observed": 4678,
+        "parkinson_observed": 3496,
+        "depression_positive": 1697,
+        "parkinson_positive": 1049,
+        "sample_fingerprint": "57368875d17256fad1f1",
+        "profile_fingerprint": "377ba6754c4be3bfb8c0"
+      },
+      "val_care": {
+        "n": 337,
+        "depression_observed": 337,
+        "parkinson_observed": 337,
+        "depression_positive": 82,
+        "parkinson_positive": 34,
+        "sample_fingerprint": "119d9afa280f40ac1604",
+        "profile_fingerprint": "ed5e12010f82f02c43af"
+      },
+      "val_wsm": {
+        "n": 1391,
+        "depression_observed": 848,
+        "parkinson_observed": 543,
+        "depression_positive": 341,
+        "parkinson_positive": 223,
+        "sample_fingerprint": "12e74f4df444769dc798",
+        "profile_fingerprint": "e378839c4728a3d62322"
+      },
+      "test_care": {
+        "n": 304,
+        "depression_observed": 304,
+        "parkinson_observed": 304,
+        "depression_positive": 94,
+        "parkinson_positive": 33,
+        "sample_fingerprint": "4177e614560f37970e13",
+        "profile_fingerprint": "d563d618f0745e0ff0d6"
+      },
+      "test_wsm": {
+        "n": 1356,
+        "depression_observed": 823,
+        "parkinson_observed": 533,
+        "depression_positive": 334,
+        "parkinson_positive": 131,
+        "sample_fingerprint": "2192bf1842e0ae9d277c",
+        "profile_fingerprint": "7e8a15e8c945a7a9d177"
+      }
+    }
+  },
+  "status": "PASS"
+}

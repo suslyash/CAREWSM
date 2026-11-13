@@ -392,3 +392,104 @@ def test_static_mean_std_singleton_is_zero(tmp_path: Path) -> None:
     )
     assert sample["inputs"]["native"].shape == (1, 10)
 
+
+
+def test_independent_family_mean_preserves_family_boundaries_and_metadata(tmp_path: Path) -> None:
+    dm = build_dm(
+        tmp_path,
+        feature_family=["static_a", "static_b", "static_c", "static_d"],
+        pooling="mean",
+        independent_family_mean=True,
+        cohort_feature_family=["static_a", "static_b", "static_c", "static_d"],
+    )
+    sample = dm.train_dataset[0]
+    assert tuple(sample["inputs"]["native"].shape) == (1, 14)
+    assert sample["meta"]["aggregation"] == "independent_mean"
+    assert list(sample["meta"]["feature_dimensions"].values()) == [2, 3, 4, 5]
+    assert [len(columns) for columns in sample["meta"]["feature_columns"].values()] == [2, 3, 4, 5]
+
+
+def test_independent_family_mean_does_not_require_aligned_turn_ids(tmp_path: Path) -> None:
+    care, _, manifest, registry = make_fixture(tmp_path)
+    record = {
+        "corpus": "CARE",
+        "sample_id": "tr_CARE_1",
+        "profile_id": "profile_tr_CARE_1",
+        "video_id": "tr_CARE_1",
+        "label_id": "DEPRESSION",
+        "subgroup": "group",
+        "video_dir": "CARE/extracted/DEPRESSION/group/PROFILE_profile_tr_CARE_1/VIDEO_tr_CARE_1",
+        "depression": 1.0,
+        "parkinson": float("nan"),
+        "depression_observed": True,
+        "parkinson_observed": False,
+    }
+    from audio.data.carewsm_audio_dataset import CAREWSMAudioDataset
+
+    path = care / "extracted/DEPRESSION/group/PROFILE_profile_tr_CARE_1/VIDEO_tr_CARE_1"
+    record["feature_paths"] = {
+        "static_a": str(path / "static_a.npz"),
+        "static_b": str(path / "static_b.npz"),
+    }
+    record["static_a_status"] = "VALID"
+    record["static_b_status"] = "VALID"
+    np.savez(
+        path / "static_b.npz",
+        embed=np.array([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]], dtype=np.float32),
+        turn_ids=np.array([9, 10]),
+    )
+    specs = json.loads(registry.read_text())["sources"]
+    dataset = CAREWSMAudioDataset(
+        [record],
+        ["static_a", "static_b"],
+        specs,
+        pooling="mean",
+        independent_family_mean=True,
+    )
+    sample = dataset[0]
+    assert sample["inputs"]["native"].tolist() == [[1.0, 2.0, 15.0, 16.0, 17.0]]
+    assert sample["meta"]["aggregation"] == "independent_mean"
+
+
+def test_static_gated_fusion_supports_seven_family_dimensions() -> None:
+    from audio.models.carewsm_static_models import CAREWSMStaticGatedFusionModel
+
+    dimensions = [2, 3, 4, 5, 6, 7, 8]
+    model = CAREWSMStaticGatedFusionModel(
+        input_dim=sum(dimensions), family_dims=dimensions, hidden_dim=8, dropout=0.0
+    )
+    from chimera_ml.core.batch import Batch
+
+    values = torch.randn(3, 1, sum(dimensions))
+    batch = Batch(
+        inputs={"native": values},
+        targets=None,
+        masks={"sequence_mask": torch.ones(3, 1, dtype=torch.bool)},
+    )
+    output = model(batch)
+    assert output.preds.shape == (3, 2)
+    output.preds.sum().backward()
+    assert all(parameter.grad is not None for parameter in model.parameters())
+
+
+def test_dataset_rejects_absent_feature_status(tmp_path: Path) -> None:
+    care, _, manifest, registry = make_fixture(tmp_path)
+    data_module = CAREWSMAudioDataModule(
+        str(care),
+        str(tmp_path / "WSM"),
+        str(manifest),
+        str(registry),
+        feature_family=["static_a", "static_b"],
+    )
+    record = dict(data_module.train_dataset.records[0])
+    record.pop("static_a_status")
+    from audio.data.carewsm_audio_dataset import CAREWSMAudioDataset
+
+    dataset = CAREWSMAudioDataset(
+        [record],
+        ["static_a", "static_b"],
+        data_module.feature_specs,
+        pooling="mean",
+    )
+    with pytest.raises(ValueError, match="not VALID"):
+        dataset[0]

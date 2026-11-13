@@ -1,0 +1,9 @@
+method,val_mean_macro_recall,val_sample_sd,test_mean_macro_recall,test_sample_sd,source
+Equal,0.830855,0.040364,0.782235,0.022355,historical 145-run ABCD matrix
+PCGrad,0.827790,0.039442,0.782115,0.022468,historical 145-run ABCD matrix
+STCH,0.827730,0.040654,0.784190,0.017373,historical 145-run ABCD matrix
+DBMTL,0.819670,0.031847,0.787245,0.022920,historical 145-run ABCD matrix
+Progress,0.829555,0.041119,0.782230,0.024072,historical MTL completion
+RA-STCH,0.826630,0.039230,0.783740,0.014672,historical MTL completion
+GradNorm,0.826665,0.043174,0.783310,0.020860,historical MTL completion
+CAGrad,0.825060,0.040356,0.775135,0.019350,historical MTL completion
