@@ -10,7 +10,7 @@ The validation-selected combination is **B** (the four established ABCD families
 
 The matched complete-case cohort requires all seven audited families: emotionmsp_embeds, emotionmsp_trajectories, trillsson4_1, wav2vec_xlsr300m, egemaps_func, disvoice_phonation_static, and disvoice_articulation_static. The audit passed with 10,273 complete-case rows from 10,464 manifest rows. Production training used the same cohort across all five combinations, independent per-family mean pooling, fixed seed 5, fixed folds, the existing gated hidden-64 architecture, Equal MTL loss, and validation-selected checkpoints.
 
-CARE/WSM are mixed for training. Validation and TEST remain corpus-specific. The tracked aggregate CSV reports every required metric as fold mean and sample SD; no TEST value was used for selection.
+CARE/WSM are mixed for training. Validation and TEST remain corpus-specific. The tracked aggregate CSV reports every required metric as fold mean and sample SD; no TEST value was used for selection. BEPA feature offsets are derived from actual loaded artifacts and model family_dims: 0, 1024, 1027, 2051, 3075, 3163, 3191, with total input dimension 3679. CSV source columns are preserved in feature_dictionary.json; documented feature groups are included where available and units are explicitly unknown where the source does not document them.
 
 ## Feature-family study
 
@@ -22,7 +22,7 @@ CARE/WSM are mixed for training. Validation and TEST remain corpus-specific. The
 | BA | articulation | 0.818490 +/- 0.032637 | 0.774710 +/- 0.011964 |
 | BEPA | eGeMAPS + phonation + articulation | 0.825515 +/- 0.043365 | 0.789420 +/- 0.028891 |
 
-Permutation analysis was run only on the five validation-selected B checkpoints, with ten within-corpus repeats per family. Results are in  through ; these are exploratory feature-importance evidence, not clinical attribution.
+Corrected permutation analysis was run strictly on val_care and val_wsm, after concatenating each complete validation corpus before permutation, with ten deterministic repeats per family. The output reports four separate corpus x task Macro Recalls with observed-target masking. Corrected B evidence is in permutation_B_fold0.csv through permutation_B_fold4.csv. BEPA evidence covers all five folds in permutation_BEPA_fold0.csv through permutation_BEPA_fold4.csv, including the added eGeMAPS, phonation, and articulation groups. These are exploratory feature-importance evidence, not clinical attribution; TEST loaders are never enumerated.
 
 ## Eight-method MTL comparison
 
@@ -41,6 +41,6 @@ The following table preserves the existing historical comparison: Equal, PCGrad,
 
 ## Reproducibility and exclusions
 
-The run ledger, resolved YAML configurations, source/config hashes, selected checkpoints, fold-level CSV, aggregate CSV, cohort audit, feature dictionary, and permutation CSVs provide traceability. Checkpoints and MLflow databases remain outside the commit. No raw identifiers are added to the report artifacts. A separate one-epoch CUDA smoke run was completed before production.
+The run ledger, resolved YAML configurations, source/config hashes, selected checkpoints, fold-level CSV, aggregate CSV, MLflow provenance_ledger.csv, cohort audit, feature dictionary, and permutation CSVs provide traceability. The provenance ledger records all 25 MLflow run IDs and FINISHED statuses plus selected epoch and validation monitor evidence. Independent GPU replay is unavailable from GitHub alone because raw data, checkpoints, and MLflow DB are excluded. Checkpoints and MLflow databases remain outside the commit. No raw identifiers are added to the report artifacts. A separate one-epoch CUDA smoke run was completed before production.
 
 A dynamic/turn-aware extension is not implemented here. It should be proposed as a separate atomic task after review of this static complete-case evidence.

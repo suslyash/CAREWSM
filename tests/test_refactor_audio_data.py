@@ -431,6 +431,8 @@ def test_independent_family_mean_does_not_require_aligned_turn_ids(tmp_path: Pat
         "static_a": str(path / "static_a.npz"),
         "static_b": str(path / "static_b.npz"),
     }
+    record["static_a_status"] = "VALID"
+    record["static_b_status"] = "VALID"
     np.savez(
         path / "static_b.npz",
         embed=np.array([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]], dtype=np.float32),
@@ -468,3 +470,26 @@ def test_static_gated_fusion_supports_seven_family_dimensions() -> None:
     assert output.preds.shape == (3, 2)
     output.preds.sum().backward()
     assert all(parameter.grad is not None for parameter in model.parameters())
+
+
+def test_dataset_rejects_absent_feature_status(tmp_path: Path) -> None:
+    care, _, manifest, registry = make_fixture(tmp_path)
+    data_module = CAREWSMAudioDataModule(
+        str(care),
+        str(tmp_path / "WSM"),
+        str(manifest),
+        str(registry),
+        feature_family=["static_a", "static_b"],
+    )
+    record = dict(data_module.train_dataset.records[0])
+    record.pop("static_a_status")
+    from audio.data.carewsm_audio_dataset import CAREWSMAudioDataset
+
+    dataset = CAREWSMAudioDataset(
+        [record],
+        ["static_a", "static_b"],
+        data_module.feature_specs,
+        pooling="mean",
+    )
+    with pytest.raises(ValueError, match="not VALID"):
+        dataset[0]
