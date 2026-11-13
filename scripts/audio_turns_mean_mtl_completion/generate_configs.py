@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Generate the exactly bounded issue-109 configuration matrix."""
+
+from pathlib import Path
+import yaml
+
+ROOT = Path("configs/audio_turns_combined_mtl_completion")
+WEIGHTS = [2.358878504672897, 2.375234521575985, 2.3653308480894686,
+           2.4134980988593155, 2.3594771241830066]
+METHODS = ("progress", "ra_stch", "gradnorm", "cagrad")
+
+
+def make(method: str, fold: int) -> dict:
+    run = f"mtl_ABCD_mean_64_{method}_fold{fold}"
+    return {
+        "callbacks": [
+            {"name": "carewsm_validation_monitor", "params": {}},
+            {"name": "checkpoint_callback", "params": {
+                "filename_template": "epoch={epoch}_{monitor}={value:.4f}.pt",
+                "log_path": "logs/audio_turns_combined_mtl_completion",
+                "mode": "max", "monitor": "val_mean_corpora_tasks/macro_recall",
+                "save_last": True, "save_top_k": 1}},
+            {"name": "early_stopping_callback", "params": {
+                "min_delta": 0.0, "mode": "max",
+                "monitor": "val_mean_corpora_tasks/macro_recall", "patience": 7}},
+            {"name": "carewsm_summary_callback", "params": {"filename": "summary.txt"}},
+            {"name": "carewsm_stageg_mtl_callback", "params": {}},
+            {"name": "snapshot_callback", "params": {
+                "include": ["src", "configs"],
+                "log_path": "logs/audio_turns_combined_mtl_completion",
+                "save_code_zip": True, "save_config": True}},
+        ],
+        "data": {"name": "carewsm_joint", "params": {
+            "batch_size": 64, "care_root": "/media/maxim/Databases/CARE",
+            "feature_family": ["emotionmsp_embeds", "emotionmsp_trajectories",
+                                "trillsson4_1", "wav2vec_xlsr300m"],
+            "fold": fold, "manifest": "reports/feature_audit/sample_feature_availability.csv",
+            "num_workers": 8, "pooling": "mean",
+            "registry": "/media/maxim/Databases/CARE/splits/features.json",
+            "shuffle_train": True, "wsm_root": "/media/maxim/Databases/WSM_NEW"}},
+        "experiment_info": {"params": {"experiment_name": "audio_turns_combined_mtl_completion",
+                                          "run_name": run, "include_time": False}},
+        "logging": [
+            {"name": "console_file_logger", "params": {
+                "console_level": "INFO", "file_level": "INFO", "log_file": "train.log",
+                "log_path": "logs/audio_turns_combined_mtl_completion"}},
+            {"name": "mlflow_logger", "params": {
+                "tracking_uri": "sqlite:///logs/audio_turns_combined_mtl_completion/mlflow.db"}},
+        ],
+        "loss": {"name": "carewsm_stageg_mtl", "params": {
+            "method": method, "parkinson_pos_weight": WEIGHTS[fold]}},
+        "metrics": [{"name": "carewsm_masked_multitask_classification"}],
+        "model": {"name": "carewsm_static_gated_fusion", "params": {
+            "input_dim": 3075, "hidden_dim": 64, "dropout": 0.1,
+            "family_dims": [1024, 3, 1024, 1024]}},
+        "optimizer": {"name": "adamw_optimizer", "params": {"lr": 1e-4, "weight_decay": 0.0}},
+        "seed": 5,
+        "train": {"params": {"collect_cache": True, "device": "cuda", "epochs": 50,
+                               "grad_clip_norm": 1.0, "log_every_steps": 100,
+                               "mixed_precision": True}},
+    }
+
+
+def main() -> None:
+    for method in METHODS:
+        for fold in range(5):
+            path = ROOT / f"mtl_ABCD_mean_64_{method}_fold{fold}.yaml"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(yaml.safe_dump(make(method, fold), sort_keys=False), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
