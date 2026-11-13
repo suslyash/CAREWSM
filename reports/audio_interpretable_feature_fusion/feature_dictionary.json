@@ -1,0 +1,100 @@
+{
+  "families": [
+    {
+      "name": "emotionmsp_embeds",
+      "input_index_start": 0,
+      "dimension": 1024,
+      "level": "turn_embedding",
+      "format": "npz",
+      "metadata": [
+        "turn_ids"
+      ],
+      "source_file": "emotionmsp_embeds.npz"
+    },
+    {
+      "name": "emotionmsp_trajectories",
+      "input_index_start": 1024,
+      "dimension": 3,
+      "level": "turn",
+      "format": "csv",
+      "metadata": [
+        "turn_id",
+        "turn_start_sec",
+        "turn_end_sec"
+      ],
+      "source_file": "emotionmsp_trajectories.csv"
+    },
+    {
+      "name": "trillsson4_1",
+      "input_index_start": 1027,
+      "dimension": 2048,
+      "level": "turn_embedding",
+      "format": "npz",
+      "metadata": [
+        "turn_ids"
+      ],
+      "source_file": "trillsson4_1.npz"
+    },
+    {
+      "name": "wav2vec_xlsr300m",
+      "input_index_start": 3075,
+      "dimension": 2048,
+      "level": "turn_embedding",
+      "format": "npz",
+      "metadata": [
+        "turn_ids"
+      ],
+      "source_file": "wav2vec_xlsr300m.npz"
+    },
+    {
+      "name": "egemaps_func",
+      "input_index_start": 5123,
+      "dimension": 88,
+      "level": "turn",
+      "format": "csv",
+      "metadata": [
+        "turn_id",
+        "turn_start_sec",
+        "turn_end_sec"
+      ],
+      "source_file": "egemaps_func.csv"
+    },
+    {
+      "name": "disvoice_phonation_static",
+      "input_index_start": 5211,
+      "dimension": 28,
+      "level": "turn",
+      "format": "csv",
+      "metadata": [
+        "turn_id",
+        "turn_start_sec",
+        "turn_end_sec"
+      ],
+      "source_file": "disvoice_phonation_static.csv"
+    },
+    {
+      "name": "disvoice_articulation_static",
+      "input_index_start": 5239,
+      "dimension": 488,
+      "level": "turn",
+      "format": "csv",
+      "metadata": [
+        "turn_id",
+        "turn_start_sec",
+        "turn_end_sec"
+      ],
+      "source_file": "disvoice_articulation_static.csv"
+    }
+  ],
+  "cohort_policy": "complete-case across all seven families",
+  "aggregation": "independent per-family arithmetic mean over native turns; concatenation in fixed family order",
+  "family_order": [
+    "emotionmsp_embeds",
+    "emotionmsp_trajectories",
+    "trillsson4_1",
+    "wav2vec_xlsr300m",
+    "egemaps_func",
+    "disvoice_phonation_static",
+    "disvoice_articulation_static"
+  ]
+}

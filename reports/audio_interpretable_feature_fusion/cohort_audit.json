@@ -1,0 +1,59 @@
+{
+  "manifest": "reports/feature_audit/sample_feature_availability.csv",
+  "families": [
+    "emotionmsp_embeds",
+    "emotionmsp_trajectories",
+    "trillsson4_1",
+    "wav2vec_xlsr300m",
+    "egemaps_func",
+    "disvoice_phonation_static",
+    "disvoice_articulation_static"
+  ],
+  "manifest_rows": 10464,
+  "complete_case_rows": 10273,
+  "counts": {
+    "CARE_train": {
+      "n": 1362,
+      "depression_observed": 1362,
+      "parkinson_observed": 1362,
+      "depression_positive": 333,
+      "parkinson_positive": 140
+    },
+    "CARE_dev": {
+      "n": 264,
+      "depression_observed": 264,
+      "parkinson_observed": 264,
+      "depression_positive": 67,
+      "parkinson_positive": 29
+    },
+    "CARE_test": {
+      "n": 304,
+      "depression_observed": 304,
+      "parkinson_observed": 304,
+      "depression_positive": 94,
+      "parkinson_positive": 33
+    },
+    "WSM_train": {
+      "n": 6064,
+      "depression_observed": 3626,
+      "parkinson_observed": 2438,
+      "depression_positive": 1412,
+      "parkinson_positive": 1032
+    },
+    "WSM_dev": {
+      "n": 923,
+      "depression_observed": 611,
+      "parkinson_observed": 312,
+      "depression_positive": 308,
+      "parkinson_positive": 105
+    },
+    "WSM_test": {
+      "n": 1356,
+      "depression_observed": 823,
+      "parkinson_observed": 533,
+      "depression_positive": 334,
+      "parkinson_positive": 131
+    }
+  },
+  "status": "PASS"
+}

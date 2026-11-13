@@ -17,6 +17,17 @@ def read_csv_rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def feature_column_names(
+    path: Path, specification: Mapping[str, Any], family: str, dimension: int
+) -> list[str]:
+    """Return stable source-column names for feature provenance."""
+    if specification.get("format") == "csv":
+        rows = read_csv_rows(path)
+        metadata = set(specification.get("metadata", []))
+        return [column for column in rows[0] if column not in metadata]
+    return [f"{family}[{index}]" for index in range(dimension)]
+
+
 def _normalise_turn_ids(raw_ids: Any, count: int, path: Path) -> tuple[str, ...]:
     """Validate and normalize one artifact's ordered turn identifiers."""
     identifiers = np.asarray(raw_ids)
@@ -136,6 +147,7 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
         feature_family: str | list[str],
         feature_specs: Mapping[str, Mapping[str, Any]],
         pooling: str = "native",
+        independent_family_mean: bool = False,
     ) -> None:
         if isinstance(feature_family, str):
             families = [feature_family]
@@ -161,6 +173,7 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
         if pooling not in ("native", "mean", "mean_std"):
             raise ValueError("pooling must be native, mean, or mean_std")
         self.pooling = pooling
+        self.independent_family_mean = independent_family_mean
 
     def __len__(self) -> int:
         return len(self.records)
@@ -183,6 +196,24 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
                 paths[family], self.feature_specs[family], family
             )
             feature_dimensions = {family: int(values.shape[1])}
+            turn_ids = None
+        elif self.independent_family_mean and self.pooling == "mean":
+            components = [
+                load_feature_array(
+                    paths[family], self.feature_specs[family], family
+                )
+                for family in self.feature_families
+            ]
+            values = np.concatenate(
+                [component.mean(axis=0, keepdims=True) for component in components],
+                axis=1,
+            )
+            feature_dimensions = {
+                family: int(component.shape[1])
+                for family, component in zip(
+                    self.feature_families, components, strict=True
+                )
+            }
             turn_ids = None
         else:
             components = [
@@ -247,6 +278,20 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
             "feature_dimensions": feature_dimensions,
             "feature_paths": {family: str(path) for family, path in paths.items()},
             "feature_dimension": int(tensor.shape[1]),
+            "feature_columns": {
+                family: feature_column_names(
+                    paths[family],
+                    self.feature_specs[family],
+                    family,
+                    feature_dimensions[family],
+                )
+                for family in self.feature_families
+            },
+            "aggregation": (
+                "independent_mean"
+                if self.independent_family_mean and self.pooling == "mean"
+                else self.pooling
+            ),
             "observed_targets": observed,
             "masks": {"sequence_mask": torch.ones(tensor.shape[0], dtype=torch.bool)},
         }

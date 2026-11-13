@@ -73,12 +73,18 @@ class CAREWSMAudioDataModule(DataModule):
         num_workers: int = 0,
         shuffle_train: bool = False,
         pooling: str = "native",
+        independent_family_mean: bool = False,
+        cohort_feature_family: list[str] | None = None,
         mantis_cache_manifest: str | None = None,
     ) -> None:
         self.feature_families = self._validate_selection(feature_family)
         self.fold_index = fold
         self.feature_family = feature_family
         self.pooling = pooling
+        self.independent_family_mean = independent_family_mean
+        self.cohort_feature_families = self._validate_cohort_selection(
+            cohort_feature_family
+        )
         self.mantis_cache_manifest = (
             Path(mantis_cache_manifest) if mantis_cache_manifest else None
         )
@@ -95,6 +101,11 @@ class CAREWSMAudioDataModule(DataModule):
         unknown = set(self.feature_families) - set(self.feature_specs)
         if unknown:
             raise ValueError(f"unknown feature family: {sorted(unknown)}")
+        unknown_cohort = set(self.cohort_feature_families) - set(self.feature_specs)
+        if unknown_cohort:
+            raise ValueError(
+                f"unknown cohort feature family: {sorted(unknown_cohort)}"
+            )
         self.records = self._read_and_join_manifest(Path(manifest))
         self.views = self._build_views(self.feature_families)
 
@@ -104,6 +115,7 @@ class CAREWSMAudioDataModule(DataModule):
                 self.feature_family,
                 self.feature_specs,
                 pooling=pooling,
+                independent_family_mean=independent_family_mean,
             )
             for name, records in self.views.items()
         }
@@ -135,12 +147,26 @@ class CAREWSMAudioDataModule(DataModule):
             return (feature_family,)
         if not isinstance(feature_family, list) or not feature_family:
             raise ValueError("feature_family must be a string or non-empty list")
-        if len(feature_family) not in (2, 3, 4):
-            raise ValueError("fused feature_family lists must contain two to four families")
+        if len(feature_family) > 11:
+            raise ValueError("feature_family lists cannot contain more than eleven families")
         if any(not isinstance(family, str) or not family for family in feature_family):
             raise ValueError("feature_family selections must contain non-empty names")
         if len(set(feature_family)) != len(feature_family):
             raise ValueError("feature_family selections must not contain duplicates")
+        return tuple(feature_family)
+
+    @staticmethod
+    def _validate_cohort_selection(
+        feature_family: list[str] | None,
+    ) -> tuple[str, ...]:
+        if feature_family is None:
+            return ()
+        if not feature_family:
+            raise ValueError("cohort_feature_family must not be empty")
+        if len(set(feature_family)) != len(feature_family):
+            raise ValueError("cohort_feature_family must not contain duplicates")
+        if any(not isinstance(family, str) or not family for family in feature_family):
+            raise ValueError("cohort_feature_family must contain non-empty names")
         return tuple(feature_family)
 
     @staticmethod
@@ -318,6 +344,7 @@ class CAREWSMAudioDataModule(DataModule):
             "test_care": tests["CARE"],
             "test_wsm": tests["WSM"],
         }
+        required = tuple(dict.fromkeys(selected + self.cohort_feature_families))
         return {
             name: [
                 record
@@ -326,7 +353,7 @@ class CAREWSMAudioDataModule(DataModule):
                 )
                 if all(
                     record.get(f"{family}_status") == "VALID"
-                    for family in selected
+                    for family in required
                 )
             ]
             for name, records in views.items()
