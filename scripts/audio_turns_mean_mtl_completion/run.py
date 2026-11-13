@@ -50,7 +50,7 @@ def identity(path: Path) -> dict[str, str]:
 
 def runtime(name: str) -> Path | None:
     found = sorted((ROOT / "audio_turns_combined_mtl_completion").glob(name + "_*/"))
-    return found[0] if len(found) == 1 else None
+    return found[-1] if found else None
 
 
 def done(path: Path) -> bool:
