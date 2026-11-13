@@ -157,10 +157,6 @@ class CAREWSMAudioDataset(Dataset[dict[str, Any]]):
             raise ValueError("feature_family must be a string or ordered list")
         if not families:
             raise ValueError("CAREWSMAudioDataset requires feature_family")
-        if len(families) > 1 and len(families) not in (2, 3, 4):
-            raise ValueError(
-                "fused feature_family lists must contain two to four families"
-            )
         if len(set(families)) != len(families):
             raise ValueError("feature_family selections must not contain duplicates")
         unknown = set(families) - set(feature_specs)
