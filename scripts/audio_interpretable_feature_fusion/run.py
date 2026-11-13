@@ -135,12 +135,16 @@ def run_one(path, rows):
     save(rows)
 
 
+def prepare_directories():
+    ROOT.mkdir(parents=True, exist_ok=True)
+    (ROOT / "launcher").mkdir(parents=True, exist_ok=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("command", choices=["preflight", "run", "status"])
     a = ap.parse_args()
-    ROOT.mkdir(parents=True, exist_ok=True)
-    (ROOT / "launcher").mkdir(parents=True, exist_ok=True)
+    prepare_directories()
     paths = sorted(CONFIGS.glob("*.yaml"))
     if a.command == "preflight":
         print(

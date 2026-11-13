@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from scripts.audio_interpretable_feature_fusion import run
 from scripts.audio_interpretable_feature_fusion.permutation import (
     feature_offsets,
     select_validation_loaders,
@@ -34,3 +35,9 @@ def test_feature_offsets_are_contiguous_for_bepa_dimensions() -> None:
         {"family_dims": [1024, 3, 1024, 1024, 88, 28, 488], "input_dim": 3679},
     )
     assert [start for _, start, _ in offsets] == [0, 1024, 1027, 2051, 3075, 3163, 3191]
+
+
+def test_runner_creates_launcher_directory(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(run, "ROOT", tmp_path / "logs")
+    run.prepare_directories()
+    assert (tmp_path / "logs" / "launcher").is_dir()
