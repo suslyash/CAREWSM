@@ -1,11 +1,13 @@
 callbacks:
 - name: carewsm_feature_extraction_callback
   params:
-    model_name: deep_phon
+    model_name: id2
     fold: 0
     care_root: /media/maxim/Databases/CARE
     wsm_root: /media/maxim/Databases/WSM_NEW
     report_path: logs/audio_feature_extraction/deep_phon_fold0_report.json
+- name: carewsm_validation_monitor
+  params: {}
 data:
   name: carewsm_joint
   params:

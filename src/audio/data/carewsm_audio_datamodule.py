@@ -124,10 +124,17 @@ class CAREWSMAudioDataModule(DataModule):
             for name, records in self.views.items()
         }
         if extraction_only:
-            train_dataset = None
-            validation_datasets = datasets
+            train_dataset = {"train_care": datasets["train_care"], "train_wsm": datasets["train_wsm"]}
+            validation_datasets = {
+                "val_care": datasets["val_care"],
+                "val_wsm": datasets["val_wsm"],
+                "dev_care": datasets["dev_care"],
+                "dev_wsm": datasets["dev_wsm"],
+            }
+            test_dataset = {"test_care": datasets["test_care"], "test_wsm": datasets["test_wsm"]}
         else:
             train_dataset = datasets["train"]
+            test_dataset = None
             validation_datasets = {
                 "val_care": datasets["val_care"],
                 "val_wsm": datasets["val_wsm"],
@@ -137,7 +144,7 @@ class CAREWSMAudioDataModule(DataModule):
         super().__init__(
             train_dataset=train_dataset,
             val_dataset=validation_datasets,
-            test_dataset=None,
+            test_dataset=test_dataset,
             batch_size=batch_size,
             num_workers=num_workers,
             pin_memory=False,
@@ -346,10 +353,10 @@ class CAREWSMAudioDataModule(DataModule):
 
         if self.extraction_only:
             views = {
-                "fold_train_care": self._fold_records("CARE", "train"),
-                "fold_train_wsm": self._fold_records("WSM", "train"),
-                "fold_val_care": self._fold_records("CARE", "val"),
-                "fold_val_wsm": self._fold_records("WSM", "val"),
+                "train_care": self._fold_records("CARE", "train"),
+                "train_wsm": self._fold_records("WSM", "train"),
+                "val_care": self._fold_records("CARE", "val"),
+                "val_wsm": self._fold_records("WSM", "val"),
                 "dev_care": self._split_records("CARE", "dev"),
                 "dev_wsm": self._split_records("WSM", "dev"),
                 "test_care": tests["CARE"],
