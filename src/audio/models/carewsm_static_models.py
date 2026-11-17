@@ -104,10 +104,18 @@ class CAREWSMStaticGatedFusionModel(nn.Module):
             fused = fused + gate_values * projected
             gates.append(gate_values)
         features = self.dropout(fused)
-        logits = self.heads(features)
+        logits, depression_features, parkinson_features = self.heads.forward_with_features(
+            features
+        )
         return ModelOutput(
             preds=logits,
-            aux={"features": features, "logits": logits, "family_gates": gates},
+            aux={
+                "features": features,
+                "logits": logits,
+                "family_gates": gates,
+                "depression_features": depression_features,
+                "parkinson_features": parkinson_features,
+            },
         )
 
 
