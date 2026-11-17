@@ -53,6 +53,7 @@ class CAREWSMFeatureExtractionCallback(BaseCallback):
             for values, prediction, meta in zip(
                 features, logits, cached.sample_meta, strict=True
             ):
+                prediction = prediction.astype(np.float32)
                 profile = str(meta["profile_id"]).removeprefix("PROFILE_")
                 video = str(meta["video_id"]).removeprefix("VIDEO_")
                 path = (
@@ -72,7 +73,7 @@ class CAREWSMFeatureExtractionCallback(BaseCallback):
                     "shared_features": values[None, :64].astype(np.float32),
                     "depression_features": values[None, 64:128].astype(np.float32),
                     "pd_features": values[None, 128:].astype(np.float32),
-                    "logits": prediction.astype(np.float32),
+                    "logits": prediction,
                     "probs": (1.0 / (1.0 + np.exp(-prediction))).astype(np.float32),
                 }
                 try:
