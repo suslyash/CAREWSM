@@ -20,6 +20,11 @@ The expected previous-audit counts are unchanged: 101 CARE videos and 87 WSM
 videos with incomplete output. The three additional WSM manifest rows are a
 separate category because their source VIDEO directories do not exist.
 
+The complete-case reason is now evaluated only against the seven families in
+the extraction `cohort_feature_family`. Problems in the other four families
+remain listed in the detailed TSV as `additional_information` and do not
+justify complete-case exclusion.
+
 ## Input-family problems among affected records
 
 Counts are family/status occurrences, not unique videos; one video can appear
@@ -53,12 +58,15 @@ in multiple rows. The three source-missing WSM manifest rows contribute one
 
 ## Complete-case interpretation
 
-- CARE: 101/101 affected videos have at least one non-`VALID` input family;
-  complete-case exclusion is supported for all 101.
-- WSM source-backed videos: 87/87 have at least one non-`VALID` input family;
-  complete-case exclusion is supported for all 87.
+- CARE: 101/101 affected videos have a non-`VALID` family in the seven-family
+  cohort; complete-case exclusion is supported for all 101. The count is
+  unchanged, but the reason is now cohort-scoped.
+- WSM source-backed videos: 87/87 have a non-`VALID` family in the
+  seven-family cohort; complete-case exclusion is supported for all 87. The
+  count is unchanged, but the reason is now cohort-scoped.
 - WSM manifest rows without a source VIDEO directory: 3, separately reported;
-  all 11 input families are `MISSING` for each row.
+  all 11 input families are `MISSING` for each row, but the reason remains
+  `не установлена: исходная VIDEO-папка отсутствует`.
 - Unexplained output gaps among source-backed affected videos: 0 CARE, 0 WSM.
 
 The detailed owner-only report is generated locally as

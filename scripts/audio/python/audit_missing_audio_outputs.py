@@ -8,6 +8,8 @@ import csv
 from collections import Counter
 from pathlib import Path
 
+import yaml
+
 
 FAMILIES = (
     "egemaps_func",
@@ -23,6 +25,11 @@ FAMILIES = (
     "emotionmsp_embeds",
 )
 MODELS = ("id1", "id2", "id4")
+MODEL_CONFIG_PREFIX = {
+    "id1": "deep",
+    "id2": "deep_phon",
+    "id4": "deep_egemaps_phon_artic",
+}
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:
@@ -38,15 +45,63 @@ def output_status(path: Path) -> str:
     return "PRESENT"
 
 
+def load_cohorts(config_root: Path) -> dict[str, set[str]]:
+    cohorts = {}
+    for model, prefix in MODEL_CONFIG_PREFIX.items():
+        for fold in range(5):
+            path = config_root / f"{prefix}_fold{fold}.yaml"
+            config = yaml.safe_load(path.read_text(encoding="utf-8"))
+            cohorts[f"audio_{model}_fold{fold}"] = set(
+                config["data"]["params"]["cohort_feature_family"]
+            )
+    return cohorts
+
+
+def complete_case_reason(
+    source_exists: bool,
+    split_exists: bool,
+    manifest_has_statuses: bool,
+    output_states: dict[str, str],
+    statuses: dict[str, str],
+    cohorts: dict[str, set[str]],
+) -> tuple[str, set[str]]:
+    if not source_exists:
+        return "не установлена: исходная VIDEO-папка отсутствует", set()
+    if not split_exists:
+        return "не установлена: запись отсутствует в split metadata", set()
+    if not manifest_has_statuses:
+        return "не установлена: статусы входных семейств отсутствуют в manifest", set()
+
+    missing_outputs = [name for name, state in output_states.items() if state == "MISSING"]
+    cause_families = {
+        family
+        for output in missing_outputs
+        for family in cohorts[output]
+        if statuses[family] != "VALID"
+    }
+    if not cause_families:
+        return "не установлена", set()
+    details = ", ".join(
+        f"{family}={statuses[family]}" for family in sorted(cause_families)
+    )
+    return f"complete-case exclusion: {details}", cause_families
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--care-root", type=Path, required=True)
     parser.add_argument("--wsm-root", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--config-root",
+        type=Path,
+        default=Path("configs/audio_feature_extraction"),
+    )
     args = parser.parse_args()
 
     roots = {"CARE": args.care_root, "WSM": args.wsm_root}
+    cohorts = load_cohorts(args.config_root)
     manifest_rows = read_rows(args.manifest)
     split_rows: dict[tuple[str, str], dict[str, str]] = {}
     for corpus, root in roots.items():
@@ -91,18 +146,24 @@ def main() -> None:
         else:
             category = "MANIFEST_WITHOUT_SOURCE_VIDEO_DIR"
             summary[f"missing_source/{corpus}"] += 1
+        manifest_has_statuses = all(f"{family}_status" in manifest for family in FAMILIES)
+        statuses = {
+            family: manifest.get(f"{family}_status", "UNKNOWN") for family in FAMILIES
+        }
         problem_families = [
-            (family, manifest[f"{family}_status"])
+            (family, statuses[family])
             for family in FAMILIES
-            if manifest[f"{family}_status"] != "VALID"
+            if statuses[family] != "VALID"
         ]
         if not problem_families:
             problem_families = [("NONE", "VALID")]
-        has_complete_case_cause = any(status != "VALID" for _, status in problem_families)
-        reason = (
-            "complete-case exclusion supported by non-VALID input status"
-            if has_complete_case_cause
-            else "не установлена"
+        reason, cause_families = complete_case_reason(
+            source_exists,
+            split is not None,
+            manifest_has_statuses,
+            output_states,
+            statuses,
+            cohorts,
         )
         missing_outputs = [name for name, state in output_states.items() if state == "MISSING"]
         invalid_outputs = [f"{name}={state}" for name, state in output_states.items()
@@ -120,6 +181,11 @@ def main() -> None:
                 "invalid_model_fold_files": ";".join(invalid_outputs),
                 "input_family": family,
                 "input_status": status,
+                "input_scope": (
+                    "cohort_feature_family"
+                    if family in cause_families
+                    else "additional_information"
+                ),
                 "complete_case_reason": reason,
             })
         summary[f"output_files_missing/{corpus}"] += len(missing_outputs)
@@ -127,7 +193,7 @@ def main() -> None:
         for family, status in problem_families:
             if family != "NONE":
                 summary[f"input_problem/{corpus}/{family}/{status}"] += 1
-        if not has_complete_case_cause:
+        if reason == "не установлена":
             summary[f"unexplained/{corpus}"] += 1
 
     for corpus in roots:
