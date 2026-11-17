@@ -196,6 +196,7 @@ def test_joint_five_population_data_contract(tmp_path: Path) -> None:
     assert sample["targets"].tolist() == [1.0, 0.0]
     assert sample["meta"]["observed_targets"].tolist() == [True, False]
 
+
 def test_extraction_only_has_six_nonduplicating_loaders(tmp_path: Path) -> None:
     standard = build_dm(tmp_path / "standard", feature_family="static_a")
     extraction = build_dm(
