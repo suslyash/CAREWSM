@@ -76,12 +76,16 @@ class CAREWSMAudioDataModule(DataModule):
         independent_family_mean: bool = False,
         cohort_feature_family: list[str] | None = None,
         mantis_cache_manifest: str | None = None,
+        extraction_only: bool = False,
+        extraction_limit: int | None = None,
     ) -> None:
         self.feature_families = self._validate_selection(feature_family)
         self.fold_index = fold
         self.feature_family = feature_family
         self.pooling = pooling
         self.independent_family_mean = independent_family_mean
+        self.extraction_only = extraction_only
+        self.extraction_limit = extraction_limit
         self.cohort_feature_families = self._validate_cohort_selection(
             cohort_feature_family
         )
@@ -119,18 +123,19 @@ class CAREWSMAudioDataModule(DataModule):
             )
             for name, records in self.views.items()
         }
-        validation_datasets = {
-            "val_care": datasets["val_care"],
-            "val_wsm": datasets["val_wsm"],
-        }
-        validation_datasets.update(
-            {
+        if extraction_only:
+            train_dataset = None
+            validation_datasets = datasets
+        else:
+            train_dataset = datasets["train"]
+            validation_datasets = {
+                "val_care": datasets["val_care"],
+                "val_wsm": datasets["val_wsm"],
                 "test_care": datasets["test_care"],
                 "test_wsm": datasets["test_wsm"],
             }
-        )
         super().__init__(
-            train_dataset=datasets["train"],
+            train_dataset=train_dataset,
             val_dataset=validation_datasets,
             test_dataset=None,
             batch_size=batch_size,
@@ -339,15 +344,27 @@ class CAREWSMAudioDataModule(DataModule):
             for corpus in self.roots
         }
 
-        views = {
-            "train": train,
-            "val_care": [record for record in validation if record["corpus"] == "CARE"],
-            "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
-            "test_care": tests["CARE"],
-            "test_wsm": tests["WSM"],
-        }
+        if self.extraction_only:
+            views = {
+                "fold_train_care": self._fold_records("CARE", "train"),
+                "fold_train_wsm": self._fold_records("WSM", "train"),
+                "fold_val_care": self._fold_records("CARE", "val"),
+                "fold_val_wsm": self._fold_records("WSM", "val"),
+                "dev_care": self._split_records("CARE", "dev"),
+                "dev_wsm": self._split_records("WSM", "dev"),
+                "test_care": tests["CARE"],
+                "test_wsm": tests["WSM"],
+            }
+        else:
+            views = {
+                "train": train,
+                "val_care": [record for record in validation if record["corpus"] == "CARE"],
+                "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
+                "test_care": tests["CARE"],
+                "test_wsm": tests["WSM"],
+            }
         required = tuple(dict.fromkeys(selected + self.cohort_feature_families))
-        return {
+        filtered_views = {
             name: [
                 record
                 for record in sorted(
@@ -360,6 +377,19 @@ class CAREWSMAudioDataModule(DataModule):
             ]
             for name, records in views.items()
         }
+
+        if self.extraction_only and self.extraction_limit is not None:
+            return {
+                name: records[: self.extraction_limit]
+                for name, records in filtered_views.items()
+            }
+        return filtered_views
+
+    def _split_records(self, corpus: str, split: str) -> list[dict[str, Any]]:
+        return [
+            self.records[(corpus, row["sample_id"])]
+            for row in read_rows(self.roots[corpus] / "splits" / f"{split}.csv")
+        ]
 
     def describe_context(self, context: Any) -> None:
         """Expose fold and population counts to Chimera context logging."""
