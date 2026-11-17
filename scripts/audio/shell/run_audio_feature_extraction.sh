@@ -16,13 +16,17 @@ for pair in \
       '$1 == name && $3 == fold { print $9 }' \
       reports/audio_interpretable_feature_fusion/provenance_ledger.csv)
     if [[ ! -f "$checkpoint" ]]; then
-      echo "missing selected checkpoint: $ledger_name fold $fold" >&2
+      echo "FAILED ${config_name} fold ${fold}: missing selected checkpoint" >&2
       exit 1
     fi
-    echo "=== ${config_name} fold ${fold} ==="
-    .venv/bin/chimera-ml eval \
+    echo "=== START ${config_name} fold ${fold} ==="
+    if ! .venv/bin/chimera-ml eval \
       --config-path "configs/audio_feature_extraction/${config_name}_fold${fold}.yaml" \
       --checkpoint-path "$checkpoint" \
-      --with-features 2>&1 | tee "logs/audio_feature_extraction/${config_name}_fold${fold}.eval.log"
+      --with-features 2>&1 | tee "logs/audio_feature_extraction/${config_name}_fold${fold}.eval.log"; then
+      echo "=== FAILED ${config_name} fold ${fold} ===" >&2
+      exit 1
+    fi
+    echo "=== DONE ${config_name} fold ${fold} ==="
   done
 done
