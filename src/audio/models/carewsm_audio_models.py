@@ -46,7 +46,23 @@ class TaskHeads(nn.Module):
         )
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
-        return torch.cat((self.depression(features), self.parkinson(features)), dim=-1)
+        logits, _, _ = self.forward_with_features(features)
+        return logits
+
+    def forward_with_features(
+        self, features: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return logits and the final hidden vectors from both task heads."""
+        depression_features = self.depression[:-1](features)
+        parkinson_features = self.parkinson[:-1](features)
+        logits = torch.cat(
+            (
+                self.depression[-1](depression_features),
+                self.parkinson[-1](parkinson_features),
+            ),
+            dim=-1,
+        )
+        return logits, depression_features, parkinson_features
 
 
 class CAREWSMSequenceModel(BaseModel):

@@ -21,6 +21,7 @@ def register() -> None:
         "audio.loss.carewsm_stageg_mtl_loss",
         "audio.metrics.carewsm_audio_metrics",
         "audio.callbacks.carewsm_summary_callback",
+        "audio.callbacks.carewsm_feature_extraction_callback",
         "audio.callbacks.carewsm_validation_monitor_callback",
         "audio.callbacks.carewsm_stageg_mtl_callback",
     )

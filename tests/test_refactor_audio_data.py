@@ -197,6 +197,36 @@ def test_joint_five_population_data_contract(tmp_path: Path) -> None:
     assert sample["meta"]["observed_targets"].tolist() == [True, False]
 
 
+def test_extraction_only_has_six_nonduplicating_loaders(tmp_path: Path) -> None:
+    standard = build_dm(tmp_path / "standard", feature_family="static_a")
+    extraction = build_dm(
+        tmp_path / "extraction", feature_family="static_a", extraction_only=True
+    )
+
+    assert set(extraction.views) == {
+        "train_care",
+        "train_wsm",
+        "val_care",
+        "val_wsm",
+        "test_care",
+        "test_wsm",
+    }
+    assert set(extraction.train_dataset) == {"train_care", "train_wsm"}
+    assert set(extraction.val_dataset) == {"val_care", "val_wsm"}
+    assert set(extraction.test_dataset) == {"test_care", "test_wsm"}
+
+    standard_records = {
+        (record["corpus"], record["sample_id"])
+        for records in standard.views.values()
+        for record in records
+    }
+    extraction_records = {
+        (record["corpus"], record["sample_id"])
+        for records in extraction.views.values()
+        for record in records
+    }
+    assert extraction_records == standard_records
+
 def test_all_folds_keep_corpus_and_profile_isolation_in_fixture(tmp_path: Path) -> None:
     care, wsm, manifest, registry = make_fixture(tmp_path)
     for fold in range(5):

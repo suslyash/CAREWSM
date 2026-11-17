@@ -76,12 +76,16 @@ class CAREWSMAudioDataModule(DataModule):
         independent_family_mean: bool = False,
         cohort_feature_family: list[str] | None = None,
         mantis_cache_manifest: str | None = None,
+        extraction_only: bool = False,
+        extraction_limit: int | None = None,
     ) -> None:
         self.feature_families = self._validate_selection(feature_family)
         self.fold_index = fold
         self.feature_family = feature_family
         self.pooling = pooling
         self.independent_family_mean = independent_family_mean
+        self.extraction_only = extraction_only
+        self.extraction_limit = extraction_limit
         self.cohort_feature_families = self._validate_cohort_selection(
             cohort_feature_family
         )
@@ -119,20 +123,32 @@ class CAREWSMAudioDataModule(DataModule):
             )
             for name, records in self.views.items()
         }
-        validation_datasets = {
-            "val_care": datasets["val_care"],
-            "val_wsm": datasets["val_wsm"],
-        }
-        validation_datasets.update(
-            {
+        if extraction_only:
+            train_dataset = {
+                "train_care": datasets["train_care"],
+                "train_wsm": datasets["train_wsm"],
+            }
+            validation_datasets = {
+                "val_care": datasets["val_care"],
+                "val_wsm": datasets["val_wsm"],
+            }
+            test_dataset = {
                 "test_care": datasets["test_care"],
                 "test_wsm": datasets["test_wsm"],
             }
-        )
+        else:
+            train_dataset = datasets["train"]
+            test_dataset = None
+            validation_datasets = {
+                "val_care": datasets["val_care"],
+                "val_wsm": datasets["val_wsm"],
+                "test_care": datasets["test_care"],
+                "test_wsm": datasets["test_wsm"],
+            }
         super().__init__(
-            train_dataset=datasets["train"],
+            train_dataset=train_dataset,
             val_dataset=validation_datasets,
-            test_dataset=None,
+            test_dataset=test_dataset,
             batch_size=batch_size,
             num_workers=num_workers,
             pin_memory=False,
@@ -339,15 +355,25 @@ class CAREWSMAudioDataModule(DataModule):
             for corpus in self.roots
         }
 
-        views = {
-            "train": train,
-            "val_care": [record for record in validation if record["corpus"] == "CARE"],
-            "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
-            "test_care": tests["CARE"],
-            "test_wsm": tests["WSM"],
-        }
+        if self.extraction_only:
+            views = {
+                "train_care": [record for record in train if record["corpus"] == "CARE"],
+                "train_wsm": [record for record in train if record["corpus"] == "WSM"],
+                "val_care": [record for record in validation if record["corpus"] == "CARE"],
+                "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
+                "test_care": tests["CARE"],
+                "test_wsm": tests["WSM"],
+            }
+        else:
+            views = {
+                "train": train,
+                "val_care": [record for record in validation if record["corpus"] == "CARE"],
+                "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
+                "test_care": tests["CARE"],
+                "test_wsm": tests["WSM"],
+            }
         required = tuple(dict.fromkeys(selected + self.cohort_feature_families))
-        return {
+        filtered_views = {
             name: [
                 record
                 for record in sorted(
@@ -360,6 +386,13 @@ class CAREWSMAudioDataModule(DataModule):
             ]
             for name, records in views.items()
         }
+
+        if self.extraction_only and self.extraction_limit is not None:
+            return {
+                name: records[: self.extraction_limit]
+                for name, records in filtered_views.items()
+            }
+        return filtered_views
 
     def describe_context(self, context: Any) -> None:
         """Expose fold and population counts to Chimera context logging."""

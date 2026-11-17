@@ -71,12 +71,14 @@ class CAREWSMStaticGatedFusionModel(nn.Module):
         family_dims: list[int],
         hidden_dim: int = 32,
         dropout: float = 0.1,
+        pack_extraction_features: bool = False,
     ) -> None:
         super().__init__()
         if sum(family_dims) != input_dim or not family_dims:
             raise ValueError("family_dims must sum to input_dim")
         self.family_dims = tuple(family_dims)
         self.normalizations = nn.ModuleList(nn.LayerNorm(dim) for dim in family_dims)
+        self.pack_extraction_features = pack_extraction_features
         self.projections = nn.ModuleList(
             nn.Linear(dim, hidden_dim) for dim in family_dims
         )
@@ -104,10 +106,22 @@ class CAREWSMStaticGatedFusionModel(nn.Module):
             fused = fused + gate_values * projected
             gates.append(gate_values)
         features = self.dropout(fused)
-        logits = self.heads(features)
+        logits, depression_features, parkinson_features = self.heads.forward_with_features(
+            features
+        )
         return ModelOutput(
             preds=logits,
-            aux={"features": features, "logits": logits, "family_gates": gates},
+            aux={
+                "features": (
+                    torch.cat((features, depression_features, parkinson_features), dim=-1)
+                    if self.pack_extraction_features
+                    else features
+                ),
+                "logits": logits,
+                "family_gates": gates,
+                "depression_features": depression_features,
+                "parkinson_features": parkinson_features,
+            },
         )
 
 
