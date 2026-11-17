@@ -357,10 +357,10 @@ class CAREWSMAudioDataModule(DataModule):
 
         if self.extraction_only:
             views = {
-                "train_care": self._fold_records("CARE", "train"),
-                "train_wsm": self._fold_records("WSM", "train"),
-                "val_care": self._fold_records("CARE", "val"),
-                "val_wsm": self._fold_records("WSM", "val"),
+                "train_care": [record for record in train if record["corpus"] == "CARE"],
+                "train_wsm": [record for record in train if record["corpus"] == "WSM"],
+                "val_care": [record for record in validation if record["corpus"] == "CARE"],
+                "val_wsm": [record for record in validation if record["corpus"] == "WSM"],
                 "test_care": tests["CARE"],
                 "test_wsm": tests["WSM"],
             }
