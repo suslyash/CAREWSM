@@ -124,14 +124,18 @@ class CAREWSMAudioDataModule(DataModule):
             for name, records in self.views.items()
         }
         if extraction_only:
-            train_dataset = {"train_care": datasets["train_care"], "train_wsm": datasets["train_wsm"]}
+            train_dataset = {
+                "train_care": datasets["train_care"],
+                "train_wsm": datasets["train_wsm"],
+            }
             validation_datasets = {
                 "val_care": datasets["val_care"],
                 "val_wsm": datasets["val_wsm"],
-                "dev_care": datasets["dev_care"],
-                "dev_wsm": datasets["dev_wsm"],
             }
-            test_dataset = {"test_care": datasets["test_care"], "test_wsm": datasets["test_wsm"]}
+            test_dataset = {
+                "test_care": datasets["test_care"],
+                "test_wsm": datasets["test_wsm"],
+            }
         else:
             train_dataset = datasets["train"]
             test_dataset = None
@@ -357,8 +361,6 @@ class CAREWSMAudioDataModule(DataModule):
                 "train_wsm": self._fold_records("WSM", "train"),
                 "val_care": self._fold_records("CARE", "val"),
                 "val_wsm": self._fold_records("WSM", "val"),
-                "dev_care": self._split_records("CARE", "dev"),
-                "dev_wsm": self._split_records("WSM", "dev"),
                 "test_care": tests["CARE"],
                 "test_wsm": tests["WSM"],
             }
@@ -391,12 +393,6 @@ class CAREWSMAudioDataModule(DataModule):
                 for name, records in filtered_views.items()
             }
         return filtered_views
-
-    def _split_records(self, corpus: str, split: str) -> list[dict[str, Any]]:
-        return [
-            self.records[(corpus, row["sample_id"])]
-            for row in read_rows(self.roots[corpus] / "splits" / f"{split}.csv")
-        ]
 
     def describe_context(self, context: Any) -> None:
         """Expose fold and population counts to Chimera context logging."""
