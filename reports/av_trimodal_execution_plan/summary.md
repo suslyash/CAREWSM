@@ -35,8 +35,15 @@ For interrupted runs, use:
 bash scripts/fusion/run_all.sh --resume
 ```
 
-`--run` is the owner-triggered execution command. The launcher ledger and
-per-run launcher output are under `logs/fusion/launcher/`. Chimera writes each
-run's `train.log`, `summary.txt`, `checkpoints/`, and snapshot artifacts under
+`--run` is the owner-triggered execution command. `--resume` first
+revalidates the configuration and environment, skips verified completed runs,
+and **restarts incomplete runs from scratch**; it preserves an existing
+incomplete runtime directory under `logs/fusion/launcher/incomplete/` rather
+than overwriting its logs/checkpoints. This is not optimizer-state checkpoint
+resumption. A zero exit code without completion artifacts is a launch failure.
+
+The launcher ledger and per-run launcher output are under
+`logs/fusion/launcher/`. Chimera writes each run's `train.log`,
+`summary.txt`, `checkpoints/`, and snapshot artifacts under
 `logs/fusion/fusion/<model>_fold<fold>/`; MLflow uses
 `sqlite:///logs/fusion/mlflow.db`.
