@@ -106,7 +106,7 @@ run_all() {
         echo "incomplete run directory exists: $run_dir; use --resume" >&2
         return 1
       fi
-      local archived="$LAUNCHER_DIR/incomplete/${run}_$(date -u +%Y%m%dT%H%M%SZ)_$"
+      local archived="$LAUNCHER_DIR/incomplete/${run}_$(date -u +%Y%m%dT%H%M%SZ)_${BASHPID}"
       mkdir -p "$(dirname "$archived")"
       mv "$run_dir" "$archived"
       echo "preserved incomplete run: $archived (restarting from scratch)" >&2
