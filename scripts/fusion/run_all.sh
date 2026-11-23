@@ -94,7 +94,7 @@ for fold in range(5):
     else:
         path = Path(f"configs/fusion/text_guided_dual_gated_fold{fold}.yaml")
     cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
-    module = CAREWSMTrimodalDataModule(**cfg["data"]["params"])
+    module = CAREWSMTrimodalDataModule(common_cohort=(matrix == "sweep"), **cfg["data"]["params"])
     for view in ("val_care", "val_wsm"):
         rows = module.views[view]
         if not rows:
