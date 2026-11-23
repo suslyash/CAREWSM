@@ -25,7 +25,7 @@ from chimera_ml.training.builders import (
 from chimera_ml.training.trainer import Trainer
 from chimera_ml.utils.seed import define_seed
 
-from collect_results import checkpoint, parse_config, runtime_candidates
+from collect_results import checkpoint, parse_config, runtime_candidates, valid_recovery
 
 
 METRICS = (
@@ -63,7 +63,13 @@ def evaluate(
     )
     payload = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     trainer.model.load_state_dict(payload.get("model_state_dict", payload), strict=True)
-    results = trainer.evaluate(datamodule.val_dataloader())
+    loaders = datamodule.val_dataloader()
+    if not isinstance(loaders, dict) or not all(
+        key in loaders for key in ("test_care", "test_wsm")
+    ):
+        raise ValueError("missing corpus-specific TEST loaders in Chimera DataModule")
+    test_loaders = {key: loaders[key] for key in ("test_care", "test_wsm")}
+    results = trainer.evaluate(test_loaders)
     values = {
         f"test_{corpus}_{task}_{metric}": results[
             f"test_{corpus}/{task}/{metric}"
@@ -120,7 +126,12 @@ def main() -> None:
         for line in args.output.read_text().splitlines():
             if line.strip():
                 row = json.loads(line)
-                existing[row["run_name"]] = row
+                run_name = row.get("run_name")
+                if not isinstance(run_name, str) or run_name in existing:
+                    raise ValueError(
+                        f"missing/duplicate run identity in recovery file: {run_name!r}"
+                    )
+                existing[run_name] = row
     for path in configs[: args.limit]:
         identity = parse_config(path)
         candidates = runtime_candidates(root, identity["run_name"])
@@ -131,10 +142,17 @@ def main() -> None:
         if error or selected is None:
             print(f"SKIP {identity['run_name']}: {error}")
             continue
-        digest = hashlib.sha256(selected.read_bytes()).hexdigest()
-        if existing.get(identity["run_name"], {}).get("checkpoint_sha256") == digest:
-            print(f"RESUME {identity['run_name']}")
-            continue
+        previous = existing.get(identity["run_name"])
+        if previous is not None:
+            if valid_recovery(
+                previous, identity, selected, selected_epoch, selected_monitor
+            ):
+                print(f"RESUME {identity['run_name']}")
+                continue
+            raise ValueError(
+                f"existing TEST recovery has invalid or stale identity/metrics: "
+                f"{identity['run_name']}; refusing to overwrite"
+            )
         existing[identity["run_name"]] = evaluate(
             path, selected, selected_epoch, selected_monitor
         )
