@@ -46,9 +46,9 @@ Execute exactly one atomic task. Do not start the next task from your own recomm
 
 ## Project scope
 
-The active programme is **audio-only**.
+The historical programme is **audio-only**. The owner-authorized successor direction is **AUDIO + VIDEO + TEXT** beginning with AV-001 read-only audit. Do not add trimodal Dataset/DataModule/model/loss code, training, ASR, diarization inference, or re-extraction during AV-001.
 
-Do not add video, text, multimodal fusion, ASR or diarization research unless the owner changes scope.
+Future trimodal Chimera code, after separately authorized AV-002/AV-003, belongs under `src/fusion/` with focused `data/`, `models/`, `loss/`, `metrics/`, `callbacks/`, and `utils/` subdirectories only where needed. Future flat launch/audit utilities belong directly under `scripts/fusion/`; future runs use `logs/fusion/`. This corrective audit creates none of these components.
 
 Existing audio extraction artifacts are research inputs. Do not re-extract or destructively modify them unless an active task explicitly authorizes it.
 

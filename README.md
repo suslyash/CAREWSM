@@ -1,8 +1,8 @@
 # CAREWSM
 
-CAREWSM is an audio-first research project for joint Depression and Parkinson recognition across CARE and WSM.
+CAREWSM is a research project for joint Depression and Parkinson recognition across CARE and WSM. The historical audio-only programme is preserved; the owner-authorized successor direction is AUDIO + VIDEO + TEXT.
 
-The current programme is intentionally **audio-only**. Multimodal modelling is deferred.
+The trimodal direction is currently in read-only feature/provenance audit (AV-001). No trimodal training or new extraction is authorized by this audit.
 
 ## Corpora
 

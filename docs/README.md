@@ -1,6 +1,6 @@
 # CAREWSM active documentation
 
-This directory is the authoritative management and research contract for the audio-only CAREWSM programme.
+This directory is the authoritative management and research contract for the historical audio CAREWSM programme and the owner-authorized AUDIO + VIDEO + TEXT successor audit. Audio evidence remains historical; trimodal training is not authorized merely by the scope change.
 
 Read:
 
