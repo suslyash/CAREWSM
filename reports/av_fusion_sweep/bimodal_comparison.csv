@@ -1,0 +1,4 @@
+architecture,variants,val_overall_uar_mean,val_overall_uar_sd_across_variants,best_variant
+bimodal_gated_late,11,0.7389354545454545,0.08866429657575096,bimodal_gated_late__A2_T10
+bimodal_shared_mtl,11,0.7469004545454545,0.08197103602659128,bimodal_shared_mtl__A2_T10
+bimodal_task_aware,11,0.7491577272727272,0.08234765650471287,bimodal_task_aware__A2_T10
