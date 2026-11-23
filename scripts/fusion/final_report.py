@@ -187,6 +187,7 @@ def best_rows(summaries: list[dict[str, str]]) -> list[dict[str, object]]:
             continue
         field = fields[category]
         winner = max(eligible, key=lambda row: float(row[field]))
+        descriptive_test_field = "test_" + field.removeprefix("val_")
         result.append({
             "category": category,
             "selection_metric": field,
@@ -195,6 +196,9 @@ def best_rows(summaries: list[dict[str, str]]) -> list[dict[str, object]]:
             "feature_ids": winner["feature_ids"],
             "val_mean": winner[field],
             "val_sd": winner[field.replace("_mean", "_sd")],
+            "test_selected_metric": descriptive_test_field,
+            "test_selected_metric_mean": winner[descriptive_test_field],
+            "test_selected_metric_sd": winner[descriptive_test_field.replace("_mean", "_sd")],
             "test_overall_uar_mean": winner["test_overall_uar_mean"],
             "test_overall_uar_sd": winner["test_overall_uar_sd"],
         })
@@ -335,7 +339,7 @@ def generate(root: Path) -> dict[str, int]:
         for row in architectures
     )
     best_table = "\n".join(
-        f"| {row['category']} | {row['selection_metric']} | `{row['experiment_id']}` | `{row['feature_ids']}` | {float(row['val_mean']):.4f} ± {float(row['val_sd']):.4f} | {float(row['test_overall_uar_mean']):.4f} ± {float(row['test_overall_uar_sd']):.4f} |"
+        f"| {row['category']} | {row['selection_metric']} | `{row['experiment_id']}` | `{row['feature_ids']}` | {float(row['val_mean']):.4f} ± {float(row['val_sd']):.4f} | `{row['test_selected_metric']}`: {float(row['test_selected_metric_mean']):.4f} ± {float(row['test_selected_metric_sd']):.4f} | {float(row['test_overall_uar_mean']):.4f} ± {float(row['test_overall_uar_sd']):.4f} |"
         for row in best
     )
     guided_table = "\n".join(
@@ -392,8 +396,8 @@ The matched table contains 30 paired folds (six feature combinations × five fol
 
 Task-specific rows use VAL Macro Recall as the exploratory task metric; they are not replacements for the prespecified overall ranking.
 
-| Category | VAL selection metric | Experiment | Features | VAL mean ± SD | TEST Overall UAR mean ± SD |
-|---|---|---|---|---:|---:|
+| Category | VAL selection metric | Experiment | Features | VAL mean ± SD | Matched descriptive TEST metric mean ± SD | TEST Overall UAR mean ± SD |
+|---|---|---|---|---:|---:|---:|
 {best_table}
 
 ## 10. Interpretation, limitations and next research questions
