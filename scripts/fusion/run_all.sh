@@ -72,19 +72,44 @@ print(torch.cuda.get_device_name(0))
 PY
   if pgrep -af 'chimera-ml train' | grep -v "$$"; then echo 'training process already active' >&2; return 1; fi
   for config in "${files[@]}"; do
+    local run dir status
     run=$(basename "$config" .yaml)
-    if [[ "$allow_completed" != true ]] && verified "$run"; then
-      echo "completed run identity already exists: $run" >&2
-      return 1
+    if dir=$(runtime_dir "$run"); then
+      if [[ "$allow_completed" != true ]]; then
+        if verified_dir "$dir"; then
+          echo "completed run identity already exists: $run ($dir)" >&2
+        else
+          echo "incomplete run directory exists: $dir; use --resume" >&2
+        fi
+        return 1
+      fi
+    else
+      status=$?
+      (( status == 1 )) || return "$status"
     fi
   done
   mkdir -p "$LAUNCHER_DIR"
   echo 'fusion preflight passed; no training was started'
 }
-verified() {
-  local run="$1" dir="$LOG_ROOT/fusion/$run"
+# Chimera may append a timestamp to run_name, as in the audio launch worker.
+# Refuse ambiguous matches rather than accidentally overwriting completed output.
+runtime_dir() {
+  local run="$1" candidate
+  local matches=()
+  for candidate in "$LOG_ROOT/fusion/$run" "$LOG_ROOT/fusion/${run}_"*; do
+    [[ -d "$candidate" ]] && matches+=("$candidate")
+  done
+  case "${#matches[@]}" in
+    0) return 1 ;;
+    1) printf '%s\n' "${matches[0]}" ;;
+    *) echo "ambiguous runtime directories for $run; inspect logs/fusion/fusion/" >&2; return 2 ;;
+  esac
+}
+verified_dir() {
+  local dir="$1"
   [[ -f "$dir/train.log" && -f "$dir/summary.txt" ]] || return 1
   grep -q 'Training complete' "$dir/train.log" || return 1
+  [[ -d "$dir/checkpoints" ]] || return 1
   find "$dir/checkpoints" -maxdepth 1 -type f -name '*.pt' ! -name last.pt | grep -q .
 }
 run_all() {
@@ -94,38 +119,48 @@ run_all() {
   mapfile -t files < <(configs)
   [[ ${#files[@]} -eq 15 ]] || { echo "expected 15 fusion configs" >&2; return 1; }
   for config in "${files[@]}"; do
-    local run
+    local run dir status
     run=$(basename "$config" .yaml)
-    if [[ "$mode" == resume ]] && verified "$run"; then
-      printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"
-      continue
-    fi
-    local run_dir="$LOG_ROOT/fusion/$run"
-    if [[ -d "$run_dir" ]]; then
+    if dir=$(runtime_dir "$run"); then
+      if verified_dir "$dir"; then
+        if [[ "$mode" == resume ]]; then
+          printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"
+          echo "skipping completed run: $run ($dir)"
+          continue
+        fi
+        echo "completed run already exists: $run ($dir)" >&2
+        return 1
+      fi
       if [[ "$mode" != resume ]]; then
-        echo "incomplete run directory exists: $run_dir; use --resume" >&2
+        echo "incomplete run exists: $dir; use --resume" >&2
         return 1
       fi
       local archived="$LAUNCHER_DIR/incomplete/${run}_$(date -u +%Y%m%dT%H%M%SZ)_${BASHPID}"
+      [[ ! -e "$archived" ]] || { echo "archive collision: $archived" >&2; return 1; }
       mkdir -p "$(dirname "$archived")"
-      mv "$run_dir" "$archived"
+      mv "$dir" "$archived"
       echo "preserved incomplete run: $archived (restarting from scratch)" >&2
+    else
+      status=$?
+      (( status == 1 )) || return "$status"
     fi
+
     set +e
     CUDA_VISIBLE_DEVICES="$CUDA_DEVICE" "$CHIMERA" train -c "$config" > "$LAUNCHER_DIR/${run}.log" 2>&1
     local code=$?
     set -e
-    if (( code == 0 )) && verified "$run"; then
+    if (( code != 0 )); then
+      printf '%s\tFAILED\t%s\n' "$run" "$code" >> "$LEDGER"
+      echo "fusion run failed: $run (exit $code); see $LAUNCHER_DIR/${run}.log" >&2
+      return "$code"
+    fi
+    if dir=$(runtime_dir "$run") && verified_dir "$dir"; then
       printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"
     else
-      if (( code == 0 )); then
-        printf '%s\tCOMPLETION_FAILED\t1\n' "$run" >> "$LEDGER"
-        echo "fusion completion artifacts missing: $run" >&2
-        return 1
-      fi
-      printf '%s\tFAILED\t%s\n' "$run" "$code" >> "$LEDGER"
-      echo "fusion run failed: $run (exit $code)" >&2
-      return "$code"
+      printf '%s\tCOMPLETION_FAILED\t1\n' "$run" >> "$LEDGER"
+      echo "Chimera exited 0 but completion not verified for $run" >&2
+      echo "Inspect $LAUNCHER_DIR/${run}.log and logs/fusion/fusion/ for train.log, summary.txt, checkpoints" >&2
+      return 1
     fi
   done
 }
