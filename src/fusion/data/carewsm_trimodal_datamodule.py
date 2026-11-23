@@ -1,4 +1,4 @@
-"""Canonical fold DataModule for audited CAREWSM trimodal artifacts."""
+"""Canonical fold DataModule for audited CAREWSM fusion artifacts."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ FAMILIES = {
     "video": ("video_4",),
     "text": ("text_id9", "text_id10"),
 }
+ALL_FAMILIES = tuple(source for values in FAMILIES.values() for source in values)
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:
@@ -37,7 +38,7 @@ def parse_binary(value: str | None, field: str, key: str) -> float | None:
 
 
 class CAREWSMTrimodalDataModule(DataModule):
-    """Build complete-case joint TRAIN and corpus-specific VAL/TEST views."""
+    """Build common-cohort joint TRAIN and corpus-specific VAL/TEST views."""
 
     def __init__(
         self,
@@ -45,6 +46,7 @@ class CAREWSMTrimodalDataModule(DataModule):
         wsm_root: str,
         manifest: str,
         fold: int = 0,
+        modalities: list[str] | tuple[str, ...] = ("audio", "video", "text"),
         audio_source: str = "audio_id1",
         video_source: str = "video_4",
         text_source: str = "text_id9",
@@ -52,28 +54,34 @@ class CAREWSMTrimodalDataModule(DataModule):
         batch_size: int = 32,
         num_workers: int = 0,
         shuffle_train: bool = False,
+        common_cohort: bool = False,
     ) -> None:
         if fold not in FOLDS:
             raise ValueError("fold must be one of 0, 1, 2, 3, 4")
         self.fold = fold
-        self.sources = {
-            "audio": audio_source,
-            "video": video_source,
-            "text": text_source,
-        }
-        self.representation_key = representation_key
+        self.common_cohort = bool(common_cohort)
+        self.modalities = tuple(modalities)
+        if len(self.modalities) not in (2, 3) or len(set(self.modalities)) != len(
+            self.modalities
+        ):
+            raise ValueError(
+                "modalities must contain exactly two or three distinct names"
+            )
+        if any(modality not in FAMILIES for modality in self.modalities):
+            raise ValueError(f"unsupported modality in {self.modalities}")
+        selected = {"audio": audio_source, "video": video_source, "text": text_source}
+        self.sources = {modality: selected[modality] for modality in self.modalities}
         for modality, source in self.sources.items():
             if source not in FAMILIES[modality]:
                 raise ValueError(f"unsupported {modality} source: {source}")
+        self.representation_key = representation_key
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
         self.manifest = Path(manifest)
         self.target_manifest = self._read_target_manifest()
         self.records = self._join_sources()
         self.views = self._build_views()
         datasets = {
-            name: CAREWSMTrimodalDataset(
-                view, audio_source, video_source, text_source, representation_key
-            )
+            name: CAREWSMTrimodalDataset(view, self.sources, representation_key)
             for name, view in self.views.items()
         }
         super().__init__(
@@ -102,7 +110,8 @@ class CAREWSMTrimodalDataModule(DataModule):
                 for split in ("train", "dev", "test")
                 for row in read_rows(self.roots[corpus] / "splits" / f"{split}.csv")
             ]
-        index, identity_fields = {}, ("profile_id", "video_id", "label_id", "subgroup")
+        index: dict[str, dict[str, str]] = {}
+        identity_fields = ("profile_id", "video_id", "label_id", "subgroup")
         for row in rows:
             sample_id = row.get("sample_id", "")
             if not sample_id:
@@ -113,7 +122,7 @@ class CAREWSMTrimodalDataModule(DataModule):
             ) != tuple(row.get(field, "") for field in identity_fields):
                 raise ValueError(f"conflicting metadata for {corpus}/{sample_id}")
             index[sample_id] = row
-        pairs = {}
+        pairs: dict[tuple[str, str], str] = {}
         for sample_id, row in index.items():
             pair = (row.get("profile_id", ""), row.get("video_id", ""))
             if pair in pairs and pairs[pair] != sample_id:
@@ -136,7 +145,9 @@ class CAREWSMTrimodalDataModule(DataModule):
             for sample_id, source in self._source_index(corpus).items():
                 manifest = self.target_manifest.get((corpus, sample_id))
                 if manifest is None:
-                    raise ValueError(f"target manifest sample absent: {(corpus, sample_id)}")
+                    raise ValueError(
+                        f"target manifest sample absent: {(corpus, sample_id)}"
+                    )
                 for field in ("profile_id", "video_id"):
                     if manifest.get(field, "") != source.get(field, ""):
                         raise ValueError(
@@ -144,11 +155,14 @@ class CAREWSMTrimodalDataModule(DataModule):
                         )
                 if corpus == "CARE":
                     targets = {
-                        "depression": parse_binary(manifest.get("depression"), "depression", sample_id),
-                        "parkinson": parse_binary(manifest.get("parkinson"), "parkinson", sample_id),
+                        target: parse_binary(manifest.get(target), target, sample_id)
+                        for target in ("depression", "parkinson")
                     }
                     for target, value in targets.items():
-                        observed = str(manifest.get(f"{target}_observed", "")).lower() == "true"
+                        observed = (
+                            str(manifest.get(f"{target}_observed", "")).lower()
+                            == "true"
+                        )
                         if observed != (value is not None):
                             raise ValueError(
                                 f"target manifest observed mismatch for {(corpus, sample_id)}: {target}"
@@ -156,8 +170,10 @@ class CAREWSMTrimodalDataModule(DataModule):
                     provenance = "CARE feature-audit target manifest"
                 else:
                     targets = {
-                        "depression": parse_binary(source.get("y_depression"), "y_depression", sample_id),
-                        "parkinson": parse_binary(source.get("y_parkinson"), "y_parkinson", sample_id),
+                        target: parse_binary(
+                            source.get(f"y_{target}"), f"y_{target}", sample_id
+                        )
+                        for target in ("depression", "parkinson")
                     }
                     provenance = "WSM videos.csv y_* columns"
                 joined[(corpus, sample_id)] = {
@@ -178,6 +194,17 @@ class CAREWSMTrimodalDataModule(DataModule):
             self.roots[corpus] / "splits" / "folds" / f"fold_{self.fold}_{split}.csv"
         )
 
+    def _artifact_path(self, record: dict[str, Any], source: str) -> Path:
+        return (
+            record["root"]
+            / "extracted_unimodal"
+            / record["label_id"]
+            / record["subgroup"]
+            / f"PROFILE_{record['profile_id'].removeprefix('PROFILE_')}"
+            / f"VIDEO_{record['video_id'].removeprefix('VIDEO_')}"
+            / f"{source}_fold{self.fold}.pickle"
+        )
+
     def _records_for_rows(
         self, corpus: str, rows: list[dict[str, str]]
     ) -> list[dict[str, Any]]:
@@ -194,20 +221,18 @@ class CAREWSMTrimodalDataModule(DataModule):
             for field in ("profile_id", "video_id", "label_id", "subgroup"):
                 if row.get(field) and row[field] != record[field]:
                     raise ValueError(f"fold metadata mismatch for {key}: {field}")
-            record["artifact_paths"] = {
-                modality: str(
-                    record["root"]
-                    / "extracted_unimodal"
-                    / record["label_id"]
-                    / record["subgroup"]
-                    / f"PROFILE_{record['profile_id'].removeprefix('PROFILE_')}"
-                    / f"VIDEO_{record['video_id'].removeprefix('VIDEO_')}"
-                    / f"{source}_fold{self.fold}.pickle"
-                )
-                for modality, source in self.sources.items()
+            required = ALL_FAMILIES if self.common_cohort else tuple(self.sources.values())
+            all_paths = {
+                source: self._artifact_path(record, source) for source in required
             }
-            if all(Path(path).is_file() for path in record["artifact_paths"].values()):
-                output.append(record)
+            if not all(path.is_file() for path in all_paths.values()):
+                continue
+            record["artifact_paths"] = {
+                modality: str(all_paths[self.sources[modality]])
+                for modality in self.modalities
+            }
+            record["common_cohort"] = self.common_cohort
+            output.append(record)
         return output
 
     def _build_views(self) -> dict[str, list[dict[str, Any]]]:
@@ -247,6 +272,7 @@ class CAREWSMTrimodalDataModule(DataModule):
     def describe_context(self, context: Any) -> None:
         context.set("data.module", self)
         context.set("data.fold", self.fold)
+        context.set("data.modalities", self.modalities)
         context.set(
             "data.provenance_status", "UNKNOWN / BLOCKED: upstream FIT/SELECTION"
         )
@@ -258,6 +284,14 @@ class CAREWSMTrimodalDataModule(DataModule):
 def carewsm_trimodal(
     context: Any | None = None, **params: Any
 ) -> CAREWSMTrimodalDataModule:
-    """Build the AV-002 trimodal DataModule."""
     del context
+    return CAREWSMTrimodalDataModule(**params)
+
+
+@DATAMODULES.register("carewsm_fusion")
+def carewsm_fusion(
+    context: Any | None = None, **params: Any
+) -> CAREWSMTrimodalDataModule:
+    del context
+    params.setdefault("common_cohort", True)
     return CAREWSMTrimodalDataModule(**params)
