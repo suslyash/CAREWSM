@@ -63,7 +63,6 @@ def atomic_write(path: Path, content: str) -> None:
 
 
 def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None:
-    output = []
     from io import StringIO
 
     buffer = StringIO()
@@ -273,7 +272,11 @@ def aggregate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def compare_guided(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    lookup = {(row["experiment_id"], row["fold"]): row for row in rows if row["status"] == "COMPLETED"}
+    lookup = {
+        (row["experiment_id"], row["fold"]): row
+        for row in rows
+        if row["status"] in VERIFIED_STATUSES
+    }
     variants = sorted({row["experiment_id"] for row in rows if row["architecture"] in {"text_guided", "audio_guided"}})
     pairs = []
     for variant in variants:
@@ -323,7 +326,9 @@ def report(rows: list[dict[str, Any]], summaries: list[dict[str, Any]], source_c
         if row["test_overall_uar_mean"] != "":
             test = f"{float(row['test_overall_uar_mean']):.4f} ± {float(row['test_overall_uar_sd']):.4f}"
         lines.append(f"| {rank} | `{row['model']}` | `{row['feature_ids']}` | {val} | {test} |")
-    lines += ["", "## D. TEST results — DESCRIPTIVE ONLY", "", "TEST values are reported only as statistics for the selected validation checkpoints and do not determine any decision.", "", "## E–F. Bimodal and trimodal comparisons", "", "The CSV outputs preserve all architecture, modality, feature-version, fold, task, corpus, split, and metric dimensions. Matched Text-Guided versus Audio-Guided fold differences are in `comparison_audio_vs_text_guided.csv`.", "", "## G. Best models", "", (f"Best validation variant: `{ranked[0]['experiment_id']}` with Overall UAR {float(ranked[0]['val_overall_uar_mean']):.4f} ± {float(ranked[0]['val_overall_uar_sd']):.4f}." if ranked else "No five-fold-complete validation variant is currently eligible."), "", "## H. Reproducibility and limitations", "", "The collector records config identity, runtime evidence, selected checkpoint, epoch, validation monitor, launcher exit code where available, MLflow run ID where available, and source provenance where available. Missing or incomplete artifacts are not fabricated. Results remain exploratory because upstream FIT/SELECTION provenance is unknown; no leakage-free or clinical-validity claim is made."]
+    lines += ["", "## D. TEST results — DESCRIPTIVE ONLY", "",
+        "TEST values are reported only as statistics for the selected validation checkpoints and do not determine any decision.",
+        "If all TEST metrics are missing, this report remains VAL-only until a separate selected-checkpoint TEST inference/evaluation step has produced verified metrics; training is already complete and must not be repeated.", "", "## E–F. Bimodal and trimodal comparisons", "", "The CSV outputs preserve all architecture, modality, feature-version, fold, task, corpus, split, and metric dimensions. Matched Text-Guided versus Audio-Guided fold differences are in `comparison_audio_vs_text_guided.csv`.", "", "## G. Best models", "", (f"Best validation variant: `{ranked[0]['experiment_id']}` with Overall UAR {float(ranked[0]['val_overall_uar_mean']):.4f} ± {float(ranked[0]['val_overall_uar_sd']):.4f}." if ranked else "No five-fold-complete validation variant is currently eligible."), "", "## H. Reproducibility and limitations", "", "The collector records config identity, runtime evidence, selected checkpoint, epoch, validation monitor, launcher exit code where available, MLflow run ID where available, and source provenance where available. Missing or incomplete artifacts are not fabricated. Results remain exploratory because upstream FIT/SELECTION provenance is unknown; no leakage-free or clinical-validity claim is made."]
     return "\n".join(lines) + "\n"
 
 
