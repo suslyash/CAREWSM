@@ -85,9 +85,11 @@ class CAREWSMTrimodalDataset(Dataset[dict[str, Any]]):
             "lengths": lengths,
             "target_provenance": record["target_provenance"],
             "provenance_status": "UNKNOWN / BLOCKED: upstream FIT/SELECTION",
+            "observed_targets": observed,
             "masks": {
                 "sequence_mask": torch.ones(lengths["video"], dtype=torch.bool),
                 "target_mask": observed,
+                "observed_targets": observed,
             },
         }
         return {"inputs": inputs, "targets": targets, "meta": metadata}
@@ -118,6 +120,9 @@ def trimodal_collate(batch: list[dict[str, Any]]) -> Any:
             "text_lengths": lengths["text"],
             "target_mask": torch.stack(
                 [sample["meta"]["masks"]["target_mask"] for sample in batch]
+            ),
+            "observed_targets": torch.stack(
+                [sample["meta"]["masks"]["observed_targets"] for sample in batch]
             ),
         }
     )
