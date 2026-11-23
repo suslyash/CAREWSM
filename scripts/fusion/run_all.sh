@@ -14,7 +14,11 @@ setup_matrix() {
     sweep) CONFIG_DIR="$ROOT/configs/fusion/sweep"; LOG_ROOT="$ROOT/logs/fusion"; NAMESPACE=sweep; EXPECTED=285 ;;
     *) echo "unknown matrix: $MATRIX" >&2; return 2 ;;
   esac
-  LAUNCHER_DIR="$LOG_ROOT/launcher${MATRIX:+/$MATRIX}"
+  if [[ "$MATRIX" == sweep ]]; then
+    LAUNCHER_DIR="$LOG_ROOT/sweep/launcher"
+  else
+    LAUNCHER_DIR="$LOG_ROOT/launcher"
+  fi
   LEDGER="$LAUNCHER_DIR/status.tsv"
 }
 configs() { find "$CONFIG_DIR" -maxdepth 1 -type f -name '*.yaml' -print | sort; }
@@ -111,8 +115,10 @@ run_all() {
         echo "ambiguous runtime directories for $run" >&2; return 1
       fi
       archived="$LAUNCHER_DIR/incomplete/${run}_$(date -u +%Y%m%dT%H%M%SZ)_${BASHPID}"
+      [[ ! -e "$archived" ]] || { echo "incomplete archive collision: $archived" >&2; return 1; }
       mkdir -p "$(dirname "$archived")"
       mv "${candidates[0]}" "$archived"
+      echo "archived incomplete run: $archived" >&2
     fi
     set +e
     CUDA_VISIBLE_DEVICES="$CUDA_DEVICE" "$CHIMERA" train -c "$config" > "$LAUNCHER_DIR/${run}.log" 2>&1
@@ -121,8 +127,15 @@ run_all() {
     if (( code == 0 )) && verified "$run"; then
       printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"
     else
+      if (( code == 0 )); then
+        printf '%s\tCOMPLETION_FAILED\t1\n' "$run" >> "$LEDGER"
+        echo "Chimera exited 0 but required completion artifacts are missing or ambiguous for $run" >&2
+        echo "Inspect $LAUNCHER_DIR/${run}.log and $LOG_ROOT/$NAMESPACE/$NAMESPACE" >&2
+        return 1
+      fi
       printf '%s\tFAILED\t%s\n' "$run" "$code" >> "$LEDGER"
-      return "${code:-1}"
+      echo "Chimera train failed for $run (exit $code); inspect $LAUNCHER_DIR/${run}.log" >&2
+      return "$code"
     fi
   done
 }
@@ -132,7 +145,7 @@ ACTION="$1"
 if [[ $# == 3 ]]; then [[ "$2" == "--matrix" ]] || { usage >&2; exit 2; }; setup_matrix "$3"; else setup_matrix legacy; fi
 case "$ACTION" in
   --list) list_configs ;;
-  --check) check_configs; [[ "$MATRIX" == legacy ]] && check_existing || true ;;
+  --check) check_configs; if [[ "$MATRIX" == legacy ]]; then check_existing; fi ;;
   --run) check_configs; check_existing; run_all run ;;
   --resume) check_configs; run_all resume ;;
   *) usage >&2; exit 2 ;;
