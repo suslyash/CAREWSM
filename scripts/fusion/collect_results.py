@@ -297,24 +297,25 @@ def verify(
         and config["run_name"] not in ambiguous_recovery
         and valid_recovery(recovery_record, config, selected, epoch, monitor)
     )
+    recovered_fields: list[str] = []
     if recovery_ok:
         for field in missing:
             if field.startswith("test_"):
                 values[field] = float(recovery_record[field])
-        missing = [field for field in missing if values[field] == ""]
+                recovered_fields.append(field)
+        missing = [field for field in missing if field not in recovered_fields]
+    issues = []
+    if missing:
+        issues.append("missing: " + ",".join(missing))
+    if recovery_record is not None and not recovery_ok:
+        issues.append("rejected recovery record (identity, checksum or metrics)")
     result.update(
         status="MISSING_METRICS" if missing else "COMPLETED",
-        error_details=(
-            "missing: " + ",".join(missing)
-            if missing
-            else (
-                "rejected recovery record"
-                if recovery_record is not None and not recovery_ok
-                else ""
-            )
-        ),
+        error_details="; ".join(issues),
         test_provenance=(
-            recovery_record["provenance"] if recovery_ok else "recorded during training"
+            recovery_record["provenance"]
+            if recovered_fields
+            else "recorded during training"
         ),
         checkpoint_path=str(selected),
         selected_epoch=epoch,
