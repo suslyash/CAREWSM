@@ -161,7 +161,7 @@ def verify_ranking_and_guided(
     seen: set[tuple[str, str]] = set()
     for pair in guided:
         key = (pair["feature_variant"], pair["fold"])
-        if key in seen or key[0] not in text_variants or key[1] not in "01234":
+        if key in seen or key[0] not in text_variants or key[1] not in {"0", "1", "2", "3", "4"}:
             raise ValueError(f"duplicate or unexpected guided pair: {key}")
         seen.add(key)
         left = lookup.get((f"text_guided__{key[0]}", key[1]))
