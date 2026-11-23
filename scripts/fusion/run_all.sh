@@ -98,7 +98,14 @@ run_all() {
     CUDA_VISIBLE_DEVICES="$CUDA_DEVICE" "$CHIMERA" train -c "$config" > "$LAUNCHER_DIR/${run}.log" 2>&1
     local code=$?
     set -e
-    if (( code == 0 )) && verified "$run"; then printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"; else printf '%s\tFAILED\t%s\n' "$run" "$code" >> "$LEDGER"; echo "fusion run failed: $run (exit $code)" >&2; return "$code"; fi
+    if (( code == 0 )) && verified "$run"; then
+      printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"
+    else
+      printf '%s\tFAILED\t%s\n' "$run" "$code" >> "$LEDGER"
+      echo "fusion run failed or completion artifacts missing: $run (exit $code)" >&2
+      (( code != 0 )) && return "$code"
+      return 1
+    fi
   done
 }
 [[ $# -eq 1 ]] || { usage >&2; exit 2; }
