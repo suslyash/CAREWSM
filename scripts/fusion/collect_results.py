@@ -11,6 +11,7 @@ import sqlite3
 import statistics
 import subprocess
 import tempfile
+import json
 from pathlib import Path
 from typing import Any
 
@@ -178,12 +179,23 @@ def metric_values(row: dict[str, str]) -> tuple[dict[str, Any], list[str]]:
     return values, missing
 
 
+def load_recovery(path: Path) -> dict[str, dict[str, Any]]:
+    if not path.is_file():
+        return {}
+    return {
+        row["run_name"]: row
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+        for row in [json.loads(line)]
+    }
+
+
 def overall(values: dict[str, Any], split: str) -> float | None:
     recalls = [values.get(f"{split}_{component}_macro_recall") for component in COMPONENTS]
     return statistics.mean(recalls) if all(isinstance(value, float) for value in recalls) else None
 
 
-def verify(config: dict[str, Any], root: Path, launcher: dict[str, dict[str, str]], ids: dict[str, str]) -> dict[str, Any]:
+def verify(config: dict[str, Any], root: Path, launcher: dict[str, dict[str, str]], ids: dict[str, str], recovery: dict[str, dict[str, Any]]) -> dict[str, Any]:
     result = dict(config)
     result["launcher_exit_code"] = launcher.get(config["run_name"], {}).get("exit_code", "")
     result["mlflow_run_id"] = ids.get(config["run_name"], "")
@@ -227,9 +239,21 @@ def verify(config: dict[str, Any], root: Path, launcher: dict[str, dict[str, str
         result.update(status="INCOMPLETE", error_details="checkpoint and summary monitor disagree")
         return result
     values, missing = metric_values(row)
+    recovered = recovery.get(config["run_name"], {})
+    recovered_fields = []
+    for field in list(missing):
+        if field.startswith("test_") and finite(str(recovered.get(field, ""))) is not None:
+            values[field] = finite(str(recovered[field]))
+            recovered_fields.append(field)
+    missing = [field for field in missing if field not in recovered_fields]
     result.update(
         status="MISSING_METRICS" if missing else "COMPLETED",
         error_details="missing: " + ",".join(missing) if missing else "",
+        test_provenance=(
+            "post-training inference from the original selected checkpoint"
+            if recovered_fields
+            else "recorded during training"
+        ),
         checkpoint_path=str(selected),
         selected_epoch=epoch,
         best_val_monitor=recorded_monitor,
@@ -338,11 +362,14 @@ def collect(run_root: Path, matrix: str) -> dict[str, Any]:
     launcher_root = run_root / "logs" / "fusion" / "sweep" / "launcher"
     launcher = load_launcher_status(launcher_root / "status.tsv")
     ids = mlflow_ids(run_root / "logs" / "fusion" / "sweep" / "mlflow.db")
-    rows = [verify(config, run_root, launcher, ids) for config in parsed]
+    recovery = load_recovery(
+        run_root / "logs" / "fusion" / "sweep" / "recovery" / "test_results.jsonl"
+    )
+    rows = [verify(config, run_root, launcher, ids, recovery) for config in parsed]
     rows.sort(key=lambda row: (row["experiment_id"], int(row["fold"])))
     summaries = aggregate(rows)
     reports = run_root / "logs" / "fusion" / "sweep" / "reports"
-    status_fields = list(parsed[0]) + ["runtime_directory", "status", "launcher_exit_code", "checkpoint_path", "selected_epoch", "best_val_monitor", "mlflow_run_id", "source_commit", "error_details"] + metric_fields() + ["val_overall_uar", "test_overall_uar"]
+    status_fields = list(parsed[0]) + ["runtime_directory", "status", "launcher_exit_code", "checkpoint_path", "selected_epoch", "best_val_monitor", "mlflow_run_id", "source_commit", "test_provenance", "error_details"] + metric_fields() + ["val_overall_uar", "test_overall_uar"]
     write_csv(reports / "runs_status.csv", rows, status_fields)
     fold_rows = [row for row in rows if row["status"] in VERIFIED_STATUSES]
     fold_fields = list(parsed[0]) + ["runtime_directory", "status", "launcher_exit_code", "checkpoint_path", "selected_epoch", "best_val_monitor", "mlflow_run_id", "source_commit"] + metric_fields() + ["val_overall_uar", "test_overall_uar"]

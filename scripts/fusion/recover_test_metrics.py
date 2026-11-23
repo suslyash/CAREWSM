@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""Recover descriptive TEST metrics from already selected fusion checkpoints."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+import torch
+
+import chimera_plugin
+from chimera_ml.core.config import ExperimentConfig
+from chimera_ml.training.builders import (
+    BuildContext,
+    build_datamodule,
+    build_loss,
+    build_metrics,
+    build_model,
+    build_train_config,
+)
+from chimera_ml.training.trainer import Trainer
+from chimera_ml.utils.seed import define_seed
+
+from collect_results import checkpoint, parse_config, runtime_candidates
+
+
+METRICS = (
+    "macro_f1",
+    "weighted_f1",
+    "macro_recall",
+    "weighted_recall",
+    "patient_recall",
+    "healthy_recall",
+)
+
+
+def evaluate(config_path: Path, checkpoint_path: Path) -> dict[str, Any]:
+    config = ExperimentConfig.from_yaml(str(config_path))
+    define_seed(int(config.get("seed", 0)))
+    context = BuildContext(config=config, stage="eval")
+    datamodule = build_datamodule(config.section("data"), context=context)
+    model = build_model(config.section("model"), context=context)
+    loss = build_loss(config.section("loss"), context=context)
+    metrics = build_metrics(config.get("metrics", []), context=context)
+    train_config = build_train_config(config.section("train"))
+    train_config.epochs = 1
+    trainer = Trainer(
+        model=model,
+        loss_fn=loss,
+        optimizer=None,
+        metrics=metrics,
+        config=train_config,
+        callbacks=[],
+    )
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    trainer.model.load_state_dict(payload.get("model_state_dict", payload), strict=True)
+    results = trainer.evaluate(datamodule.val_dataloader())
+    values = {
+        f"test_{corpus}_{task}_{metric}": results[
+            f"test_{corpus}/{task}/{metric}"
+        ]
+        for corpus in ("care", "wsm")
+        for task in ("depression", "parkinson")
+        for metric in METRICS
+    }
+    return {
+        "run_name": config.get("experiment_info", {}).get("params", {}).get("run_name"),
+        "checkpoint_path": str(checkpoint_path),
+        "checkpoint_sha256": hashlib.sha256(checkpoint_path.read_bytes()).hexdigest(),
+        "provenance": "post-training inference from the original selected checkpoint",
+        **values,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--matrix", choices=("sweep",), default="sweep")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("logs/fusion/sweep/recovery/test_results.jsonl"),
+    )
+    parser.add_argument("--limit", type=int)
+    args = parser.parse_args()
+    chimera_plugin.register()
+    root = Path.cwd()
+    configs = sorted((root / "configs" / "fusion" / args.matrix).glob("*.yaml"))
+    existing = {}
+    if args.output.is_file():
+        for line in args.output.read_text().splitlines():
+            if line.strip():
+                row = json.loads(line)
+                existing[row["run_name"]] = row
+    for path in configs[: args.limit]:
+        identity = parse_config(path)
+        candidates = runtime_candidates(root, identity["run_name"])
+        if len(candidates) != 1:
+            print(f"SKIP {identity['run_name']}: expected one runtime, found {len(candidates)}")
+            continue
+        selected, _, _, error = checkpoint(candidates[0])
+        if error or selected is None:
+            print(f"SKIP {identity['run_name']}: {error}")
+            continue
+        digest = hashlib.sha256(selected.read_bytes()).hexdigest()
+        if existing.get(identity["run_name"], {}).get("checkpoint_sha256") == digest:
+            print(f"RESUME {identity['run_name']}")
+            continue
+        existing[identity["run_name"]] = evaluate(path, selected)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            "".join(
+                json.dumps(existing[name], sort_keys=True) + "\n"
+                for name in sorted(existing)
+            ),
+            encoding="utf-8",
+        )
+        print(f"DONE {identity['run_name']}")
+    print(f"recovered={len(existing)} output={args.output}")
+
+
+if __name__ == "__main__":
+    main()
