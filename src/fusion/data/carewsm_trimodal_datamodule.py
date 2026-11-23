@@ -43,6 +43,7 @@ class CAREWSMTrimodalDataModule(DataModule):
         self,
         care_root: str,
         wsm_root: str,
+        manifest: str,
         fold: int = 0,
         audio_source: str = "audio_id1",
         video_source: str = "video_4",
@@ -65,6 +66,8 @@ class CAREWSMTrimodalDataModule(DataModule):
             if source not in FAMILIES[modality]:
                 raise ValueError(f"unsupported {modality} source: {source}")
         self.roots = {"CARE": Path(care_root), "WSM": Path(wsm_root)}
+        self.manifest = Path(manifest)
+        self.target_manifest = self._read_target_manifest()
         self.records = self._join_sources()
         self.views = self._build_views()
         datasets = {
@@ -118,10 +121,45 @@ class CAREWSMTrimodalDataModule(DataModule):
             pairs[pair] = sample_id
         return index
 
+    def _read_target_manifest(self) -> dict[tuple[str, str], dict[str, str]]:
+        manifest = {}
+        for row in read_rows(self.manifest):
+            key = (row["corpus"], row["sample_id"])
+            if key in manifest:
+                raise ValueError(f"duplicate target manifest key: {key}")
+            manifest[key] = row
+        return manifest
+
     def _join_sources(self) -> dict[tuple[str, str], dict[str, Any]]:
         joined = {}
         for corpus, root in self.roots.items():
             for sample_id, source in self._source_index(corpus).items():
+                manifest = self.target_manifest.get((corpus, sample_id))
+                if manifest is None:
+                    raise ValueError(f"target manifest sample absent: {(corpus, sample_id)}")
+                for field in ("profile_id", "video_id"):
+                    if manifest.get(field, "") != source.get(field, ""):
+                        raise ValueError(
+                            f"target manifest metadata mismatch for {(corpus, sample_id)}: {field}"
+                        )
+                if corpus == "CARE":
+                    targets = {
+                        "depression": parse_binary(manifest.get("depression"), "depression", sample_id),
+                        "parkinson": parse_binary(manifest.get("parkinson"), "parkinson", sample_id),
+                    }
+                    for target, value in targets.items():
+                        observed = str(manifest.get(f"{target}_observed", "")).lower() == "true"
+                        if observed != (value is not None):
+                            raise ValueError(
+                                f"target manifest observed mismatch for {(corpus, sample_id)}: {target}"
+                            )
+                    provenance = "CARE feature-audit target manifest"
+                else:
+                    targets = {
+                        "depression": parse_binary(source.get("y_depression"), "y_depression", sample_id),
+                        "parkinson": parse_binary(source.get("y_parkinson"), "y_parkinson", sample_id),
+                    }
+                    provenance = "WSM videos.csv y_* columns"
                 joined[(corpus, sample_id)] = {
                     "corpus": corpus,
                     "sample_id": sample_id,
@@ -129,19 +167,8 @@ class CAREWSMTrimodalDataModule(DataModule):
                     "video_id": source.get("video_id", ""),
                     "label_id": source.get("label_id", ""),
                     "subgroup": source.get("subgroup", ""),
-                    "targets": {
-                        "depression": parse_binary(
-                            source.get("y_depression"), "y_depression", sample_id
-                        ),
-                        "parkinson": parse_binary(
-                            source.get("y_parkinson"), "y_parkinson", sample_id
-                        ),
-                    },
-                    "target_provenance": (
-                        "WSM videos.csv y_* columns"
-                        if corpus == "WSM"
-                        else "UNKNOWN / BLOCKED: CARE has no independent y_* masks"
-                    ),
+                    "targets": targets,
+                    "target_provenance": provenance,
                     "root": root,
                 }
         return joined
