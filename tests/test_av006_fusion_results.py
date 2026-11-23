@@ -119,3 +119,51 @@ def test_duplicate_recovery_records_are_rejected(tmp_path):
     records, ambiguous = collector.load_recovery(path)
     assert "run" in records
     assert ambiguous == {"run"}
+
+
+def test_final_markdown_contains_all_six_metrics_for_val_and_test():
+    summary = {
+        "experiment_id": "bimodal_gated_late__A1_V4",
+        "model": "carewsm_bimodal_gated_late",
+        "feature_ids": "audio_id1+video_4",
+        "five_fold_complete": "yes",
+        "val_overall_uar_mean": 0.7,
+        "val_overall_uar_sd": 0.1,
+        "test_overall_uar_mean": 0.65,
+        "test_overall_uar_sd": 0.09,
+    }
+    for field in collector.metric_fields():
+        summary[field + "_mean"] = 0.6
+        summary[field + "_sd"] = 0.05
+    content = collector.report([{"status": "COMPLETED"}], [summary], "example-sha")
+    assert "Detailed VAL metrics" in content
+    assert "Detailed TEST metrics" in content
+    assert content.count("Macro F1 | Weighted F1 | Macro Recall / UAR") == 8
+    assert content.count("Patient Recall | Healthy Recall") == 8
+    assert "VAL-only best bimodal and trimodal variants" in content
+
+
+def test_recovery_rejects_missing_test_metric_even_with_valid_sha(tmp_path):
+    config = collector.parse_config(
+        Path("configs/fusion/sweep/audio_guided__A1_V4_T10__fold0.yaml")
+    )
+    checkpoint = tmp_path / "best.pt"
+    checkpoint.write_bytes(b"selected")
+    record = {
+        "run_name": config["run_name"],
+        "model": config["model"],
+        "fold": config["fold"],
+        "config_sha256": config["config_sha256"],
+        "checkpoint_sha256": collector.sha256(checkpoint),
+        "selected_epoch": 4,
+        "selected_val_monitor": 0.6747,
+        "provenance": "post-training inference from selected checkpoint",
+    }
+    record.update({
+        f"test_{component}_{metric}": 0.5
+        for component in collector.COMPONENTS
+        for metric in collector.METRICS
+    })
+    assert collector.valid_recovery(record, config, checkpoint, 4, 0.6747)
+    del record["test_wsm_parkinson_healthy_recall"]
+    assert not collector.valid_recovery(record, config, checkpoint, 4, 0.6747)
