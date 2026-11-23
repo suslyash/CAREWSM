@@ -48,9 +48,11 @@ The generator is `scripts/fusion/generate_sweep.py`; committed YAMLs are in
 
 ## Common complete-case cohort
 
-The DataModule now requires the six-family complete case
-(`audio_id1`, `audio_id2`, `audio_id4`, `video_4`, `text_id9`, `text_id10`)
-while loading only the selected subset into each batch. Live read-only counts
+For sweep runs, the `carewsm_fusion` registry factory explicitly requires the
+six-family complete case (`audio_id1`, `audio_id2`, `audio_id4`, `video_4`,
+`text_id9`, `text_id10`) while loading only the selected modality subset.
+Legacy `carewsm_trimodal` keeps its original selected-modality complete-case
+policy, so resuming earlier AV-004 runs does not silently change the cohort. Live read-only counts
 from the canonical folds are:
 
 | Fold | CARE train | CARE val | CARE test | WSM train | WSM val | WSM test | Joint train |
@@ -82,8 +84,16 @@ bash scripts/fusion/run_all.sh --run --matrix sweep
 bash scripts/fusion/run_all.sh --resume --matrix sweep
 ```
 
-`--check` performs config/identity/path preflight without training. `--run`
-refuses existing runtime identities, and `--resume` skips only verified
+`--check` validates the matrix, requires CUDA, constructs each of the five
+folds with its applicable cohort policy, checks observed classes on both
+corpus-specific VAL views, and checks representative all-family pickle shapes
+without training. This expanded preflight and the launcher-completion regression
+were added by the manager after the original Codex handoff; they must be run
+locally before the owner starts training. The sweep launcher logs live under
+`logs/fusion/sweep/launcher/`; legacy launcher logs remain under
+`logs/fusion/launcher/`.
+
+`--run` refuses existing runtime identities, and `--resume` skips only verified
 completed directories, archives incomplete artifacts, stops on ambiguous runtime
 directories, and records launcher status. The original one-argument 15-run
 commands remain supported.
