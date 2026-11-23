@@ -46,9 +46,7 @@ Execute exactly one atomic task. Do not start the next task from your own recomm
 
 ## Project scope
 
-The active programme is **audio-only**.
-
-Do not add video, text, multimodal fusion, ASR or diarization research unless the owner changes scope.
+The historical programme is **audio-only**. The owner-authorized successor direction is **AUDIO + VIDEO + TEXT** beginning with AV-001 read-only audit. Do not add trimodal Dataset/DataModule/model/loss code, training, ASR, diarization inference, or re-extraction during AV-001.
 
 Existing audio extraction artifacts are research inputs. Do not re-extract or destructively modify them unless an active task explicitly authorizes it.
 
