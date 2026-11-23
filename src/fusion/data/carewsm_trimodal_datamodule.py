@@ -89,11 +89,10 @@ class CAREWSMTrimodalDataModule(DataModule):
             val_dataset={
                 "val_care": datasets["val_care"],
                 "val_wsm": datasets["val_wsm"],
-            },
-            test_dataset={
                 "test_care": datasets["test_care"],
                 "test_wsm": datasets["test_wsm"],
             },
+            test_dataset=None,
             batch_size=batch_size,
             num_workers=num_workers,
             pin_memory=False,

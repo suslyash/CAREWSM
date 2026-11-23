@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 import math
 import re
 import sqlite3
@@ -108,6 +110,7 @@ def parse_config(path: Path) -> dict[str, Any]:
         "fold": str(params["fold"]),
         "seed": str(data.get("seed", "")),
         "config_path": str(path),
+        "config_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
     }
 
 
@@ -177,12 +180,74 @@ def metric_values(row: dict[str, str]) -> tuple[dict[str, Any], list[str]]:
     return values, missing
 
 
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_recovery(path: Path) -> tuple[dict[str, dict[str, Any]], set[str]]:
+    records: dict[str, dict[str, Any]] = {}
+    ambiguous: set[str] = set()
+    if not path.is_file():
+        return records, ambiguous
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        run_name = record.get("run_name")
+        if not isinstance(run_name, str) or run_name in records:
+            if isinstance(run_name, str):
+                ambiguous.add(run_name)
+            continue
+        records[run_name] = record
+    return records, ambiguous
+
+
+def valid_recovery(
+    record: dict[str, Any],
+    config: dict[str, Any],
+    checkpoint_path: Path,
+    epoch: int,
+    monitor: float,
+) -> bool:
+    required_identity = {
+        "run_name": config["run_name"],
+        "model": config["model"],
+        "fold": config["fold"],
+        "config_sha256": config["config_sha256"],
+        "checkpoint_sha256": sha256(checkpoint_path),
+        "selected_epoch": epoch,
+    }
+    if any(record.get(key) != value for key, value in required_identity.items()):
+        return False
+    try:
+        selected_monitor = float(record["selected_val_monitor"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    if not math.isfinite(selected_monitor) or abs(selected_monitor - monitor) > 5e-5:
+        return False
+    provenance = record.get("provenance", "")
+    if not isinstance(provenance, str) or not provenance.strip():
+        return False
+    return all(
+        finite(str(record.get(f"test_{component}_{metric}", ""))) is not None
+        for component in COMPONENTS
+        for metric in METRICS
+    )
+
+
 def overall(values: dict[str, Any], split: str) -> float | None:
     recalls = [values.get(f"{split}_{component}_macro_recall") for component in COMPONENTS]
     return statistics.mean(recalls) if all(isinstance(value, float) for value in recalls) else None
 
 
-def verify(config: dict[str, Any], root: Path, launcher: dict[str, dict[str, str]], ids: dict[str, str]) -> dict[str, Any]:
+def verify(
+    config: dict[str, Any],
+    root: Path,
+    launcher: dict[str, dict[str, str]],
+    ids: dict[str, str],
+    recovery: dict[str, dict[str, Any]],
+    ambiguous_recovery: set[str],
+) -> dict[str, Any]:
     result = dict(config)
     result["launcher_exit_code"] = launcher.get(config["run_name"], {}).get("exit_code", "")
     result["mlflow_run_id"] = ids.get(config["run_name"], "")
@@ -226,9 +291,32 @@ def verify(config: dict[str, Any], root: Path, launcher: dict[str, dict[str, str
         result.update(status="INCOMPLETE", error_details="checkpoint and summary monitor disagree")
         return result
     values, missing = metric_values(row)
+    recovery_record = recovery.get(config["run_name"])
+    recovery_ok = (
+        recovery_record is not None
+        and config["run_name"] not in ambiguous_recovery
+        and valid_recovery(recovery_record, config, selected, epoch, monitor)
+    )
+    recovered_fields: list[str] = []
+    if recovery_ok:
+        for field in missing:
+            if field.startswith("test_"):
+                values[field] = float(recovery_record[field])
+                recovered_fields.append(field)
+        missing = [field for field in missing if field not in recovered_fields]
+    issues = []
+    if missing:
+        issues.append("missing: " + ",".join(missing))
+    if recovery_record is not None and not recovery_ok:
+        issues.append("rejected recovery record (identity, checksum or metrics)")
     result.update(
         status="MISSING_METRICS" if missing else "COMPLETED",
-        error_details="missing: " + ",".join(missing) if missing else "",
+        error_details="; ".join(issues),
+        test_provenance=(
+            recovery_record["provenance"]
+            if recovered_fields
+            else "recorded during training"
+        ),
         checkpoint_path=str(selected),
         selected_epoch=epoch,
         best_val_monitor=recorded_monitor,
@@ -329,6 +417,51 @@ def report(rows: list[dict[str, Any]], summaries: list[dict[str, Any]], source_c
     lines += ["", "## D. TEST results — DESCRIPTIVE ONLY", "",
         "TEST values are reported only as statistics for the selected validation checkpoints and do not determine any decision.",
         "If all TEST metrics are missing, this report remains VAL-only until a separate selected-checkpoint TEST inference/evaluation step has produced verified metrics; training is already complete and must not be repeated.", "", "## E–F. Bimodal and trimodal comparisons", "", "The CSV outputs preserve all architecture, modality, feature-version, fold, task, corpus, split, and metric dimensions. Matched Text-Guided versus Audio-Guided fold differences are in `comparison_audio_vs_text_guided.csv`.", "", "## G. Best models", "", (f"Best validation variant: `{ranked[0]['experiment_id']}` with Overall UAR {float(ranked[0]['val_overall_uar_mean']):.4f} ± {float(ranked[0]['val_overall_uar_sd']):.4f}." if ranked else "No five-fold-complete validation variant is currently eligible."), "", "## H. Reproducibility and limitations", "", "The collector records config identity, runtime evidence, selected checkpoint, epoch, validation monitor, launcher exit code where available, MLflow run ID where available, and source provenance where available. Missing or incomplete artifacts are not fabricated. Results remain exploratory because upstream FIT/SELECTION provenance is unknown; no leakage-free or clinical-validity claim is made."]
+    # Full audio-style corpus/task tables: every one of the six metrics on
+    # both VAL and descriptive TEST, aggregated over five matching folds.
+    # Empty statistics stay empty; partial metrics are never invented.
+    def formatted(summary: dict[str, Any], field: str) -> str:
+        mean = summary.get(f"{field}_mean", "")
+        sd = summary.get(f"{field}_sd", "")
+        if mean in ("", None) or sd in ("", None):
+            return "—"
+        return f"{float(mean):.4f} ± {float(sd):.4f}"
+
+    for split in SPLITS:
+        lines.extend(("", f"## Detailed {split.upper()} metrics — five-fold mean ± sample SD", ""))
+        for component in COMPONENTS:
+            lines.extend((
+                f"### {component.replace('_', ' ').title()} — {split.upper()}",
+                "",
+                "| Model | Feature versions | Macro F1 | Weighted F1 | Macro Recall / UAR | Weighted Recall | Patient Recall | Healthy Recall |",
+                "|---|---|---:|---:|---:|---:|---:|---:|",
+            ))
+            for item in ranked:
+                metrics = " | ".join(
+                    formatted(item, f"{split}_{component}_{metric}")
+                    for metric in METRICS
+                )
+                lines.append(
+                    f"| `{item['model']}` | `{item['feature_ids']}` | {metrics} |"
+                )
+            if not ranked:
+                lines.append("No five-fold-complete variants.")
+            lines.append("")
+
+    lines.extend(("", "## VAL-only best bimodal and trimodal variants", ""))
+    for group_name, predicate in (
+        ("Bimodal", lambda row: row["model"].startswith("carewsm_bimodal")),
+        ("Trimodal", lambda row: not row["model"].startswith("carewsm_bimodal")),
+    ):
+        best = next((row for row in ranked if predicate(row)), None)
+        if best:
+            lines.append(
+                f"- **{group_name}:** `{best['experiment_id']}`, VAL UAR "
+                f"{formatted(best, 'val_overall_uar')}; descriptive TEST UAR "
+                f"{formatted(best, 'test_overall_uar')}"
+            )
+        else:
+            lines.append(f"- **{group_name}:** no complete five-fold variant.")
     return "\n".join(lines) + "\n"
 
 
@@ -343,11 +476,17 @@ def collect(run_root: Path, matrix: str) -> dict[str, Any]:
     launcher_root = run_root / "logs" / "fusion" / "sweep" / "launcher"
     launcher = load_launcher_status(launcher_root / "status.tsv")
     ids = mlflow_ids(run_root / "logs" / "fusion" / "sweep" / "mlflow.db")
-    rows = [verify(config, run_root, launcher, ids) for config in parsed]
+    recovery, ambiguous_recovery = load_recovery(
+        run_root / "logs" / "fusion" / "sweep" / "recovery" / "test_results.jsonl"
+    )
+    rows = [
+        verify(config, run_root, launcher, ids, recovery, ambiguous_recovery)
+        for config in parsed
+    ]
     rows.sort(key=lambda row: (row["experiment_id"], int(row["fold"])))
     summaries = aggregate(rows)
     reports = run_root / "logs" / "fusion" / "sweep" / "reports"
-    status_fields = list(parsed[0]) + ["runtime_directory", "status", "launcher_exit_code", "checkpoint_path", "selected_epoch", "best_val_monitor", "mlflow_run_id", "source_commit", "error_details"] + metric_fields() + ["val_overall_uar", "test_overall_uar"]
+    status_fields = list(parsed[0]) + ["runtime_directory", "status", "launcher_exit_code", "checkpoint_path", "selected_epoch", "best_val_monitor", "mlflow_run_id", "source_commit", "test_provenance", "error_details"] + metric_fields() + ["val_overall_uar", "test_overall_uar"]
     write_csv(reports / "runs_status.csv", rows, status_fields)
     fold_rows = [row for row in rows if row["status"] in VERIFIED_STATUSES]
     fold_fields = list(parsed[0]) + ["runtime_directory", "status", "launcher_exit_code", "checkpoint_path", "selected_epoch", "best_val_monitor", "mlflow_run_id", "source_commit"] + metric_fields() + ["val_overall_uar", "test_overall_uar"]
