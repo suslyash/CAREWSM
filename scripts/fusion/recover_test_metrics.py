@@ -38,6 +38,16 @@ METRICS = (
 )
 
 
+def selected_test_loaders(datamodule: Any) -> dict[str, Any]:
+    """Evaluate only fixed TEST populations, never VAL or TRAIN."""
+    loaders = datamodule.val_dataloader()
+    if not isinstance(loaders, dict) or not all(
+        key in loaders for key in ("test_care", "test_wsm")
+    ):
+        raise ValueError("missing corpus-specific TEST loaders in Chimera DataModule")
+    return {key: loaders[key] for key in ("test_care", "test_wsm")}
+
+
 def evaluate(
     config_path: Path,
     checkpoint_path: Path,
@@ -63,13 +73,7 @@ def evaluate(
     )
     payload = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     trainer.model.load_state_dict(payload.get("model_state_dict", payload), strict=True)
-    loaders = datamodule.val_dataloader()
-    if not isinstance(loaders, dict) or not all(
-        key in loaders for key in ("test_care", "test_wsm")
-    ):
-        raise ValueError("missing corpus-specific TEST loaders in Chimera DataModule")
-    test_loaders = {key: loaders[key] for key in ("test_care", "test_wsm")}
-    results = trainer.evaluate(test_loaders)
+    results = trainer.evaluate(selected_test_loaders(datamodule))
     values = {
         f"test_{corpus}_{task}_{metric}": results[
             f"test_{corpus}/{task}/{metric}"
