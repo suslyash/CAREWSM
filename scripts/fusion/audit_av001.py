@@ -15,6 +15,11 @@ FAMILIES = {
     "video": ("video_4",),
     "text": ("text_id9", "text_id10"),
 }
+IDENTITY_FIELDS = ("profile_id", "video_id", "label_id", "subgroup")
+
+
+class AuditError(RuntimeError):
+    """Raised when canonical identity or split invariants are violated."""
 
 
 def rows_from_csv(path: Path) -> list[dict[str, str]]:
@@ -22,25 +27,105 @@ def rows_from_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def source_rows(root: Path) -> dict[tuple[str, str], dict[str, str]]:
+def row_identity(row: dict[str, str]) -> tuple[str, ...]:
+    return tuple(row.get(field, "") for field in IDENTITY_FIELDS)
+
+
+def source_index_from_rows(
+    rows: list[dict[str, str]], corpus: str
+) -> tuple[dict[str, dict[str, str]], dict[tuple[str, ...], str]]:
+    by_sample = {}
+    for row in rows:
+        sample_id = row.get("sample_id", "")
+        if not sample_id:
+            raise AuditError(f"{corpus}: BLOCKED source row without sample_id")
+        previous = by_sample.get(sample_id)
+        if previous is not None and row_identity(previous) != row_identity(row):
+            raise AuditError(
+                f"{corpus}: BLOCKED conflicting repeated sample_id metadata"
+            )
+        by_sample[sample_id] = row
+
+    by_pair = {}
+    for sample_id, row in by_sample.items():
+        by_pair.setdefault((row["profile_id"], row["video_id"]), set()).add(sample_id)
+    if any(len(sample_ids) > 1 for sample_ids in by_pair.values()):
+        raise AuditError(f"{corpus}: BLOCKED ambiguous profile/video pairs")
+
+    identity_index = {}
+    for sample_id, row in by_sample.items():
+        identity = row_identity(row)
+        if identity in identity_index and identity_index[identity] != sample_id:
+            raise AuditError(f"{corpus}: BLOCKED ambiguous artifact identity")
+        identity_index[identity] = sample_id
+    return by_sample, identity_index
+
+
+def source_index(
+    root: Path, corpus: str
+) -> tuple[dict[str, dict[str, str]], dict[tuple[str, ...], str]]:
     rows = []
     for name in ("train.csv", "dev.csv", "test.csv"):
         rows.extend(rows_from_csv(root / "splits" / name))
-    result = {}
+    return source_index_from_rows(rows, corpus)
+
+
+def validate_population(
+    rows: list[dict[str, str]],
+    sources: dict[str, dict[str, str]],
+    corpus: str,
+    split_name: str,
+) -> set[str]:
+    sample_ids = set()
     for row in rows:
-        key = (row["profile_id"], row["video_id"])
-        result.setdefault(key, row)
-    return result
+        sample_id = row.get("sample_id", "")
+        if sample_id in sample_ids:
+            raise AuditError(f"{corpus}: BLOCKED duplicate {split_name} sample_id")
+        sample_ids.add(sample_id)
+        source = sources.get(sample_id)
+        if source is None:
+            raise AuditError(
+                f"{corpus}: BLOCKED {split_name} sample_id absent from source"
+            )
+        if row_identity(source) != row_identity(row):
+            raise AuditError(f"{corpus}: BLOCKED {split_name} metadata mismatch")
+    return sample_ids
 
 
-def artifact_key(path: Path, corpus: str) -> tuple[str, str]:
-    profile, video = path.parts[-3:-1]
-    if corpus == "CARE":
-        return profile, video
-    return profile.removeprefix("PROFILE_"), video.removeprefix("VIDEO_")
+def fold_rows(
+    root: Path,
+    fold: int,
+    split: str,
+    sources: dict[str, dict[str, str]],
+    corpus: str,
+) -> set[str]:
+    path = root / "splits" / "folds" / f"fold_{fold}_{split}.csv"
+    return validate_population(
+        rows_from_csv(path), sources, corpus, f"fold {fold} {split}"
+    )
 
 
-def artifact_sets(root: Path, corpus: str) -> tuple[dict[str, dict[str, dict[int, set]]], int]:
+def fixed_test(
+    root: Path, sources: dict[str, dict[str, str]], corpus: str
+) -> set[str]:
+    return validate_population(
+        rows_from_csv(root / "splits" / "test.csv"), sources, corpus, "fixed TEST"
+    )
+
+
+def artifact_identity(path: Path, corpus: str) -> tuple[str, ...]:
+    label, subgroup, profile, video = path.parts[-5:-1]
+    if corpus == "WSM":
+        profile = profile.removeprefix("PROFILE_")
+        video = video.removeprefix("VIDEO_")
+    return profile, video, label, subgroup
+
+
+def artifact_sets(
+    root: Path,
+    corpus: str,
+    identity_index: dict[tuple[str, ...], str],
+) -> tuple[dict[str, dict[str, dict[int, set[str]]]], int]:
     available = {
         family: {prefix: {fold: set() for fold in FOLDS} for prefix in prefixes}
         for family, prefixes in FAMILIES.items()
@@ -52,55 +137,57 @@ def artifact_sets(root: Path, corpus: str) -> tuple[dict[str, dict[str, dict[int
             for path in root.glob(
                 f"extracted_unimodal/*/*/PROFILE_*/VIDEO_*/{prefix}_fold*.pickle"
             ):
-                stem = path.stem
-                marker = f"{prefix}_fold"
-                if not stem.startswith(marker):
-                    continue
-                fold_text = stem.removeprefix(marker)
+                fold_text = path.stem.removeprefix(f"{prefix}_fold")
                 if not fold_text.isdigit() or int(fold_text) not in FOLDS:
                     continue
-                key = artifact_key(path, corpus)
-                seen[(family, int(fold_text), key)] += 1
-                available[family][prefix][int(fold_text)].add(key)
+                sample_id = identity_index.get(artifact_identity(path, corpus))
+                if sample_id is None:
+                    raise AuditError(
+                        f"{corpus}: BLOCKED artifact identity without source"
+                    )
+                fold = int(fold_text)
+                seen[(fold, sample_id)] += 1
+                available[family][prefix][fold].add(sample_id)
             duplicate_count += sum(count - 1 for count in seen.values() if count > 1)
+    if duplicate_count:
+        raise AuditError(f"{corpus}: BLOCKED duplicate artifact-to-sample mappings")
     return available, duplicate_count
 
 
-def fold_rows(root: Path, fold: int, split: str) -> set[tuple[str, str]]:
-    path = root / "splits" / "folds" / f"fold_{fold}_{split}.csv"
-    return {(row["profile_id"], row["video_id"]) for row in rows_from_csv(path)}
-
-
-def fixed_test(root: Path) -> set[tuple[str, str]]:
-    return {
-        (row["profile_id"], row["video_id"])
-        for row in rows_from_csv(root / "splits" / "test.csv")
-    }
+def check_profile_disjointness(
+    populations: dict[int, dict[str, set[str]]],
+    sources: dict[str, dict[str, str]],
+    corpus: str,
+) -> list[int]:
+    intersections = []
+    for splits in populations.values():
+        profiles = {
+            split: {sources[sample_id]["profile_id"] for sample_id in sample_ids}
+            for split, sample_ids in splits.items()
+        }
+        intersections.extend(
+            len(profiles[first] & profiles[second])
+            for first, second in (("train", "val"), ("train", "test"), ("val", "test"))
+        )
+    if any(intersections):
+        raise AuditError(f"{corpus}: BLOCKED nonzero profile intersection")
+    return intersections
 
 
 def audit_corpus(root: Path, corpus: str) -> None:
-    sources = source_rows(root)
-    artifacts, duplicate_count = artifact_sets(root, corpus)
+    sources, identity_index = source_index(root, corpus)
+    artifacts, duplicate_count = artifact_sets(root, corpus, identity_index)
+    test_ids = fixed_test(root, sources, corpus)
     populations = {
         fold: {
-            "train": fold_rows(root, fold, "train"),
-            "val": fold_rows(root, fold, "val"),
-            "test": fixed_test(root),
+            "train": fold_rows(root, fold, "train", sources, corpus),
+            "val": fold_rows(root, fold, "val", sources, corpus),
+            "test": test_ids,
         }
         for fold in FOLDS
     }
-    profile_intersections = []
-    for fold, splits in populations.items():
-        profile_sets = {
-            split: {profile for profile, _ in rows}
-            for split, rows in splits.items()
-        }
-        profile_intersections.extend(
-            len(profile_sets[first] & profile_sets[second])
-            for first, second in (("train", "val"), ("train", "test"), ("val", "test"))
-        )
-
-    artifact_keys = set().union(
+    profile_intersections = check_profile_disjointness(populations, sources, corpus)
+    artifact_ids = set().union(
         *(
             prefix_sets[fold]
             for family_sets in artifacts.values()
@@ -110,29 +197,43 @@ def audit_corpus(root: Path, corpus: str) -> None:
     )
     print(
         f"{corpus}: source_unique={len(sources)} "
-        f"artifact_keys={len(artifact_keys & set(sources))} "
-        f"artifact_keys_without_source={len(artifact_keys - set(sources))} "
+        f"artifact_sample_ids={len(artifact_ids)} "
+        f"artifact_ids_without_source={len(artifact_ids - set(sources))} "
         f"duplicate_artifact_keys={duplicate_count}"
     )
     print(f"{corpus}: profile_intersections={profile_intersections}")
     for fold in FOLDS:
         for split, population in populations[fold].items():
-            availability = {}
-            for modality, family_sets in artifacts.items():
-                per_family = [
-                    family_sets[prefix][fold]
-                    for prefix in FAMILIES[modality]
-                ]
-                availability[modality] = set.intersection(*per_family) & population
+            availability = {
+                modality: set.intersection(
+                    *(family_sets[prefix][fold] for prefix in FAMILIES[modality])
+                )
+                & population
+                for modality, family_sets in artifacts.items()
+            }
             complete = set.intersection(*availability.values())
             exclusion = (
                 len(population - availability["audio"]),
                 len(population - availability["video"]),
                 len(population - availability["text"]),
-                len((availability["audio"] & availability["video"]) - availability["text"]),
-                len((availability["audio"] & availability["text"]) - availability["video"]),
-                len((availability["video"] & availability["text"]) - availability["audio"]),
-                len(population - availability["audio"] - availability["video"] - availability["text"]),
+                len(
+                    (availability["audio"] & availability["video"])
+                    - availability["text"]
+                ),
+                len(
+                    (availability["audio"] & availability["text"])
+                    - availability["video"]
+                ),
+                len(
+                    (availability["video"] & availability["text"])
+                    - availability["audio"]
+                ),
+                len(
+                    population
+                    - availability["audio"]
+                    - availability["video"]
+                    - availability["text"]
+                ),
             )
             print(
                 f"{corpus} fold={fold} split={split} population={len(population)} "
@@ -150,7 +251,10 @@ def audit_corpus(root: Path, corpus: str) -> None:
             with representative.open("rb") as handle:
                 payload = pickle.load(handle)
         except ModuleNotFoundError as error:
-            print(f"{corpus}: representative_schema=UNKNOWN missing_dependency={error.name}")
+            print(
+                f"{corpus}: representative_schema=UNKNOWN "
+                f"missing_dependency={error.name}"
+            )
         else:
             print(
                 f"{corpus}: representative_keys={sorted(payload)} "
@@ -159,14 +263,69 @@ def audit_corpus(root: Path, corpus: str) -> None:
             )
 
 
-def main() -> None:
+def expect_blocked(callback) -> None:
+    try:
+        callback()
+    except AuditError:
+        return
+    raise AssertionError("synthetic invalid identity was accepted")
+
+
+def synthetic_regression() -> None:
+    base = {
+        "sample_id": "s1",
+        "profile_id": "p1",
+        "video_id": "v1",
+        "label_id": "CONTROL",
+        "subgroup": "g1",
+    }
+    expect_blocked(
+        lambda: source_index_from_rows(
+            [base, {**base, "sample_id": "s2"}], "SYNTH"
+        )
+    )
+    sources, _ = source_index_from_rows([base], "SYNTH")
+    expect_blocked(
+        lambda: validate_population(
+            [{**base, "sample_id": "missing"}], sources, "SYNTH", "fold"
+        )
+    )
+    expect_blocked(
+        lambda: validate_population(
+            [{**base, "profile_id": "wrong"}], sources, "SYNTH", "fold"
+        )
+    )
+    expect_blocked(
+        lambda: check_profile_disjointness(
+            {0: {"train": {"s1"}, "val": {"s1"}, "test": set()}},
+            sources,
+            "SYNTH",
+        )
+    )
+    print("synthetic_regression=PASS")
+
+
+def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--care-root", type=Path, required=True)
-    parser.add_argument("--wsm-root", type=Path, required=True)
+    parser.add_argument("--care-root", type=Path)
+    parser.add_argument("--wsm-root", type=Path)
+    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
-    audit_corpus(args.care_root, "CARE")
-    audit_corpus(args.wsm_root, "WSM")
+    if args.self_test:
+        synthetic_regression()
+        return 0
+    if args.care_root is None or args.wsm_root is None:
+        parser.error(
+            "--care-root and --wsm-root are required unless --self-test is used"
+        )
+    try:
+        audit_corpus(args.care_root, "CARE")
+        audit_corpus(args.wsm_root, "WSM")
+    except AuditError as error:
+        print(str(error))
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

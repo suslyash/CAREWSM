@@ -189,20 +189,34 @@ exclusion tuples, and duplicate artifact-to-sample keys. The old
 Exact invocation used for this round:
 
 ~~~sh
+python3 scripts/fusion/audit_av001.py --self-test
 python3 scripts/fusion/audit_av001.py --care-root "$CARE_ROOT" --wsm-root "$WSM_ROOT"
 ~~~
 
 In the local run, `CARE_ROOT` and `WSM_ROOT` were set to the two configured
 corpus roots; their absolute values are intentionally not recorded here.
 
-Aggregated result: CARE source/artifact join 2,031/2,031, WSM 8,433 source
-rows and 8,404 distinct legacy artifact keys, with zero artifact keys without
-source metadata and zero duplicate artifact-to-sample keys. Profile
-intersections were zero in all 30 corpus/fold pair checks. The script
-reproduced the report's fold counts and exclusion tuples, including CARE
-1,930/2,031 and WSM 8,243/8,343 complete A+V+T/audio coverage. The
-representative pickle shape/dtype read is `UNKNOWN` in the available runtime
-because NumPy is not installed; no value is inferred from that failed read.
+Identity validation uses `(corpus, sample_id)` as the canonical record key.
+Repeated train/dev references are accepted only when profile, video, label, and
+subgroup agree. Reverse profile/video pairs are checked for ambiguity; fold
+TRAIN/VAL and fixed TEST rows are checked against the source sample index; and
+artifact paths are resolved through label/subgroup/profile/video context with
+the CARE and WSM prefix rules. Invalid sample IDs, metadata mismatches,
+ambiguous artifact mappings, duplicate artifact mappings, or profile
+intersections return exit code 1 with `BLOCKED`.
+
+The standard-library synthetic regression returned `synthetic_regression=PASS`
+for: two sample IDs sharing one profile/video pair; an absent fold sample ID;
+profile/video metadata mismatch; and TRAIN/VAL participant overlap. The real
+audit exited 0. Its aggregate result was CARE canonical source/artifact
+sample IDs 2,031/2,031 and WSM source/sample IDs 8,433/8,404, with zero
+artifact IDs without source metadata and zero duplicate artifact-to-sample
+keys. Profile intersections were zero in all 30 corpus/fold pair checks. The
+script reproduced the report's fold counts and exclusion tuples, including
+CARE 1,930/2,031 and WSM 8,243/8,343 complete A+V+T/audio coverage. The
+representative pickle shape/dtype recheck is `UNKNOWN` in the available
+runtime because NumPy is not installed; no value is inferred from that failed
+read.
 
 No repository data artifact, model, split, or temporary output was changed;
 the captured aggregate output was outside Git.
