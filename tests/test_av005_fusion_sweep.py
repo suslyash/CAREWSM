@@ -84,19 +84,32 @@ def test_audio_guided_trimodal_model_has_distinct_conditioning_direction():
     assert output.aux["modality_gate"].shape == (2, 3)
 
 
+
 def test_launcher_exits_nonzero_when_chimera_exits_zero_without_artifacts(tmp_path):
     """An empty successful subprocess is NOT a completed GPU run."""
     code = Path("scripts/fusion/run_all.sh").read_text(encoding="utf-8")
-    # Source the launcher functions without executing the argument dispatcher.
-    prefix = code.split('[[ $# == 1 || $# == 3 ]]', 1)[0]
+    # Reuse the real launcher functions, without the command-line dispatcher.
+    definitions = "usage() {" + code.split("usage() {", 1)[1].split(
+        '[[ $# == 1 || $# == 3 ]]', 1
+    )[0]
     configs = tmp_path / "configs"
     configs.mkdir()
     (configs / "probe_fold0.yaml").write_text("placeholder", encoding="utf-8")
     executable = tmp_path / "chimera_success_without_artifacts.sh"
-    executable.write_text("#!/usr/bin/env bash\\nexit 0\\n", encoding="utf-8")
+    executable.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
     executable.chmod(0o755)
     logs = tmp_path / "logs"
-    script = prefix + f'''\nCONFIG_DIR="{configs}"\nLOG_ROOT="{logs}"\nLAUNCHER_DIR="{logs}/launcher"\nLEDGER="$LAUNCHER_DIR/status.tsv"\nNAMESPACE="fusion"\nCHIMERA="{executable}"\nrun_all run\n'''
+    script = "set -Eeuo pipefail\n" + definitions + f'''
+CONFIG_DIR="{configs}"
+LOG_ROOT="{logs}"
+LAUNCHER_DIR="{logs}/launcher"
+LEDGER="$LAUNCHER_DIR/status.tsv"
+NAMESPACE="fusion"
+CHIMERA="{executable}"
+CUDA_DEVICE=0
+pgrep() {{ return 1; }}
+run_all run
+'''
     completed = subprocess.run(
         ["bash", "-c", script], text=True, capture_output=True, check=False
     )
