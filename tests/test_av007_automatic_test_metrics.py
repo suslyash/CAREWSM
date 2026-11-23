@@ -59,3 +59,40 @@ def test_summary_header_has_all_48_corpus_task_split_metrics(tmp_path):
     assert len(
         [field for field in header if field.startswith(("val_", "test_"))]
     ) == 48
+
+
+
+def test_recovery_evaluates_only_care_and_wsm_test_loaders(monkeypatch):
+    import importlib
+
+    monkeypatch.syspath_prepend(str(Path("scripts/fusion").resolve()))
+    recovery = importlib.import_module("recover_test_metrics")
+
+    class FixtureDataModule:
+        def val_dataloader(self):
+            return {
+                "val_care": "forbidden-val-care",
+                "val_wsm": "forbidden-val-wsm",
+                "test_care": "care-test-only",
+                "test_wsm": "wsm-test-only",
+            }
+
+    assert recovery.selected_test_loaders(FixtureDataModule()) == {
+        "test_care": "care-test-only",
+        "test_wsm": "wsm-test-only",
+    }
+
+
+def test_recovery_requires_both_test_loaders(monkeypatch):
+    import importlib
+    import pytest
+
+    monkeypatch.syspath_prepend(str(Path("scripts/fusion").resolve()))
+    recovery = importlib.import_module("recover_test_metrics")
+
+    class Broken:
+        def val_dataloader(self):
+            return {"test_care": "care"}
+
+    with pytest.raises(ValueError, match="TEST loaders"):
+        recovery.selected_test_loaders(Broken())
