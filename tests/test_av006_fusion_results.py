@@ -58,3 +58,24 @@ def test_atomic_write_replaces_existing_file(tmp_path):
     collector.atomic_write(path, "first\n")
     collector.atomic_write(path, "second\n")
     assert path.read_text() == "second\n"
+
+
+def test_audio_vs_text_guided_keeps_val_pairs_when_test_is_missing():
+    common = {
+        "fold": "0",
+        "status": "MISSING_METRICS",
+        "val_overall_uar": 0.7,
+        "test_overall_uar": "",
+    }
+    records = [
+        {**common, "experiment_id": "text_guided__A1_V4_T9", "architecture": "text_guided"},
+        {**common, "experiment_id": "audio_guided__A1_V4_T9", "architecture": "audio_guided",
+         "val_overall_uar": 0.8},
+    ]
+    result = collector.compare_guided(records)
+    assert len(result) == 5
+    observed = next(row for row in result if row["fold"] == "0")
+    assert observed["text_guided_status"] is True
+    assert observed["audio_guided_status"] is True
+    assert abs(observed["val_overall_uar_audio_minus_text"] - 0.1) < 1e-12
+    assert observed["test_overall_uar_audio_minus_text"] == ""
