@@ -106,7 +106,10 @@ for fold in range(5):
                 raise SystemExit(f"{path}: {view}/{task} lacks both observed classes")
         if fold == 0:
             record = rows[0]
-            for family in ALL_FAMILIES:
+            required = ALL_FAMILIES if matrix == "sweep" else (
+                "audio_id1", "video_4", "text_id9"
+            )
+            for family in required:
                 values = load_pickle_array(
                     module._artifact_path(record, family), "shared_features"
                 )
