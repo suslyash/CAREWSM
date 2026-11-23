@@ -46,16 +46,22 @@ def number(row: dict[str, str], field: str) -> float:
 
 
 def verify(rows: list[dict[str, str]], summaries: list[dict[str, str]]) -> dict[str, int]:
+    """Audit run identity and each aggregate directly against the five fold rows."""
     if len(rows) != 285 or len(summaries) != 57:
-        raise ValueError(f"expected 285 runs and 57 variants, got {len(rows)} and {len(summaries)}")
+        raise ValueError(
+            f"expected 285 runs and 57 variants, got {len(rows)} and {len(summaries)}"
+        )
     if any(row["status"] != "COMPLETED" for row in rows):
         raise ValueError("one or more runs are not COMPLETED")
-    if any(row["five_fold_complete"] != "yes" for row in summaries):
-        raise ValueError("one or more variants are not five-fold complete")
-    identities = {(row["experiment_id"], row["fold"]) for row in rows}
-    if len(identities) != 285 or {row["fold"] for row in rows} != set("01234"):
-        raise ValueError("duplicate or incomplete experiment/fold identities")
+    by_variant: dict[str, dict[str, dict[str, str]]] = {}
     for row in rows:
+        variant, fold = row["experiment_id"], row["fold"]
+        if fold not in {"0", "1", "2", "3", "4"}:
+            raise ValueError(f"invalid fold: {variant}/{fold}")
+        group = by_variant.setdefault(variant, {})
+        if fold in group:
+            raise ValueError(f"duplicate experiment/fold: {variant}/{fold}")
+        group[fold] = row
         for split in ("val", "test"):
             for component in COMPONENTS:
                 for metric in METRICS:
@@ -64,15 +70,61 @@ def verify(rows: list[dict[str, str]], summaries: list[dict[str, str]]) -> dict[
                 patient = number(row, f"{split}_{component}_patient_recall")
                 healthy = number(row, f"{split}_{component}_healthy_recall")
                 if abs(macro - (patient + healthy) / 2) > 0.001:
-                    raise ValueError(f"macro recall mismatch: {row['run_name']} {split}/{component}")
+                    raise ValueError(
+                        f"macro recall mismatch: {row['run_name']} {split}/{component}"
+                    )
             expected = statistics.mean(
                 number(row, f"{split}_{component}_macro_recall")
                 for component in COMPONENTS
             )
             if abs(number(row, f"{split}_overall_uar") - expected) > 0.001:
                 raise ValueError(f"overall UAR mismatch: {row['run_name']} {split}")
+    if len(by_variant) != 57:
+        raise ValueError(f"expected 57 unique variants, found {len(by_variant)}")
+    summary_by_id: dict[str, dict[str, str]] = {}
+    for summary in summaries:
+        variant = summary["experiment_id"]
+        if variant in summary_by_id:
+            raise ValueError(f"duplicate five-fold summary: {variant}")
+        summary_by_id[variant] = summary
+    if set(summary_by_id) != set(by_variant):
+        raise ValueError("summary identities differ from verified runs")
+    metric_fields = [
+        f"{split}_{component}_{metric}"
+        for split in ("val", "test")
+        for component in COMPONENTS
+        for metric in METRICS
+    ]
+    fields = ["val_overall_uar", "test_overall_uar", *metric_fields]
+    for variant, folds in by_variant.items():
+        if set(folds) != {"0", "1", "2", "3", "4"}:
+            raise ValueError(f"incomplete five-fold experiment: {variant}")
+        summary = summary_by_id[variant]
+        if (
+            summary["five_fold_complete"] != "yes"
+            or str(summary["completed_folds"]) != "5"
+        ):
+            raise ValueError(f"summary incorrectly marks five-fold complete: {variant}")
+        first = folds["0"]
+        for key in ("model", "architecture", "modalities", "feature_ids"):
+            if summary[key] != first[key] or any(
+                folds[fold][key] != first[key] for fold in folds
+            ):
+                raise ValueError(f"inconsistent {key} for {variant}")
+        for field in fields:
+            values = [number(folds[str(fold)], field) for fold in range(5)]
+            expected_mean = statistics.mean(values)
+            expected_sd = statistics.stdev(values)
+            reported_mean = float(summary[f"{field}_mean"])
+            reported_sd = float(summary[f"{field}_sd"])
+            if (
+                not math.isfinite(reported_mean)
+                or not math.isfinite(reported_sd)
+                or abs(reported_mean - expected_mean) > 2e-5
+                or abs(reported_sd - expected_sd) > 2e-5
+            ):
+                raise ValueError(f"five-fold aggregate mismatch: {variant}/{field}")
     return {"runs": len(rows), "variants": len(summaries), "metrics_per_run": 48}
-
 
 def grouped_mean(rows: Iterable[dict[str, str]], field: str) -> float:
     values = [float(row[field]) for row in rows]
