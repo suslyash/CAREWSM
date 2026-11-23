@@ -45,5 +45,7 @@ resumption. A zero exit code without completion artifacts is a launch failure.
 The launcher ledger and per-run launcher output are under
 `logs/fusion/launcher/`. Chimera writes each run's `train.log`,
 `summary.txt`, `checkpoints/`, and snapshot artifacts under
-`logs/fusion/fusion/<model>_fold<fold>/`; MLflow uses
+`logs/fusion/fusion/<model>_fold<fold>[_<timestamp suffix>]/` (depending on
+Chimera's installed runtime naming convention). The launcher resolves exactly
+one matching runtime directory and refuses ambiguous matches. MLflow uses
 `sqlite:///logs/fusion/mlflow.db`.
