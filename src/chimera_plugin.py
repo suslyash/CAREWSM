@@ -12,6 +12,7 @@ def register() -> None:
         return
     modules = (
         "fusion.data.carewsm_trimodal_datamodule",
+        "fusion.models.carewsm_trimodal_models",
         "audio.data.carewsm_audio_datamodule",
         "audio.models.carewsm_audio_models",
         "audio.models.carewsm_representation_pilot_models",
