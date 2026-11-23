@@ -63,18 +63,18 @@ The matched table contains 30 paired folds (six feature combinations × five fol
 
 Task-specific rows use VAL Macro Recall as the exploratory task metric; they are not replacements for the prespecified overall ranking.
 
-| Category | VAL selection metric | Experiment | Features | VAL mean ± SD | TEST Overall UAR mean ± SD |
-|---|---|---|---|---:|---:|
-| overall | val_overall_uar_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8218 ± 0.0327 | 0.7819 ± 0.0259 |
-| bimodal | val_overall_uar_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8218 ± 0.0327 | 0.7819 ± 0.0259 |
-| trimodal | val_overall_uar_mean | `cross_attention__A2_V4_T9` | `audio_id2+video_4+text_id9` | 0.6995 ± 0.0465 | 0.6695 ± 0.0275 |
-| audio_video | val_overall_uar_mean | `bimodal_shared_mtl__A1_V4` | `audio_id1+video_4` | 0.7048 ± 0.0402 | 0.6729 ± 0.0214 |
-| audio_text | val_overall_uar_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8218 ± 0.0327 | 0.7819 ± 0.0259 |
-| video_text | val_overall_uar_mean | `bimodal_gated_late__V4_T10` | `video_4+text_id10` | 0.6224 ± 0.0418 | 0.5928 ± 0.0227 |
-| care_depression | val_care_depression_macro_recall_mean | `bimodal_gated_late__A1_T9` | `audio_id1+text_id9` | 0.8481 ± 0.0639 | 0.7721 ± 0.0186 |
-| care_parkinson | val_care_parkinson_macro_recall_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8097 ± 0.1068 | 0.7819 ± 0.0259 |
-| wsm_depression | val_wsm_depression_macro_recall_mean | `bimodal_gated_late__A4_T9` | `audio_id4+text_id9` | 0.7574 ± 0.0283 | 0.7691 ± 0.0255 |
-| wsm_parkinson | val_wsm_parkinson_macro_recall_mean | `bimodal_shared_mtl__A1_T10` | `audio_id1+text_id10` | 0.9052 ± 0.0123 | 0.7656 ± 0.0245 |
+| Category | VAL selection metric | Experiment | Features | VAL mean ± SD | Matched descriptive TEST metric mean ± SD | TEST Overall UAR mean ± SD |
+|---|---|---|---|---:|---:|---:|
+| overall | val_overall_uar_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8218 ± 0.0327 | `test_overall_uar_mean`: 0.7819 ± 0.0259 | 0.7819 ± 0.0259 |
+| bimodal | val_overall_uar_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8218 ± 0.0327 | `test_overall_uar_mean`: 0.7819 ± 0.0259 | 0.7819 ± 0.0259 |
+| trimodal | val_overall_uar_mean | `cross_attention__A2_V4_T9` | `audio_id2+video_4+text_id9` | 0.6995 ± 0.0465 | `test_overall_uar_mean`: 0.6695 ± 0.0275 | 0.6695 ± 0.0275 |
+| audio_video | val_overall_uar_mean | `bimodal_shared_mtl__A1_V4` | `audio_id1+video_4` | 0.7048 ± 0.0402 | `test_overall_uar_mean`: 0.6729 ± 0.0214 | 0.6729 ± 0.0214 |
+| audio_text | val_overall_uar_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8218 ± 0.0327 | `test_overall_uar_mean`: 0.7819 ± 0.0259 | 0.7819 ± 0.0259 |
+| video_text | val_overall_uar_mean | `bimodal_gated_late__V4_T10` | `video_4+text_id10` | 0.6224 ± 0.0418 | `test_overall_uar_mean`: 0.5928 ± 0.0227 | 0.5928 ± 0.0227 |
+| care_depression | val_care_depression_macro_recall_mean | `bimodal_gated_late__A1_T9` | `audio_id1+text_id9` | 0.8481 ± 0.0639 | `test_care_depression_macro_recall_mean`: 0.7826 ± 0.0337 | 0.7721 ± 0.0186 |
+| care_parkinson | val_care_parkinson_macro_recall_mean | `bimodal_shared_mtl__A2_T10` | `audio_id2+text_id10` | 0.8097 ± 0.1068 | `test_care_parkinson_macro_recall_mean`: 0.7954 ± 0.0518 | 0.7819 ± 0.0259 |
+| wsm_depression | val_wsm_depression_macro_recall_mean | `bimodal_gated_late__A4_T9` | `audio_id4+text_id9` | 0.7574 ± 0.0283 | `test_wsm_depression_macro_recall_mean`: 0.7737 ± 0.0124 | 0.7691 ± 0.0255 |
+| wsm_parkinson | val_wsm_parkinson_macro_recall_mean | `bimodal_shared_mtl__A1_T10` | `audio_id1+text_id10` | 0.9052 ± 0.0123 | `test_wsm_parkinson_macro_recall_mean`: 0.7490 ± 0.0428 | 0.7656 ± 0.0245 |
 
 ## 10. Interpretation, limitations and next research questions
 
