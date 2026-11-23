@@ -416,6 +416,51 @@ def report(rows: list[dict[str, Any]], summaries: list[dict[str, Any]], source_c
     lines += ["", "## D. TEST results — DESCRIPTIVE ONLY", "",
         "TEST values are reported only as statistics for the selected validation checkpoints and do not determine any decision.",
         "If all TEST metrics are missing, this report remains VAL-only until a separate selected-checkpoint TEST inference/evaluation step has produced verified metrics; training is already complete and must not be repeated.", "", "## E–F. Bimodal and trimodal comparisons", "", "The CSV outputs preserve all architecture, modality, feature-version, fold, task, corpus, split, and metric dimensions. Matched Text-Guided versus Audio-Guided fold differences are in `comparison_audio_vs_text_guided.csv`.", "", "## G. Best models", "", (f"Best validation variant: `{ranked[0]['experiment_id']}` with Overall UAR {float(ranked[0]['val_overall_uar_mean']):.4f} ± {float(ranked[0]['val_overall_uar_sd']):.4f}." if ranked else "No five-fold-complete validation variant is currently eligible."), "", "## H. Reproducibility and limitations", "", "The collector records config identity, runtime evidence, selected checkpoint, epoch, validation monitor, launcher exit code where available, MLflow run ID where available, and source provenance where available. Missing or incomplete artifacts are not fabricated. Results remain exploratory because upstream FIT/SELECTION provenance is unknown; no leakage-free or clinical-validity claim is made."]
+    # Full audio-style corpus/task tables: every one of the six metrics on
+    # both VAL and descriptive TEST, aggregated over five matching folds.
+    # Empty statistics stay empty; partial metrics are never invented.
+    def formatted(summary: dict[str, Any], field: str) -> str:
+        mean = summary.get(f"{field}_mean", "")
+        sd = summary.get(f"{field}_sd", "")
+        if mean in ("", None) or sd in ("", None):
+            return "—"
+        return f"{float(mean):.4f} ± {float(sd):.4f}"
+
+    for split in SPLITS:
+        lines.extend(("", f"## Detailed {split.upper()} metrics — five-fold mean ± sample SD", ""))
+        for component in COMPONENTS:
+            lines.extend((
+                f"### {component.replace('_', ' ').title()} — {split.upper()}",
+                "",
+                "| Model | Feature versions | Macro F1 | Weighted F1 | Macro Recall / UAR | Weighted Recall | Patient Recall | Healthy Recall |",
+                "|---|---|---:|---:|---:|---:|---:|---:|",
+            ))
+            for item in ranked:
+                metrics = " | ".join(
+                    formatted(item, f"{split}_{component}_{metric}")
+                    for metric in METRICS
+                )
+                lines.append(
+                    f"| `{item['model']}` | `{item['feature_ids']}` | {metrics} |"
+                )
+            if not ranked:
+                lines.append("No five-fold-complete variants.")
+            lines.append("")
+
+    lines.extend(("", "## VAL-only best bimodal and trimodal variants", ""))
+    for group_name, predicate in (
+        ("Bimodal", lambda row: row["model"].startswith("carewsm_bimodal")),
+        ("Trimodal", lambda row: not row["model"].startswith("carewsm_bimodal")),
+    ):
+        best = next((row for row in ranked if predicate(row)), None)
+        if best:
+            lines.append(
+                f"- **{group_name}:** `{best['experiment_id']}`, VAL UAR "
+                f"{formatted(best, 'val_overall_uar')}; descriptive TEST UAR "
+                f"{formatted(best, 'test_overall_uar')}"
+            )
+        else:
+            lines.append(f"- **{group_name}:** no complete five-fold variant.")
     return "\n".join(lines) + "\n"
 
 
