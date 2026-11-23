@@ -54,10 +54,12 @@ class CAREWSMTrimodalDataModule(DataModule):
         batch_size: int = 32,
         num_workers: int = 0,
         shuffle_train: bool = False,
+        common_cohort: bool = False,
     ) -> None:
         if fold not in FOLDS:
             raise ValueError("fold must be one of 0, 1, 2, 3, 4")
         self.fold = fold
+        self.common_cohort = bool(common_cohort)
         self.modalities = tuple(modalities)
         if len(self.modalities) not in (2, 3) or len(set(self.modalities)) != len(
             self.modalities
@@ -219,8 +221,9 @@ class CAREWSMTrimodalDataModule(DataModule):
             for field in ("profile_id", "video_id", "label_id", "subgroup"):
                 if row.get(field) and row[field] != record[field]:
                     raise ValueError(f"fold metadata mismatch for {key}: {field}")
+            required = ALL_FAMILIES if self.common_cohort else tuple(self.sources.values())
             all_paths = {
-                source: self._artifact_path(record, source) for source in ALL_FAMILIES
+                source: self._artifact_path(record, source) for source in required
             }
             if not all(path.is_file() for path in all_paths.values()):
                 continue
@@ -228,7 +231,7 @@ class CAREWSMTrimodalDataModule(DataModule):
                 modality: str(all_paths[self.sources[modality]])
                 for modality in self.modalities
             }
-            record["common_cohort"] = True
+            record["common_cohort"] = self.common_cohort
             output.append(record)
         return output
 
@@ -290,4 +293,5 @@ def carewsm_fusion(
     context: Any | None = None, **params: Any
 ) -> CAREWSMTrimodalDataModule:
     del context
+    params.setdefault("common_cohort", True)
     return CAREWSMTrimodalDataModule(**params)
