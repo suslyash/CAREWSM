@@ -11,6 +11,7 @@ def register() -> None:
     if _REGISTERED:
         return
     modules = (
+        "fusion.data.carewsm_trimodal_datamodule",
         "audio.data.carewsm_audio_datamodule",
         "audio.models.carewsm_audio_models",
         "audio.models.carewsm_representation_pilot_models",
