@@ -126,6 +126,57 @@ def verify(rows: list[dict[str, str]], summaries: list[dict[str, str]]) -> dict[
                 raise ValueError(f"five-fold aggregate mismatch: {variant}/{field}")
     return {"runs": len(rows), "variants": len(summaries), "metrics_per_run": 48}
 
+
+def verify_ranking_and_guided(
+    rows: list[dict[str, str]],
+    summaries: list[dict[str, str]],
+    ranking: list[dict[str, str]],
+    guided: list[dict[str, str]],
+) -> None:
+    """Check that VAL ranking and guided pairs match the audited fold data."""
+    ordered = sorted(
+        summaries,
+        key=lambda r: (-float(r["val_overall_uar_mean"]), r["experiment_id"]),
+    )
+    if len(ranking) != 57:
+        raise ValueError("expected 57 ranked variants")
+    for position, (expected, actual) in enumerate(zip(ordered, ranking, strict=True), 1):
+        if (
+            actual["experiment_id"] != expected["experiment_id"]
+            or actual["rank"] != str(position)
+            or abs(
+                float(actual["val_overall_uar_mean"])
+                - float(expected["val_overall_uar_mean"])
+            ) > 1e-8
+        ):
+            raise ValueError(f"ranking does not follow five-fold VAL: rank {position}")
+    lookup = {(row["experiment_id"], row["fold"]): row for row in rows}
+    text_variants = {
+        row["experiment_id"].split("__", 1)[1]
+        for row in summaries
+        if row["architecture"] == "text_guided"
+    }
+    if len(text_variants) != 6 or len(guided) != 30:
+        raise ValueError("expected six matched guided feature variants / 30 folds")
+    seen: set[tuple[str, str]] = set()
+    for pair in guided:
+        key = (pair["feature_variant"], pair["fold"])
+        if key in seen or key[0] not in text_variants or key[1] not in "01234":
+            raise ValueError(f"duplicate or unexpected guided pair: {key}")
+        seen.add(key)
+        left = lookup.get((f"text_guided__{key[0]}", key[1]))
+        right = lookup.get((f"audio_guided__{key[0]}", key[1]))
+        if left is None or right is None:
+            raise ValueError(f"missing matched guided fold: {key}")
+        for metric in GUIDED_METRICS:
+            reported = float(pair[f"{metric}_audio_minus_text"])
+            expected = float(right[metric]) - float(left[metric])
+            if not math.isfinite(reported) or abs(reported - expected) > 1e-8:
+                raise ValueError(f"guided difference mismatch: {key}/{metric}")
+    if len(seen) != 30:
+        raise ValueError("incomplete guided comparisons")
+
+
 def grouped_mean(rows: Iterable[dict[str, str]], field: str) -> float:
     values = [float(row[field]) for row in rows]
     return statistics.mean(values)
@@ -300,7 +351,9 @@ def generate(root: Path) -> dict[str, int]:
     rows = read_csv(source / "runs_status.csv")
     summaries = read_csv(source / "results_summary.csv")
     guided = read_csv(source / "comparison_audio_vs_text_guided.csv")
+    ranking = read_csv(source / "ranking_val.csv")
     counts = verify(rows, summaries)
+    verify_ranking_and_guided(rows, summaries, ranking, guided)
     architectures = architecture_rows(summaries)
     best = best_rows(summaries)
     guided_rows = guided_summary(guided)
