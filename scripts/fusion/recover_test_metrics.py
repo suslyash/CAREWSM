@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +38,12 @@ METRICS = (
 )
 
 
-def evaluate(config_path: Path, checkpoint_path: Path) -> dict[str, Any]:
+def evaluate(
+    config_path: Path,
+    checkpoint_path: Path,
+    selected_epoch: int,
+    selected_monitor: float,
+) -> dict[str, Any]:
     config = ExperimentConfig.from_yaml(str(config_path))
     define_seed(int(config.get("seed", 0)))
     context = BuildContext(config=config, stage="eval")
@@ -66,13 +72,34 @@ def evaluate(config_path: Path, checkpoint_path: Path) -> dict[str, Any]:
         for task in ("depression", "parkinson")
         for metric in METRICS
     }
+    identity = parse_config(config_path)
     return {
-        "run_name": config.get("experiment_info", {}).get("params", {}).get("run_name"),
+        "run_name": identity["run_name"],
+        "model": identity["model"],
+        "fold": identity["fold"],
+        "config_sha256": identity["config_sha256"],
         "checkpoint_path": str(checkpoint_path),
         "checkpoint_sha256": hashlib.sha256(checkpoint_path.read_bytes()).hexdigest(),
+        "selected_epoch": selected_epoch,
+        "selected_val_monitor": selected_monitor,
         "provenance": "post-training inference from the original selected checkpoint",
         **values,
     }
+
+
+def atomic_write_jsonl(path: Path, records: dict[str, dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=path.parent, delete=False
+    ) as handle:
+        handle.write(
+            "".join(
+                json.dumps(records[name], sort_keys=True) + "\n"
+                for name in sorted(records)
+            )
+        )
+        temporary = Path(handle.name)
+    temporary.replace(path)
 
 
 def main() -> None:
@@ -100,7 +127,7 @@ def main() -> None:
         if len(candidates) != 1:
             print(f"SKIP {identity['run_name']}: expected one runtime, found {len(candidates)}")
             continue
-        selected, _, _, error = checkpoint(candidates[0])
+        selected, selected_epoch, selected_monitor, error = checkpoint(candidates[0])
         if error or selected is None:
             print(f"SKIP {identity['run_name']}: {error}")
             continue
@@ -108,15 +135,10 @@ def main() -> None:
         if existing.get(identity["run_name"], {}).get("checkpoint_sha256") == digest:
             print(f"RESUME {identity['run_name']}")
             continue
-        existing[identity["run_name"]] = evaluate(path, selected)
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
-            "".join(
-                json.dumps(existing[name], sort_keys=True) + "\n"
-                for name in sorted(existing)
-            ),
-            encoding="utf-8",
+        existing[identity["run_name"]] = evaluate(
+            path, selected, selected_epoch, selected_monitor
         )
+        atomic_write_jsonl(args.output, existing)
         print(f"DONE {identity['run_name']}")
     print(f"recovered={len(existing)} output={args.output}")
 

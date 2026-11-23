@@ -58,3 +58,64 @@ def test_atomic_write_replaces_existing_file(tmp_path):
     collector.atomic_write(path, "first\n")
     collector.atomic_write(path, "second\n")
     assert path.read_text() == "second\n"
+
+
+def test_audio_vs_text_guided_keeps_val_pairs_when_test_is_missing():
+    common = {
+        "fold": "0",
+        "status": "MISSING_METRICS",
+        "val_overall_uar": 0.7,
+        "test_overall_uar": "",
+    }
+    records = [
+        {**common, "experiment_id": "text_guided__A1_V4_T9", "architecture": "text_guided"},
+        {**common, "experiment_id": "audio_guided__A1_V4_T9", "architecture": "audio_guided",
+         "val_overall_uar": 0.8},
+    ]
+    result = collector.compare_guided(records)
+    assert len(result) == 5
+    observed = next(row for row in result if row["fold"] == "0")
+    assert observed["text_guided_status"] is True
+    assert observed["audio_guided_status"] is True
+    assert abs(observed["val_overall_uar_audio_minus_text"] - 0.1) < 1e-12
+    assert observed["test_overall_uar_audio_minus_text"] == ""
+
+
+def test_recovery_requires_checkpoint_and_config_identity(tmp_path):
+    config = collector.parse_config(
+        Path("configs/fusion/sweep/audio_guided__A1_V4_T10__fold0.yaml")
+    )
+    checkpoint = tmp_path / "selected.pt"
+    checkpoint.write_bytes(b"selected")
+    record = {
+        "run_name": config["run_name"],
+        "model": config["model"],
+        "fold": config["fold"],
+        "config_sha256": config["config_sha256"],
+        "checkpoint_sha256": collector.sha256(checkpoint),
+        "selected_epoch": 4,
+        "selected_val_monitor": 0.6747,
+        "provenance": "post-training inference from the original selected checkpoint",
+    }
+    record.update(
+        {
+            f"test_{component}_{metric}": 0.5
+            for component in collector.COMPONENTS
+            for metric in collector.METRICS
+        }
+    )
+    assert collector.valid_recovery(record, config, checkpoint, 4, 0.6747)
+    record["checkpoint_sha256"] = "wrong"
+    assert not collector.valid_recovery(record, config, checkpoint, 4, 0.6747)
+
+
+def test_duplicate_recovery_records_are_rejected(tmp_path):
+    path = tmp_path / "test_results.jsonl"
+    path.write_text(
+        '{"run_name":"run","provenance":"one"}\n'
+        '{"run_name":"run","provenance":"two"}\n',
+        encoding="utf-8",
+    )
+    records, ambiguous = collector.load_recovery(path)
+    assert "run" in records
+    assert ambiguous == {"run"}
