@@ -216,7 +216,11 @@ These secondary protocols must not complicate or delay the primary joint feature
 
 ## Engineering
 
-All active Chimera-ML code belongs under `src/audio/`, organized by responsibility.
+`src/audio/` contains the existing historical audio pipeline. New trimodal
+Chimera-ML training code belongs under `src/fusion/`; create focused
+subdirectories only when AV-002/AV-003 needs them. Keep the future
+`scripts/fusion/` directory flat, with `.py` and `.sh` files together. Runtime
+logs and fusion experiment results belong under `logs/fusion/`.
 
 Keep implementation simple, explicit, testable and independent of obsolete WSM experiment logic.
 

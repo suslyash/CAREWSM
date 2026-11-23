@@ -42,8 +42,10 @@ joined by authoritative sample/profile/video metadata without imputation.
 
 Historical audio complete-case counts are reproduced: CARE 1,930 and WSM
 8,343. CARE has no `splits/videos.csv`; its train/dev/test rows were used.
-Both corpora have five fold train/val files. Profile/label-mask acceptance
-checks remain required in AV-002.
+Both corpora have five fold train/val files. Profile disjointness is checked
+and zero for every TRAIN/VAL, TRAIN/TEST, and VAL/TEST comparison. CARE
+observed-task mask semantics remain UNKNOWN because CARE provides only
+`label_id`, not independent Depression/Parkinson observed-mask columns.
 
 ## Text provenance and risks
 
@@ -163,20 +165,47 @@ Marginal missing counts overlap. Each exclusion tuple is missing-A / missing-V /
 
 The WSM reduction from 8,343 audio samples to 8,243 A+V+T samples is an intersection result, not a sum of marginal exclusions. CARE's 1,930/2,031 difference is entirely shared missing-audio coverage; video and text cover all 2,031 rows. No separate invalid-value or join-mismatch bucket is proven for unreadable/schema-invalid files outside inspected representatives, so that part remains UNKNOWN.
 
-## Corrective Round 1: reproducibility
+## Corrective Round 2: reproducibility
 
-Read-only command patterns used, with local CARE_ROOT and WSM_ROOT variables never committed:
+The committed read-only script is `scripts/fusion/audit_av001.py`. Run it with
+local roots supplied at invocation; no private paths or IDs are stored in its
+output or Git:
 
+~~~sh
+python3 scripts/fusion/audit_av001.py \
+  --care-root "$CARE_ROOT" \
+  --wsm-root "$WSM_ROOT"
 ~~~
-find "$CARE_ROOT/extracted_unimodal" "$WSM_ROOT/extracted_unimodal" -type f \
-  \\( -name 'audio_id[124]_fold*.pickle' -o -name 'video_4_fold*.pickle' \
-     -o -name 'text_id[910]_fold*.pickle' \\) -print
-python -c '<read representative pickle keys, dtype, shape, and finite values>'
-python -c '<read fold CSVs and fixed TEST; compare sample/profile sets>'
-python -c '<derive artifact keys; compute availability intersections and exclusions>'
+
+The script explicitly intersects `audio_id1_fold*.pickle`,
+`audio_id2_fold*.pickle`, and `audio_id4_fold*.pickle` for A; uses
+`video_4_fold*.pickle` for V; and explicitly intersects both
+`text_id9_fold*.pickle` and `text_id10_fold*.pickle` for T. It reports all
+five folds, sample/profile joins, profile intersections, A+V+T coverage,
+exclusion tuples, and duplicate artifact-to-sample keys. The old
+`text_id[910]` glob is intentionally not used because it does not match
+`text_id10_fold*.pickle`.
+
+Exact invocation used for this round:
+
+~~~sh
+python3 scripts/fusion/audit_av001.py --care-root "$CARE_ROOT" --wsm-root "$WSM_ROOT"
 ~~~
 
-The project environment and standard pickle, NumPy, PyTorch, CSV, and path APIs were used. No repository audit script, data artifact, model, or split was changed. The temporary artifact manifest was outside Git.
+In the local run, `CARE_ROOT` and `WSM_ROOT` were set to the two configured
+corpus roots; their absolute values are intentionally not recorded here.
+
+Aggregated result: CARE source/artifact join 2,031/2,031, WSM 8,433 source
+rows and 8,404 distinct legacy artifact keys, with zero artifact keys without
+source metadata and zero duplicate artifact-to-sample keys. Profile
+intersections were zero in all 30 corpus/fold pair checks. The script
+reproduced the report's fold counts and exclusion tuples, including CARE
+1,930/2,031 and WSM 8,243/8,343 complete A+V+T/audio coverage. The
+representative pickle shape/dtype read is `UNKNOWN` in the available runtime
+because NumPy is not installed; no value is inferred from that failed read.
+
+No repository data artifact, model, split, or temporary output was changed;
+the captured aggregate output was outside Git.
 
 The explicit per-row upstream FIT/SELECTION matrix is committed as upstream_leakage_matrix.csv. It separates derived membership from checkpoint-verified membership; absent checkpoint rosters remain UNKNOWN, including downstream TEST rows.
 
