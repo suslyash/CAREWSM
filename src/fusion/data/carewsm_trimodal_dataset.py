@@ -36,17 +36,26 @@ class CAREWSMTrimodalDataset(Dataset[dict[str, Any]]):
     def __init__(
         self,
         records,
-        audio_source,
-        video_source,
-        text_source,
+        sources,
+        video_source=None,
+        text_source=None,
         representation_key="shared_features",
     ):
         self.records = tuple(records)
+        if isinstance(sources, dict):
+            self.sources = dict(sources)
+        else:
+            self.sources = {
+                "audio": sources,
+                "video": video_source,
+                "text": text_source,
+            }
         self.sources = {
-            "audio": audio_source,
-            "video": video_source,
-            "text": text_source,
+            modality: source
+            for modality, source in self.sources.items()
+            if source is not None
         }
+        self.modalities = tuple(self.sources)
         self.representation_key = representation_key
 
     def __len__(self) -> int:
@@ -55,7 +64,7 @@ class CAREWSMTrimodalDataset(Dataset[dict[str, Any]]):
     def __getitem__(self, index: int) -> dict[str, Any]:
         record = self.records[index]
         inputs, lengths, paths = {}, {}, {}
-        for modality in MODALITIES:
+        for modality in self.modalities:
             path = Path(record["artifact_paths"][modality])
             values = load_pickle_array(path, self.representation_key)
             inputs[modality] = torch.from_numpy(values)
@@ -87,7 +96,9 @@ class CAREWSMTrimodalDataset(Dataset[dict[str, Any]]):
             "provenance_status": "UNKNOWN / BLOCKED: upstream FIT/SELECTION",
             "observed_targets": observed,
             "masks": {
-                "sequence_mask": torch.ones(lengths["video"], dtype=torch.bool),
+                "sequence_mask": torch.ones(
+                    lengths[self.modalities[0]], dtype=torch.bool
+                ),
                 "target_mask": observed,
                 "observed_targets": observed,
             },
@@ -101,30 +112,26 @@ def trimodal_collate(batch: list[dict[str, Any]]) -> Any:
     from chimera_ml.data.masking_collate import MaskingCollate
 
     collated = MaskingCollate()(batch)
+    modalities = tuple(batch[0]["inputs"])
     lengths = {
         modality: torch.tensor(
             [int(sample["inputs"][modality].shape[0]) for sample in batch],
             dtype=torch.long,
         )
-        for modality in MODALITIES
+        for modality in modalities
     }
-    video_max = int(lengths["video"].max().item())
-    video_valid = torch.arange(video_max).unsqueeze(0) < lengths["video"].unsqueeze(1)
     masks = dict(collated.masks or {})
-    masks.update(
-        {
-            "video_lengths": lengths["video"],
-            "video_valid_mask": video_valid,
-            "video_padding_mask": ~video_valid,
-            "audio_lengths": lengths["audio"],
-            "text_lengths": lengths["text"],
-            "target_mask": torch.stack(
-                [sample["meta"]["masks"]["target_mask"] for sample in batch]
-            ),
-            "observed_targets": torch.stack(
-                [sample["meta"]["masks"]["observed_targets"] for sample in batch]
-            ),
-        }
+    for modality, values in lengths.items():
+        maximum = int(values.max().item())
+        valid = torch.arange(maximum).unsqueeze(0) < values.unsqueeze(1)
+        masks[f"{modality}_lengths"] = values
+        masks[f"{modality}_valid_mask"] = valid
+        masks[f"{modality}_padding_mask"] = ~valid
+    masks["target_mask"] = torch.stack(
+        [sample["meta"]["masks"]["target_mask"] for sample in batch]
+    )
+    masks["observed_targets"] = torch.stack(
+        [sample["meta"]["masks"]["observed_targets"] for sample in batch]
     )
     return Batch(
         inputs=collated.inputs,
