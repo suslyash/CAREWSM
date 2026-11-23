@@ -116,3 +116,17 @@ run_all run
     assert completed.returncode == 1, completed.stdout + completed.stderr
     assert "COMPLETION_FAILED" in (logs / "launcher/status.tsv").read_text()
     assert "missing or ambiguous" in completed.stderr
+
+
+def test_legacy_and_sweep_data_registry_cohort_policies(monkeypatch):
+    from fusion.data import carewsm_trimodal_datamodule as module
+
+    class Capture:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    monkeypatch.setattr(module, "CAREWSMTrimodalDataModule", Capture)
+    legacy = module.carewsm_trimodal()
+    sweep = module.carewsm_fusion()
+    assert legacy.kwargs.get("common_cohort", False) is False
+    assert sweep.kwargs["common_cohort"] is True
