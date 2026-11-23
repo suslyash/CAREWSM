@@ -83,4 +83,4 @@ Tune only the final winning model/feature/loss family.
 - D-Vlog / YouTubePD;
 - small-target adaptation.
 
-Multimodality remains out of scope.
+The historical audio-only stages remain preserved. The owner-authorized AUDIO+VIDEO+TEXT successor is currently limited to AV-001 audit evidence; AV-002 data and AV-003 model implementation require separate manager authorization after the audit passes.

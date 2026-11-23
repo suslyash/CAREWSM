@@ -2,9 +2,9 @@
 
 ## Goal
 
-Build an audio-only system for Depression and Parkinson recognition using CARE and WSM, with strong emphasis on temporal modelling and controlled cross-corpus generalization.
+Build a Depression and Parkinson recognition system using CARE and WSM, with strong emphasis on temporal modelling and controlled cross-corpus generalization. The historical programme is audio-only; the owner-authorized successor direction is AUDIO + VIDEO + TEXT, currently limited to AV-001 read-only feature/provenance audit.
 
-Multimodality is explicitly deferred.
+Trimodal Dataset/DataModule/model/loss implementation is deferred to AV-002/AV-003 and is not authorized by AV-001.
 
 ## Corpora and structure
 
@@ -37,7 +37,7 @@ Expected structure:
 - raw segmented video trees under `depression/` and `parkinson/`;
 - `extracted/<LABEL>/<SUBGROUP>/PROFILE_<profile_id>/VIDEO_<video_name>/`.
 
-Both corpora use fixed train/dev/test splits and five CV folds inside TRAIN, grouped by participant/profile to prevent leakage. Codex must verify the live files rather than assume them.
+Both corpora use fixed train/dev/test splits and five CV folds inside TRAIN, grouped by participant/profile to prevent leakage. Codex must verify the live files rather than assume them. The AV-001 live audit found that CARE does not currently provide splits/videos.csv; CARE joins therefore use its authoritative train/dev/test rows and this discrepancy remains recorded rather than silently repaired.
 
 ## Audio feature inputs
 
