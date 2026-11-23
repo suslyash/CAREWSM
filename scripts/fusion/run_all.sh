@@ -67,6 +67,55 @@ print(f"validated {len(identities)} unique {matrix} configurations")
 PY
 }
 
+# Read-only preflight on the actual five-fold cohorts and a sample of each
+# declared source family. Never starts a model, an optimizer, or a training step.
+live_check() {
+  [[ -x "$PYTHON" && -x "$CHIMERA" ]] || {
+    echo "missing .venv Chimera installation" >&2; return 1
+  }
+  "$PYTHON" - "$MATRIX" <<'PY'
+from pathlib import Path
+import sys
+import torch
+import yaml
+from fusion.data.carewsm_trimodal_datamodule import (
+    ALL_FAMILIES, CAREWSMTrimodalDataModule
+)
+from fusion.data.carewsm_trimodal_dataset import load_pickle_array
+
+matrix = sys.argv[1]
+if not torch.cuda.is_available():
+    raise SystemExit("CUDA unavailable; refusing training preflight")
+expected = {"audio_id1": 64, "audio_id2": 64, "audio_id4": 64,
+            "video_4": 128, "text_id9": 64, "text_id10": 64}
+for fold in range(5):
+    if matrix == "sweep":
+        path = Path(f"configs/fusion/sweep/text_guided__A1_V4_T9__fold{fold}.yaml")
+    else:
+        path = Path(f"configs/fusion/text_guided_dual_gated_fold{fold}.yaml")
+    cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
+    module = CAREWSMTrimodalDataModule(**cfg["data"]["params"])
+    for view in ("val_care", "val_wsm"):
+        rows = module.views[view]
+        if not rows:
+            raise SystemExit(f"{path}: empty {view}")
+        for task in ("depression", "parkinson"):
+            observed = {row["targets"][task] for row in rows
+                        if row["targets"][task] is not None}
+            if observed != {0.0, 1.0}:
+                raise SystemExit(f"{path}: {view}/{task} lacks both observed classes")
+        if fold == 0:
+            record = rows[0]
+            for family in ALL_FAMILIES:
+                values = load_pickle_array(
+                    module._artifact_path(record, family), "shared_features"
+                )
+                if values.shape[1] != expected[family]:
+                    raise SystemExit(f"{path}: unexpected {family} dimension")
+print("CUDA and five-fold source/cohort/VAL-mask preflight passed; no training")
+PY
+}
+
 runtime_candidates() {
   local run="$1"
   local base="$LOG_ROOT/$NAMESPACE/$NAMESPACE"
@@ -145,8 +194,8 @@ ACTION="$1"
 if [[ $# == 3 ]]; then [[ "$2" == "--matrix" ]] || { usage >&2; exit 2; }; setup_matrix "$3"; else setup_matrix legacy; fi
 case "$ACTION" in
   --list) list_configs ;;
-  --check) check_configs; if [[ "$MATRIX" == legacy ]]; then check_existing; fi ;;
-  --run) check_configs; check_existing; run_all run ;;
-  --resume) check_configs; run_all resume ;;
+  --check) check_configs; live_check; if [[ "$MATRIX" == legacy ]]; then check_existing; fi ;;
+  --run) check_configs; live_check; check_existing; run_all run ;;
+  --resume) check_configs; live_check; run_all resume ;;
   *) usage >&2; exit 2 ;;
 esac
