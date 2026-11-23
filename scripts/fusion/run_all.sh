@@ -17,6 +17,7 @@ list_configs() {
   printf '%s\n' "${files[@]#"$ROOT/"}"
 }
 check() {
+  local allow_completed="${1:-false}"
   [[ -x "$PYTHON" && -x "$CHIMERA" ]] || { echo 'missing .venv Chimera installation' >&2; return 1; }
   mapfile -t files < <(configs)
   [[ ${#files[@]} -eq 15 ]] || { echo "expected 15 fusion configs, found ${#files[@]}" >&2; return 1; }
@@ -72,7 +73,7 @@ PY
   if pgrep -af 'chimera-ml train' | grep -v "$$"; then echo 'training process already active' >&2; return 1; fi
   for config in "${files[@]}"; do
     run=$(basename "$config" .yaml)
-    if verified "$run"; then
+    if [[ "$allow_completed" != true ]] && verified "$run"; then
       echo "completed run identity already exists: $run" >&2
       return 1
     fi
@@ -91,9 +92,25 @@ run_all() {
   mkdir -p "$LAUNCHER_DIR"
   printf 'run\tstatus\texit_code\n' > "$LEDGER"
   mapfile -t files < <(configs)
+  [[ ${#files[@]} -eq 15 ]] || { echo "expected 15 fusion configs" >&2; return 1; }
   for config in "${files[@]}"; do
-    local run=$(basename "$config" .yaml)
-    if [[ "$mode" == resume ]] && verified "$run"; then printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"; continue; fi
+    local run
+    run=$(basename "$config" .yaml)
+    if [[ "$mode" == resume ]] && verified "$run"; then
+      printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"
+      continue
+    fi
+    local run_dir="$LOG_ROOT/fusion/$run"
+    if [[ -d "$run_dir" ]]; then
+      if [[ "$mode" != resume ]]; then
+        echo "incomplete run directory exists: $run_dir; use --resume" >&2
+        return 1
+      fi
+      local archived="$LAUNCHER_DIR/incomplete/${run}_$(date -u +%Y%m%dT%H%M%SZ)_$"
+      mkdir -p "$(dirname "$archived")"
+      mv "$run_dir" "$archived"
+      echo "preserved incomplete run: $archived (restarting from scratch)" >&2
+    fi
     set +e
     CUDA_VISIBLE_DEVICES="$CUDA_DEVICE" "$CHIMERA" train -c "$config" > "$LAUNCHER_DIR/${run}.log" 2>&1
     local code=$?
@@ -101,10 +118,14 @@ run_all() {
     if (( code == 0 )) && verified "$run"; then
       printf '%s\tCOMPLETED\t0\n' "$run" >> "$LEDGER"
     else
+      if (( code == 0 )); then
+        printf '%s\tCOMPLETION_FAILED\t1\n' "$run" >> "$LEDGER"
+        echo "fusion completion artifacts missing: $run" >&2
+        return 1
+      fi
       printf '%s\tFAILED\t%s\n' "$run" "$code" >> "$LEDGER"
-      echo "fusion run failed or completion artifacts missing: $run (exit $code)" >&2
-      (( code != 0 )) && return "$code"
-      return 1
+      echo "fusion run failed: $run (exit $code)" >&2
+      return "$code"
     fi
   done
 }
@@ -113,6 +134,6 @@ case "$1" in
   --list) list_configs ;;
   --check) check ;;
   --run) check && run_all run ;;
-  --resume) run_all resume ;;
+  --resume) check true && run_all resume ;;
   *) usage >&2; exit 2 ;;
 esac
