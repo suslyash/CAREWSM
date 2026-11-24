@@ -44,11 +44,14 @@ def test_generated_outputs_have_twelve_blocks_and_36_data_rows() -> None:
     assert table.count("& Depression &") == 12
     assert table.count("& PD &") == 12
     assert table.count("& Average &") == 12
+    data_lines = [line for line in table.splitlines() if any(f"& {task} &" in line for task in ("Depression", "PD", "Average"))]
+    assert len(data_lines) == 36
+    assert sum(line.count(r"\pm") for line in data_lines) == 324
     assert "TBD" not in table
     assert "undefined" not in table
     assert "PREVIEW ONLY" not in table
     assert "\\pm" in table
-    assert "Model, feature IDs & Task" in table
+    assert "Model / feature IDs" in table
     assert " & Modalities & " not in table
     assert r"\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{A1V4}}}" in table
     assert r"\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A2V4T9}}}" in table
@@ -57,7 +60,7 @@ def test_generated_outputs_have_twelve_blocks_and_36_data_rows() -> None:
     assert table.index(r"\caption{") < table.index(r"\resizebox{")
     assert table.index(r"\label{tab:fusion-paper}") < table.index(r"\resizebox{")
     assert table.count(r"\hline") >= 13
-    assert table.count(r"\begin{tabular}{|p{3.05cm}|p{1.30cm}|r|r|r|r|r|r|r|r|r|}") == 1
+    assert table.count(r"\begin{tabular}{|p{2.85cm}|p{1.75cm}|r|r|r|r|r|r|r|r|r|}") == 1
     assert table.count(r"\multicolumn{11}{|c|}{\textbf{Shared MTL -- Best by VAL}}") == 1
     assert table.count(r"\multicolumn{11}{|c|}{\textbf{Cross-Attention -- Best by TEST (post-hoc)}}") == 1
     assert r"\color{blue}" in table and r"\color{red}" in table
