@@ -319,9 +319,9 @@ def write_latex(path: Path, blocks: list[dict[str, object]]) -> None:
         r"\renewcommand{\arraystretch}{1.08}",
         r"\begin{tabular}{|p{2.85cm}|p{1.75cm}|r|r|r|r|r|r|r|r|r|}",
         r"\hline",
-        r"\multirow{2}{*}{Model / feature IDs} & \multirow{2}{*}{Task} & \multicolumn{3}{c|}{CARE} & \multicolumn{3}{c|}{WSM} & \multicolumn{3}{c|}{CARE / WSM average} \\",
+        r"\multirow{2}{*}{\shortstack[l]{Model /\\feature IDs}} & \multirow{2}{*}{Task} & \multicolumn{3}{c|}{CARE} & \multicolumn{3}{c|}{WSM} & \multicolumn{3}{c|}{CARE / WSM average} \\",
         r"\cline{3-11}",
-        r"& & Macro Recall & Patient Recall & Healthy Recall & Macro Recall & Patient Recall & Healthy Recall & Macro Recall & Patient Recall & Healthy Recall \\",
+        r"& & \shortstack{Macro\\Recall} & \shortstack{Patient\\Recall} & \shortstack{Healthy\\Recall} & \shortstack{Macro\\Recall} & \shortstack{Patient\\Recall} & \shortstack{Healthy\\Recall} & \shortstack{Macro\\Recall} & \shortstack{Patient\\Recall} & \shortstack{Healthy\\Recall} \\",
         r"\hline",
     ]
     current_section = None
