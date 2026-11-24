@@ -11,6 +11,7 @@ from scripts.fusion.generate_paper_table import (
     compact_feature_ids,
     generate,
     highlight_extrema,
+    select_top_configurations,
 )
 
 
@@ -35,19 +36,25 @@ def test_fold_level_average_is_aggregated_before_sd() -> None:
     assert _mean_sd(values).sd == pytest.approx(0.0158113883)
 
 
-def test_generated_outputs_have_eight_blocks_and_24_data_rows() -> None:
+def test_generated_outputs_have_twelve_blocks_and_36_data_rows() -> None:
     root = Path(__file__).parents[1]
     selections = generate(root / "logs/fusion/sweep/reports", root / "reports/av_fusion_sweep")
-    assert len(selections) == 8
+    assert len(selections) == 12
     table = (root / "reports/av_fusion_sweep/FUSION_PAPER_TABLE.tex").read_text()
-    assert table.count("& Depression &") == 8
-    assert table.count("& PD &") == 8
-    assert table.count("& Average &") == 8
+    assert table.count("& Depression &") == 12
+    assert table.count("& PD &") == 12
+    assert table.count("& Average &") == 12
     assert "TBD" not in table
     assert "\\pm" in table
-    assert "Model, feature IDs & Modalities & Task" in table
-    assert r"\multirow{3}{*}{Shared MTL, \texttt{A1V4}}" in table
-    assert r"\multirow{3}{*}{Cross-Attention, \texttt{A2V4T9}}" in table
+    assert "Model, feature IDs & Task" in table
+    assert " & Modalities & " not in table
+    assert r"Shared MTL, \texttt{A1V4} & Depression" in table
+    assert r"Cross-Attention, \texttt{A2V4T9} & Depression" in table
+    assert r"\multirow" not in table
+    assert r"\cline" not in table
+    assert table.index(r"\caption{") < table.index(r"\resizebox{")
+    assert table.index(r"\label{tab:fusion-paper}") < table.index(r"\resizebox{")
+    assert table.count(r"\begin{tabular}{@{}p{2.9cm}l*{9}{c}@{}}") == 1
     assert table.count(r"\multicolumn{12}{l}{\textbf{Shared MTL -- Best by VAL}}") == 1
     assert table.count(r"\multicolumn{12}{l}{\textbf{Cross-Attention -- Best by TEST (post-hoc)}}") == 1
     assert r"\color{blue}" in table and r"\color{red}" in table
@@ -59,7 +66,17 @@ def test_selection_csv_contains_five_fold_identities() -> None:
     path = root / "reports/av_fusion_sweep/FUSION_PAPER_TABLE_SELECTION.csv"
     with path.open(newline="") as handle:
         rows = list(csv.DictReader(handle))
-    assert len(rows) == 8
+    assert len(rows) == 12
+    assert sum(row["architecture"] == "cross_attention" for row in rows) == 6
+    for selection in ("Best by VAL", "Best by TEST (post-hoc)"):
+        cross = [
+            row for row in rows
+            if row["architecture"] == "cross_attention"
+            and row["selection_criterion"] == selection
+        ]
+        assert len(cross) == 3
+        assert sorted(int(row["selection_rank"]) for row in cross) == [1, 2, 3]
+        assert len({row["experiment_id"] for row in cross}) == 3
     assert all(len(row["fold_identities"].split(",")) == 5 for row in rows)
     assert all(math.isfinite(float(row["val_overall_uar_mean"])) for row in rows)
 
@@ -98,3 +115,39 @@ def test_extrema_colors_per_task_and_metric_column_skip_boundary_means() -> None
     assert rows[2]["cells"][1].startswith("$" + r"{\color{blue}70.00}")
     assert r"\color{" not in rows[4]["cells"][0]
     assert rows[1]["cells"][1].endswith(r"\pm 1.00$")
+
+
+
+def test_cross_attention_selects_three_distinct_top_configurations() -> None:
+    rows = []
+    for features, val_score, test_score in (
+        ("A1_V4_T9", 0.70, 0.69),
+        ("A2_V4_T9", 0.72, 0.68),
+        ("A4_V4_T9", 0.68, 0.72),
+        ("A1_V4_T10", 0.73, 0.67),
+    ):
+        for fold in range(5):
+            rows.append({
+                "experiment_id": "cross_attention__" + features,
+                "architecture": "cross_attention",
+                "modalities": "audio+video+text",
+                "fold": str(fold),
+                "val_overall_uar": str(val_score),
+                "test_overall_uar": str(test_score),
+            })
+    val = select_top_configurations(
+        rows, "cross_attention", "audio+video+text", "val", 3
+    )
+    test = select_top_configurations(
+        rows, "cross_attention", "audio+video+text", "test", 3
+    )
+    assert [experiment for experiment, _ in val] == [
+        "cross_attention__A1_V4_T10",
+        "cross_attention__A2_V4_T9",
+        "cross_attention__A1_V4_T9",
+    ]
+    assert [experiment for experiment, _ in test] == [
+        "cross_attention__A4_V4_T9",
+        "cross_attention__A1_V4_T9",
+        "cross_attention__A2_V4_T9",
+    ]
