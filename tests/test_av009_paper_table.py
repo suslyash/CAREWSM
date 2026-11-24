@@ -48,13 +48,13 @@ def test_generated_outputs_have_twelve_blocks_and_36_data_rows() -> None:
     assert "\\pm" in table
     assert "Model, feature IDs & Task" in table
     assert " & Modalities & " not in table
-    assert r"Shared MTL, \texttt{A1V4} & Depression" in table
-    assert r"Cross-Attention, \texttt{A2V4T9} & Depression" in table
+    assert r"\shortstack[l]{Shared MTL,\\\texttt{A1V4}} & Depression" in table
+    assert r"\shortstack[l]{Cross-Attention,\\\texttt{A2V4T9}} & Depression" in table
     assert r"\multirow" not in table
     assert r"\cline" not in table
     assert table.index(r"\caption{") < table.index(r"\resizebox{")
     assert table.index(r"\label{tab:fusion-paper}") < table.index(r"\resizebox{")
-    assert table.count(r"\begin{tabular}{@{}p{2.9cm}l*{9}{c}@{}}") == 1
+    assert table.count(r"\begin{tabular}{@{}p{3.1cm}@{\hspace{4pt}}l*{9}{c}@{}}") == 1
     assert table.count(r"\multicolumn{12}{l}{\textbf{Shared MTL -- Best by VAL}}") == 1
     assert table.count(r"\multicolumn{12}{l}{\textbf{Cross-Attention -- Best by TEST (post-hoc)}}") == 1
     assert r"\color{blue}" in table and r"\color{red}" in table
