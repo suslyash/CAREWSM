@@ -1,0 +1,87 @@
+% Generated from five-fold values using the supplied manuscript table layout.
+\begin{table*}[!t]
+\centering
+\caption{Comparison of selected bimodal and trimodal fusion models on the CARE and WSM TEST subsets. Values are five-fold mean $\pm$ sample SD (\%). Blue and red highlight the best and worst non-boundary displayed means, respectively, per task and metric column; displayed 0\% and 100\% are excluded. Feature IDs: A = audio, V = video, T = text. Best-by-VAL uses validation Overall UAR; Best-by-TEST is retrospective, descriptive only. \texttt{UPSTREAM\_PROVENANCE=UNKNOWN -- EXPLORATORY RESULTS ONLY}.}
+\label{tab:fusion-paper}
+\resizebox{\textwidth}{!}{%
+\begingroup
+\setlength{\tabcolsep}{1.4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{|p{2.85cm}|p{1.75cm}|r|r|r|r|r|r|r|r|r|}
+\hline
+\multirow{2}{*}{\shortstack[l]{Model /\\feature IDs}} & \multirow{2}{*}{Task} & \multicolumn{3}{c|}{CARE} & \multicolumn{3}{c|}{WSM} & \multicolumn{3}{c|}{CARE / WSM average} \\
+\cline{3-11}
+& & \shortstack{Macro\\Recall} & \shortstack{Patient\\Recall} & \shortstack{Healthy\\Recall} & \shortstack{Macro\\Recall} & \shortstack{Patient\\Recall} & \shortstack{Healthy\\Recall} & \shortstack{Macro\\Recall} & \shortstack{Patient\\Recall} & \shortstack{Healthy\\Recall} \\
+\hline
+\multicolumn{11}{|c|}{\textbf{Shared MTL -- Best by VAL}} \\
+\hline
+% provenance: bimodal_shared_mtl__A1_V4; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{A1V4}}} & Depression & $67.64 \pm 1.85$ & $44.04 \pm 3.24$ & $91.24 \pm 2.12$ & $72.98 \pm 2.22$ & $69.27 \pm 4.34$ & $76.69 \pm 6.11$ & $70.31 \pm 0.98$ & $56.66 \pm 3.51$ & $83.97 \pm 3.18$ \\*
+ & PD & $65.85 \pm 7.74$ & $32.73 \pm 15.36$ & ${\color{blue}98.97} \pm 1.21$ & $62.68 \pm 3.38$ & $37.86 \pm 6.47$ & $87.49 \pm 7.93$ & $64.26 \pm 3.88$ & $35.29 \pm 9.78$ & $93.23 \pm 4.32$ \\*
+ & Average & $66.74 \pm 3.33$ & $38.38 \pm 6.91$ & $95.10 \pm 0.91$ & $67.83 \pm 2.17$ & $53.57 \pm 4.30$ & $82.09 \pm 3.61$ & $67.29 \pm 2.14$ & $45.98 \pm 4.91$ & $88.60 \pm 1.73$ \\
+\hline
+% provenance: bimodal_shared_mtl__A2_T10; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{A2T10}}} & Depression & $78.10 \pm 2.20$ & $61.06 \pm 4.30$ & ${\color{blue}95.14} \pm 0.52$ & $77.65 \pm 1.30$ & $74.51 \pm 2.87$ & ${\color{blue}80.79} \pm 4.76$ & $77.88 \pm 0.92$ & $67.79 \pm 3.39$ & ${\color{blue}87.96} \pm 2.48$ \\*
+ & PD & ${\color{blue}79.54} \pm 5.18$ & ${\color{blue}61.21} \pm 9.91$ & $97.86 \pm 0.84$ & $77.47 \pm 4.57$ & $64.58 \pm 7.35$ & ${\color{blue}90.35} \pm 3.15$ & ${\color{blue}78.50} \pm 4.63$ & ${\color{blue}62.90} \pm 8.47$ & ${\color{blue}94.11} \pm 1.79$ \\*
+ & Average & ${\color{blue}78.82} \pm 3.21$ & ${\color{blue}61.14} \pm 6.09$ & ${\color{blue}96.50} \pm 0.48$ & $77.56 \pm 2.64$ & $69.55 \pm 3.59$ & ${\color{blue}85.57} \pm 3.10$ & $78.19 \pm 2.59$ & $65.34 \pm 4.70$ & ${\color{blue}91.03} \pm 1.59$ \\
+\hline
+% provenance: bimodal_shared_mtl__V4_T9; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{V4T9}}} & Depression & ${\color{red}62.25} \pm 4.25$ & ${\color{red}37.45} \pm 8.49$ & ${\color{red}87.05} \pm 1.32$ & ${\color{red}66.87} \pm 3.27$ & ${\color{red}61.10} \pm 3.98$ & ${\color{red}72.64} \pm 5.33$ & ${\color{red}64.56} \pm 2.03$ & ${\color{red}49.27} \pm 3.01$ & ${\color{red}79.85} \pm 2.30$ \\*
+ & PD & ${\color{red}59.02} \pm 3.89$ & $24.24 \pm 10.05$ & ${\color{red}93.80} \pm 2.85$ & ${\color{red}50.89} \pm 3.98$ & ${\color{red}29.31} \pm 5.47$ & ${\color{red}72.46} \pm 10.19$ & ${\color{red}54.95} \pm 1.90$ & ${\color{red}26.78} \pm 7.34$ & ${\color{red}83.13} \pm 6.22$ \\*
+ & Average & ${\color{red}60.63} \pm 2.27$ & ${\color{red}30.84} \pm 5.73$ & ${\color{red}90.42} \pm 1.79$ & ${\color{red}58.88} \pm 2.79$ & ${\color{red}45.21} \pm 4.19$ & ${\color{red}72.55} \pm 4.54$ & ${\color{red}59.76} \pm 1.57$ & ${\color{red}38.02} \pm 3.29$ & ${\color{red}81.49} \pm 2.51$ \\
+\hline
+\multicolumn{11}{|c|}{\textbf{Shared MTL -- Best by TEST (post-hoc)}} \\
+\hline
+% provenance: bimodal_shared_mtl__A2_V4; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{A2V4}}} & Depression & $68.80 \pm 3.02$ & $46.17 \pm 5.76$ & $91.43 \pm 2.63$ & $71.95 \pm 2.33$ & $67.50 \pm 5.19$ & $76.40 \pm 5.90$ & $70.38 \pm 2.30$ & $56.84 \pm 4.70$ & $83.92 \pm 3.56$ \\*
+ & PD & $68.12 \pm 9.16$ & $37.58 \pm 18.26$ & $98.67 \pm 0.85$ & $61.21 \pm 3.39$ & $36.95 \pm 6.40$ & $85.48 \pm 7.32$ & $64.67 \pm 4.97$ & $37.26 \pm 11.73$ & $92.07 \pm 3.60$ \\*
+ & Average & $68.46 \pm 4.49$ & $41.87 \pm 8.83$ & $95.05 \pm 1.00$ & $66.58 \pm 2.70$ & $52.22 \pm 4.10$ & $80.94 \pm 4.15$ & $67.52 \pm 2.99$ & $47.05 \pm 5.51$ & $88.00 \pm 2.04$ \\
+\hline
+% provenance: bimodal_shared_mtl__A4_T9; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{A4T9}}} & Depression & ${\color{blue}78.84} \pm 5.12$ & ${\color{blue}63.40} \pm 7.69$ & $94.29 \pm 3.88$ & ${\color{blue}78.27} \pm 1.21$ & ${\color{blue}75.91} \pm 2.07$ & $80.62 \pm 1.98$ & ${\color{blue}78.56} \pm 2.34$ & ${\color{blue}69.66} \pm 4.45$ & $87.45 \pm 1.82$ \\*
+ & PD & $73.96 \pm 5.38$ & $49.70 \pm 10.84$ & $98.23 \pm 0.55$ & ${\color{blue}82.24} \pm 2.40$ & ${\color{blue}76.03} \pm 3.22$ & $88.44 \pm 1.67$ & $78.10 \pm 3.38$ & $62.86 \pm 6.39$ & $93.34 \pm 0.82$ \\*
+ & Average & $76.40 \pm 4.75$ & $56.55 \pm 8.07$ & $96.26 \pm 1.78$ & ${\color{blue}80.25} \pm 1.23$ & ${\color{blue}75.97} \pm 2.03$ & $84.53 \pm 0.88$ & ${\color{blue}78.33} \pm 2.65$ & ${\color{blue}66.26} \pm 4.65$ & $90.39 \pm 1.07$ \\
+\hline
+% provenance: bimodal_shared_mtl__V4_T9; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{V4T9}}} & Depression & ${\color{red}62.25} \pm 4.25$ & ${\color{red}37.45} \pm 8.49$ & ${\color{red}87.05} \pm 1.32$ & ${\color{red}66.87} \pm 3.27$ & ${\color{red}61.10} \pm 3.98$ & ${\color{red}72.64} \pm 5.33$ & ${\color{red}64.56} \pm 2.03$ & ${\color{red}49.27} \pm 3.01$ & ${\color{red}79.85} \pm 2.30$ \\*
+ & PD & ${\color{red}59.02} \pm 3.89$ & $24.24 \pm 10.05$ & ${\color{red}93.80} \pm 2.85$ & ${\color{red}50.89} \pm 3.98$ & ${\color{red}29.31} \pm 5.47$ & ${\color{red}72.46} \pm 10.19$ & ${\color{red}54.95} \pm 1.90$ & ${\color{red}26.78} \pm 7.34$ & ${\color{red}83.13} \pm 6.22$ \\*
+ & Average & ${\color{red}60.63} \pm 2.27$ & ${\color{red}30.84} \pm 5.73$ & ${\color{red}90.42} \pm 1.79$ & ${\color{red}58.88} \pm 2.79$ & ${\color{red}45.21} \pm 4.19$ & ${\color{red}72.55} \pm 4.54$ & ${\color{red}59.76} \pm 1.57$ & ${\color{red}38.02} \pm 3.29$ & ${\color{red}81.49} \pm 2.51$ \\
+\hline
+\multicolumn{11}{|c|}{\textbf{Cross-Attention -- Best by VAL}} \\
+\hline
+% provenance: cross_attention__A2_V4_T9; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A2V4T9}}} & Depression & $68.77 \pm 2.95$ & $46.60 \pm 5.60$ & $90.95 \pm 2.67$ & $73.75 \pm 3.13$ & $69.70 \pm 2.96$ & $77.81 \pm 5.37$ & $71.26 \pm 2.92$ & $58.15 \pm 3.79$ & $84.38 \pm 3.47$ \\*
+ & PD & $63.99 \pm 7.14$ & $29.09 \pm 14.31$ & $98.89 \pm 0.94$ & $61.30 \pm 3.93$ & $34.96 \pm 8.00$ & $87.64 \pm 7.28$ & $62.65 \pm 3.53$ & $32.03 \pm 10.00$ & $93.27 \pm 3.54$ \\*
+ & Average & $66.38 \pm 4.17$ & $37.84 \pm 7.96$ & $94.92 \pm 1.03$ & $67.53 \pm 3.25$ & $52.33 \pm 3.81$ & $82.72 \pm 5.00$ & $66.95 \pm 2.75$ & $45.09 \pm 5.30$ & $88.82 \pm 2.46$ \\
+\hline
+% provenance: cross_attention__A4_V4_T10; folds 0,1,2,3,4; selection rank 2
+\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A4V4T10}}} & Depression & $66.88 \pm 1.48$ & $41.28 \pm 5.12$ & $92.48 \pm 2.29$ & $73.61 \pm 2.55$ & $68.29 \pm 4.57$ & $78.93 \pm 3.74$ & $70.24 \pm 1.89$ & $54.78 \pm 4.13$ & $85.70 \pm 1.66$ \\*
+ & PD & $61.30 \pm 5.89$ & ${\color{red}23.64} \pm 11.81$ & ${\color{blue}98.97} \pm 0.99$ & $63.89 \pm 2.65$ & $39.39 \pm 10.14$ & $88.39 \pm 5.25$ & $62.60 \pm 3.71$ & $31.51 \pm 9.76$ & $93.68 \pm 2.74$ \\*
+ & Average & $64.09 \pm 3.19$ & $32.46 \pm 6.89$ & $95.72 \pm 1.37$ & $68.75 \pm 1.55$ & $53.84 \pm 5.07$ & $83.66 \pm 2.54$ & $66.42 \pm 2.00$ & $43.15 \pm 4.73$ & $89.69 \pm 1.07$ \\
+\hline
+% provenance: cross_attention__A2_V4_T10; folds 0,1,2,3,4; selection rank 3
+\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A2V4T10}}} & Depression & $68.52 \pm 3.03$ & $46.38 \pm 5.95$ & $90.67 \pm 3.43$ & $73.35 \pm 2.87$ & $69.39 \pm 3.14$ & $77.31 \pm 5.54$ & $70.94 \pm 2.83$ & $57.89 \pm 4.05$ & $83.99 \pm 3.99$ \\*
+ & PD & $64.63 \pm 7.32$ & $30.30 \pm 14.85$ & ${\color{blue}98.97} \pm 1.09$ & $60.49 \pm 4.01$ & $34.20 \pm 7.94$ & $86.78 \pm 6.36$ & $62.56 \pm 3.43$ & $32.25 \pm 9.68$ & $92.88 \pm 3.22$ \\*
+ & Average & $66.58 \pm 4.42$ & $38.34 \pm 8.79$ & $94.82 \pm 1.43$ & $66.92 \pm 3.03$ & $51.79 \pm 3.57$ & $82.05 \pm 4.73$ & $66.75 \pm 2.63$ & $45.07 \pm 5.38$ & $88.43 \pm 2.60$ \\
+\hline
+\multicolumn{11}{|c|}{\textbf{Cross-Attention -- Best by TEST (post-hoc)}} \\
+\hline
+% provenance: cross_attention__A2_V4_T9; folds 0,1,2,3,4; selection rank 1
+\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A2V4T9}}} & Depression & $68.77 \pm 2.95$ & $46.60 \pm 5.60$ & $90.95 \pm 2.67$ & $73.75 \pm 3.13$ & $69.70 \pm 2.96$ & $77.81 \pm 5.37$ & $71.26 \pm 2.92$ & $58.15 \pm 3.79$ & $84.38 \pm 3.47$ \\*
+ & PD & $63.99 \pm 7.14$ & $29.09 \pm 14.31$ & $98.89 \pm 0.94$ & $61.30 \pm 3.93$ & $34.96 \pm 8.00$ & $87.64 \pm 7.28$ & $62.65 \pm 3.53$ & $32.03 \pm 10.00$ & $93.27 \pm 3.54$ \\*
+ & Average & $66.38 \pm 4.17$ & $37.84 \pm 7.96$ & $94.92 \pm 1.03$ & $67.53 \pm 3.25$ & $52.33 \pm 3.81$ & $82.72 \pm 5.00$ & $66.95 \pm 2.75$ & $45.09 \pm 5.30$ & $88.82 \pm 2.46$ \\
+\hline
+% provenance: cross_attention__A2_V4_T10; folds 0,1,2,3,4; selection rank 2
+\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A2V4T10}}} & Depression & $68.52 \pm 3.03$ & $46.38 \pm 5.95$ & $90.67 \pm 3.43$ & $73.35 \pm 2.87$ & $69.39 \pm 3.14$ & $77.31 \pm 5.54$ & $70.94 \pm 2.83$ & $57.89 \pm 4.05$ & $83.99 \pm 3.99$ \\*
+ & PD & $64.63 \pm 7.32$ & $30.30 \pm 14.85$ & ${\color{blue}98.97} \pm 1.09$ & $60.49 \pm 4.01$ & $34.20 \pm 7.94$ & $86.78 \pm 6.36$ & $62.56 \pm 3.43$ & $32.25 \pm 9.68$ & $92.88 \pm 3.22$ \\*
+ & Average & $66.58 \pm 4.42$ & $38.34 \pm 8.79$ & $94.82 \pm 1.43$ & $66.92 \pm 3.03$ & $51.79 \pm 3.57$ & $82.05 \pm 4.73$ & $66.75 \pm 2.63$ & $45.07 \pm 5.38$ & $88.43 \pm 2.60$ \\
+\hline
+% provenance: cross_attention__A4_V4_T10; folds 0,1,2,3,4; selection rank 3
+\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A4V4T10}}} & Depression & $66.88 \pm 1.48$ & $41.28 \pm 5.12$ & $92.48 \pm 2.29$ & $73.61 \pm 2.55$ & $68.29 \pm 4.57$ & $78.93 \pm 3.74$ & $70.24 \pm 1.89$ & $54.78 \pm 4.13$ & $85.70 \pm 1.66$ \\*
+ & PD & $61.30 \pm 5.89$ & ${\color{red}23.64} \pm 11.81$ & ${\color{blue}98.97} \pm 0.99$ & $63.89 \pm 2.65$ & $39.39 \pm 10.14$ & $88.39 \pm 5.25$ & $62.60 \pm 3.71$ & $31.51 \pm 9.76$ & $93.68 \pm 2.74$ \\*
+ & Average & $64.09 \pm 3.19$ & $32.46 \pm 6.89$ & $95.72 \pm 1.37$ & $68.75 \pm 1.55$ & $53.84 \pm 5.07$ & $83.66 \pm 2.54$ & $66.42 \pm 2.00$ & $43.15 \pm 4.73$ & $89.69 \pm 1.07$ \\
+\hline
+\end{tabular}
+\endgroup
+}
+\end{table*}
