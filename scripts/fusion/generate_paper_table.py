@@ -283,7 +283,7 @@ def highlight_extrema(rendered_rows: list[dict[str, object]]) -> None:
 
 
 def write_latex(path: Path, blocks: list[dict[str, object]]) -> None:
-    """Render a compact 11-column table without multiro​w overlap."""
+    """Render a compact 11-column table without multirow overlap."""
     order = {
         (architecture, criterion, modalities): (arch_idx, selection_idx, modality_idx)
         for arch_idx, (architecture, modality_options) in enumerate(ARCHITECTURES.items())
@@ -347,7 +347,7 @@ def write_latex(path: Path, blocks: list[dict[str, object]]) -> None:
             model_label = ""
         label = {"depression": "Depression", "parkinson": "PD", "average": "Average"}[task]
         lines.append(model_label + " & " + label + " & " + " & ".join(row["cells"]) + r" \\")
-        if task == "average":
+        if task == "average" and row is not rendered_rows[-1]:
             lines.append(r"\midrule")
     lines.extend([
         r"\bottomrule",
