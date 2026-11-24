@@ -1,5 +1,6 @@
 import csv
 import math
+import re
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,9 @@ import pytest
 from scripts.fusion.generate_paper_table import (
     _mean_sd,
     cell_values,
+    compact_feature_ids,
     generate,
+    highlight_extrema,
 )
 
 
@@ -42,6 +45,13 @@ def test_generated_outputs_have_eight_blocks_and_24_data_rows() -> None:
     assert table.count("& Average &") == 8
     assert "TBD" not in table
     assert "\\pm" in table
+    assert "Model, feature IDs & Modalities & Task" in table
+    assert r"\multirow{3}{*}{Shared MTL, \texttt{A1V4}}" in table
+    assert r"\multirow{3}{*}{Cross-Attention, \texttt{A2V4T9}}" in table
+    assert table.count(r"\multicolumn{12}{l}{\textbf{Shared MTL -- Best by VAL}}") == 1
+    assert table.count(r"\multicolumn{12}{l}{\textbf{Cross-Attention -- Best by TEST (post-hoc)}}") == 1
+    assert r"\color{blue}" in table and r"\color{red}" in table
+    assert not re.search(r"\{\\color\{(?:red|blue)\}(?:0\.00|100\.00)\}", table)
 
 
 def test_selection_csv_contains_five_fold_identities() -> None:
@@ -52,3 +62,39 @@ def test_selection_csv_contains_five_fold_identities() -> None:
     assert len(rows) == 8
     assert all(len(row["fold_identities"].split(",")) == 5 for row in rows)
     assert all(math.isfinite(float(row["val_overall_uar_mean"])) for row in rows)
+
+
+
+def test_compact_model_features_use_exact_original_modality_ids() -> None:
+    assert compact_feature_ids("audio_id1+video_4") == "A1V4"
+    assert compact_feature_ids("audio_id2+text_id10") == "A2T10"
+    assert compact_feature_ids("video_4+text_id9") == "V4T9"
+    assert compact_feature_ids("audio_id2+video_4+text_id9") == "A2V4T9"
+    with pytest.raises(ValueError, match="noncanonical"):
+        compact_feature_ids("text_id9+audio_id1")
+
+
+def test_extrema_colors_per_task_and_metric_column_skip_boundary_means() -> None:
+    def entry(task: str, means: list[float]) -> dict[str, object]:
+        return {
+            "task": task,
+            "cells": ["$" + f"{value:.2f}" + r" \pm 1.00$" for value in means],
+        }
+
+    rows = [
+        entry("depression", [0.0, 40.0] + [0.0] * 7),
+        entry("depression", [100.0, 70.0] + [100.0] * 7),
+        entry("depression", [40.0, 70.0] + [40.0] * 7),
+        entry("depression", [70.0, 60.0] + [70.0] * 7),
+        entry("parkinson", [55.0] * 9),
+    ]
+    highlight_extrema(rows)
+    assert rows[0]["cells"][0].startswith("$0.00")
+    assert rows[1]["cells"][0].startswith("$100.00")
+    assert rows[2]["cells"][0].startswith("$" + r"{\color{red}40.00}")
+    assert rows[3]["cells"][0].startswith("$" + r"{\color{blue}70.00}")
+    assert rows[0]["cells"][1].startswith("$" + r"{\color{red}40.00}")
+    assert rows[1]["cells"][1].startswith("$" + r"{\color{blue}70.00}")
+    assert rows[2]["cells"][1].startswith("$" + r"{\color{blue}70.00}")
+    assert r"\color{" not in rows[4]["cells"][0]
+    assert rows[1]["cells"][1].endswith(r"\pm 1.00$")
