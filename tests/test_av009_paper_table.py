@@ -51,7 +51,10 @@ def test_generated_outputs_have_twelve_blocks_and_36_data_rows() -> None:
     assert "undefined" not in table
     assert "PREVIEW ONLY" not in table
     assert "\\pm" in table
-    assert "Model / feature IDs" in table
+    assert r"\multirow{2}{*}{\shortstack[l]{Model /\\feature IDs}}" in table
+    assert table.count(r"\shortstack{Macro\\Recall}") == 3
+    assert table.count(r"\shortstack{Patient\\Recall}") == 3
+    assert table.count(r"\shortstack{Healthy\\Recall}") == 3
     assert " & Modalities & " not in table
     assert r"\multirow{3}{*}{\raggedright\shortstack[l]{Shared MTL,\\\texttt{A1V4}}}" in table
     assert r"\multirow{3}{*}{\raggedright\shortstack[l]{Cross-Attention,\\\texttt{A2V4T9}}}" in table
