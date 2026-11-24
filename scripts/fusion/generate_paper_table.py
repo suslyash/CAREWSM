@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import re
 import statistics
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,6 +25,29 @@ ARCHITECTURES = {
     "cross_attention": (("audio+video+text", "Audio + Video + Text"),),
 }
 
+
+MODEL_NAMES = {
+    "bimodal_shared_mtl": "Shared MTL",
+    "cross_attention": "Cross-Attention",
+}
+SELECTION_ORDER = ("Best by VAL", "Best by TEST (post-hoc)")
+
+
+def compact_feature_ids(feature_ids: str) -> str:
+    """Compact and validate feature IDs, e.g. A2V4T9."""
+    prefixes = {"audio_id": ("A", 0), "video_": ("V", 1), "text_id": ("T", 2)}
+    pieces = []
+    positions = []
+    for token in feature_ids.split("+"):
+        match = re.fullmatch(r"(audio_id|video_|text_id)(\d+)", token)
+        if match is None:
+            raise ValueError(f"unsupported feature ID: {token}")
+        letter, position = prefixes[match.group(1)]
+        pieces.append(f"{letter}{match.group(2)}")
+        positions.append(position)
+    if positions != sorted(set(positions)) or len(positions) not in (2, 3):
+        raise ValueError(f"noncanonical modality combination: {feature_ids}")
+    return "".join(pieces)
 
 @dataclass(frozen=True)
 class FoldSummary:
