@@ -45,6 +45,8 @@ def test_generated_outputs_have_twelve_blocks_and_36_data_rows() -> None:
     assert table.count("& PD &") == 12
     assert table.count("& Average &") == 12
     assert "TBD" not in table
+    assert "undefined" not in table
+    assert "PREVIEW ONLY" not in table
     assert "\\pm" in table
     assert "Model, feature IDs & Task" in table
     assert " & Modalities & " not in table
